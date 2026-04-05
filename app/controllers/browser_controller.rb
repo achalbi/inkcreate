@@ -23,6 +23,7 @@ class BrowserController < ActionController::Base
   include ActiveStorage::SetCurrent
   include Devise::Controllers::Helpers
   include CurrentUserContext
+  include RequestTimeZoneContext
 
   protect_from_forgery with: :exception
   layout :browser_layout

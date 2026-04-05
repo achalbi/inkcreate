@@ -7,14 +7,16 @@ class PagesController < BrowserController
   def show; end
 
   def new
-    @page = @chapter.pages.new(captured_on: Date.current)
+    @page = @chapter.pages.new(captured_on: Time.zone.today)
+    @page.title = @page.display_title
   end
 
   def create
     @page = @chapter.pages.new(page_attributes)
+    preserve_pending_photos(@page, page_params)
 
     if @page.save
-      attach_photos(@page)
+      attach_pending_photos(@page)
       redirect_to notebook_chapter_page_path(@notebook, @chapter, @page), notice: "Page created."
     else
       render :new, status: :unprocessable_entity
@@ -24,8 +26,10 @@ class PagesController < BrowserController
   def edit; end
 
   def update
+    preserve_pending_photos(@page, page_params)
+
     if @page.update(page_attributes)
-      attach_photos(@page)
+      attach_pending_photos(@page)
       redirect_to notebook_chapter_page_path(@notebook, @chapter, @page), notice: "Page updated."
     else
       render :edit, status: :unprocessable_entity
@@ -55,7 +59,7 @@ class PagesController < BrowserController
   end
 
   def set_chapter
-    @chapter = @notebook.chapters.find(params[:chapter_id])
+    @chapter = @notebook.all_chapters.find(params[:chapter_id])
   end
 
   def set_page
@@ -63,16 +67,39 @@ class PagesController < BrowserController
   end
 
   def page_params
-    params.require(:page).permit(:title, :notes, :captured_on, photos: [])
+    params.require(:page).permit(:title, :notes, :captured_on, retained_photo_signed_ids: [], photos: [])
   end
 
   def page_attributes
-    page_params.except(:photos)
+    page_params.except(:photos, :retained_photo_signed_ids)
   end
 
-  def attach_photos(page)
-    files = Array(page_params[:photos]).reject(&:blank?)
-    page.photos.attach(files) if files.any?
+  def preserve_pending_photos(page, attrs)
+    page.retained_photo_signed_ids = retained_photo_signed_ids(attrs) + uploaded_photo_signed_ids(attrs[:photos])
+  end
+
+  def retained_photo_signed_ids(attrs)
+    Array(attrs[:retained_photo_signed_ids]).reject(&:blank?)
+  end
+
+  def uploaded_photo_signed_ids(files)
+    Array(files).reject(&:blank?).filter_map do |upload|
+      next unless upload.respond_to?(:open)
+
+      ActiveStorage::Blob.create_and_upload!(
+        io: upload.open,
+        filename: upload.original_filename,
+        content_type: upload.content_type
+      ).signed_id
+    end
+  end
+
+  def attach_pending_photos(page)
+    signed_ids = page.retained_photo_signed_ids
+    return if signed_ids.empty?
+
+    page.photos.attach(signed_ids)
+    page.retained_photo_signed_ids = []
   end
 
   def move_within_scope(scope, record, direction)

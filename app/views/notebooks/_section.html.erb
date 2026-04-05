@@ -1,0 +1,70 @@
+<section class="ibox float-e-margins notebook-section-shell">
+  <div class="ibox-title notebook-section-title">
+    <div class="notebook-section-title-row">
+      <div class="notebook-section-heading">
+        <h5><%= title %></h5>
+      </div>
+      <div class="ibox-tools notebook-section-tools">
+        <% if all_notebooks.any? %>
+          <button
+            type="button"
+            class="notebook-section-open-button"
+            data-bs-toggle="modal"
+            data-bs-target="#<%= modal_id %>"
+            aria-label="Open <%= title.downcase %> list"
+            title="Open list"
+          >
+            <i class="ti ti-layout-list"></i>
+          </button>
+        <% end %>
+        <%= render "shared/ibox_toggle_button", target_id: content_id %>
+      </div>
+    </div>
+    <p class="notebook-section-copy"><%= description %></p>
+    <div class="notebook-section-meta">
+      <span class="label <%= badge_class %> notebook-section-badge"><%= badge_text %></span>
+    </div>
+  </div>
+
+  <div id="<%= content_id %>" class="ibox-content collapse show notebook-section-content">
+    <% if notebooks.any? %>
+      <div class="notebook-list-stack">
+        <% notebooks.each do |notebook| %>
+          <%= render "notebook_card", notebook: notebook %>
+        <% end %>
+      </div>
+
+      <% if local_assigns.fetch(:show_pagination, true) && total_pages > 1 %>
+        <div class="notebook-section-pagination">
+          <div class="notebook-section-pagination__meta">
+            Page <%= current_page %> of <%= total_pages %>
+          </div>
+
+          <div class="notebook-section-pagination__actions">
+            <% if current_page > 1 %>
+              <%= link_to "Previous",
+                request.query_parameters.merge(page_param => current_page - 1),
+                class: "btn btn-white btn-sm notebook-section-pagination__button" %>
+            <% else %>
+              <span class="btn btn-white btn-sm notebook-section-pagination__button disabled" aria-disabled="true">Previous</span>
+            <% end %>
+
+            <% if current_page < total_pages %>
+              <%= link_to "Next",
+                request.query_parameters.merge(page_param => current_page + 1),
+                class: "btn btn-white btn-sm notebook-section-pagination__button" %>
+            <% else %>
+              <span class="btn btn-white btn-sm notebook-section-pagination__button disabled" aria-disabled="true">Next</span>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    <% else %>
+      <%= render "shared/empty_state", title: empty_title, description: empty_description %>
+    <% end %>
+  </div>
+</section>
+
+<% if all_notebooks.any? %>
+  <%= render "section_modal", modal_id:, title:, notebooks: all_notebooks %>
+<% end %>

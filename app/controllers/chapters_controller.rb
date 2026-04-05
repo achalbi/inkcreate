@@ -1,7 +1,7 @@
 class ChaptersController < BrowserController
   before_action :require_authenticated_user!
   before_action :set_notebook
-  before_action :set_chapter, only: %i[show edit update destroy move]
+  before_action :set_chapter, only: %i[show edit update destroy move restore]
 
   def show
     @pages = @chapter.pages.with_attached_photos
@@ -32,8 +32,18 @@ class ChaptersController < BrowserController
   end
 
   def destroy
-    @chapter.destroy!
-    redirect_to notebook_path(@notebook), notice: "Chapter deleted."
+    if @chapter.pages.exists?
+      @chapter.soft_delete!
+      redirect_to notebook_path(@notebook), notice: "Chapter moved to deleted chapters because it still contains pages."
+    else
+      @chapter.destroy!
+      redirect_to notebook_path(@notebook), notice: "Chapter deleted."
+    end
+  end
+
+  def restore
+    @chapter.restore!
+    redirect_to notebook_path(@notebook), notice: "Chapter restored."
   end
 
   def move
@@ -48,7 +58,7 @@ class ChaptersController < BrowserController
   end
 
   def set_chapter
-    @chapter = @notebook.chapters.find(params[:id])
+    @chapter = @notebook.all_chapters.find(params[:id])
   end
 
   def chapter_params

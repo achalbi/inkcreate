@@ -1,35 +1,20 @@
-<div class="panel panel-default">
-  <div class="panel-body">
-    <div class="row">
-      <div class="col-sm-8">
-        <h4 class="m-t-none m-b-xs"><%= link_to notebook.title, notebook_path(notebook) %></h4>
-        <p class="text-muted m-b-sm"><%= notebook.description.presence || "No description yet." %></p>
-        <p class="small text-muted m-b-none">
-          <strong><%= notebook.chapters.count %></strong> <%= "chapter".pluralize(notebook.chapters.count) %>
-          <span class="m-l-md"><strong><%= notebook.pages.count %></strong> <%= "page".pluralize(notebook.pages.count) %></span>
-          <span class="m-l-md">Updated <%= time_ago_in_words(notebook.updated_at) %> ago</span>
-        </p>
+<article class="notebook-list-card">
+  <%= link_to notebook_path(notebook), class: "notebook-list-card__body", aria: { label: "Open #{notebook.title}" } do %>
+    <div class="notebook-list-card__header">
+      <div class="notebook-list-card__main">
+        <h6 class="notebook-list-card__title"><%= notebook.title %></h6>
+        <p class="notebook-list-card__description"><%= notebook.description.presence || "Add a short description so this notebook is easier to recognize later." %></p>
       </div>
-      <div class="col-sm-4">
-        <p class="m-b-sm m-t-none">
-          <span class="label <%= notebook.status_active? ? "label-primary" : "label-default" %>"><%= notebook.status.humanize %></span>
-        </p>
-        <p class="m-b-none">
-          <%= link_to "Open", notebook_path(notebook), class: "btn btn-primary btn-sm" %>
-          <%= link_to "Edit", edit_notebook_path(notebook), class: "btn btn-white btn-sm" %>
-          <% if notebook.status_active? %>
-            <%= button_to "Archive", archive_notebook_path(notebook),
-              method: :patch,
-              form: { style: "display: inline-block; margin: 0;", onsubmit: "return confirm('Archive this notebook?');" },
-              class: "btn btn-white btn-sm" %>
-          <% else %>
-            <%= button_to "Restore", unarchive_notebook_path(notebook),
-              method: :patch,
-              form: { style: "display: inline-block; margin: 0;" },
-              class: "btn btn-white btn-sm" %>
-          <% end %>
-        </p>
+
+      <div class="notebook-list-card__header-tools">
+        <span class="label <%= notebook.status_active? ? "label-primary" : "label-default" %> notebook-list-card__status"><%= notebook.status.humanize %></span>
       </div>
     </div>
-  </div>
-</div>
+
+    <div class="notebook-list-card__meta">
+      <span class="notebook-list-card__meta-item"><strong><%= notebook.chapters.size %></strong> <%= "chapter".pluralize(notebook.chapters.size) %></span>
+      <span class="notebook-list-card__meta-item"><strong><%= notebook.pages.size %></strong> <%= "page".pluralize(notebook.pages.size) %></span>
+      <span class="notebook-list-card__meta-item">Updated <%= time_ago_in_words(notebook.updated_at) %> ago</span>
+    </div>
+  <% end %>
+</article>

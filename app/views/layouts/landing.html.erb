@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-time-zone="<%= effective_time_zone_name %>">
   <head>
     <title>Inkcreate</title>
     <meta charset="utf-8">
@@ -11,6 +11,7 @@
     <meta name="theme-color" content="#17392d">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
+    <script src="<%= versioned_public_asset_path("/scripts/device_time_zone.js") %>" defer></script>
     <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
     <link rel="manifest" href="<%= versioned_public_asset_path("/manifest.json") %>">
     <link rel="icon" href="<%= versioned_public_asset_path("/icons/app-icon.svg") %>" type="image/svg+xml">

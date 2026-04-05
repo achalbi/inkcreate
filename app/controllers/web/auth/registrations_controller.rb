@@ -4,7 +4,7 @@ module Web
       before_action :redirect_signed_in_user, only: :new
 
       def new
-        @user = User.new(time_zone: "UTC", locale: "en")
+        @user = User.new(time_zone: effective_time_zone_name, locale: "en")
       end
 
       def create

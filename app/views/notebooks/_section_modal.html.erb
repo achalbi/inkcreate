@@ -1,0 +1,76 @@
+<div class="modal fade notebook-section-modal" id="<%= modal_id %>" tabindex="-1" aria-labelledby="<%= modal_id %>-label" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content" data-controller="list-modal" data-list-modal-page-size-value="3">
+      <div class="modal-header notebook-section-modal__header">
+        <div>
+          <div class="notebook-section-modal__eyebrow"><%= title %></div>
+          <h5 id="<%= modal_id %>-label" class="modal-title notebook-section-modal__title">Browse notebooks</h5>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body notebook-section-modal__body">
+        <div class="notebook-section-modal__search-wrap">
+          <i class="ti ti-search notebook-section-modal__search-icon" aria-hidden="true"></i>
+          <input
+            type="search"
+            class="form-control notebook-section-modal__search"
+            placeholder="Search notebooks"
+            autocomplete="off"
+            data-list-modal-target="search"
+            data-action="input->list-modal#search"
+          >
+        </div>
+
+        <div class="notebook-section-modal__summary">
+          <span class="notebook-section-modal__count" data-list-modal-target="count"></span>
+          <span class="notebook-section-modal__hint">Tap any notebook to open it.</span>
+        </div>
+
+        <div class="notebook-section-modal__results">
+          <div class="notebook-section-modal__list">
+            <% notebooks.each do |notebook| %>
+              <%= link_to notebook_path(notebook),
+                class: "notebook-section-modal__item",
+                data: {
+                  list_modal_target: "item",
+                  search_text: [
+                    notebook.title,
+                    notebook.description,
+                    notebook.status,
+                    notebook.chapters.size,
+                    notebook.pages.size
+                  ].compact.join(" ").downcase
+                } do %>
+                <div class="notebook-section-modal__item-main">
+                  <div class="notebook-section-modal__item-top">
+                    <span class="notebook-section-modal__item-title"><%= notebook.title %></span>
+                    <span class="label <%= notebook.status_active? ? "label-primary" : "label-default" %> notebook-section-modal__item-status"><%= notebook.status.humanize %></span>
+                  </div>
+                  <p class="notebook-section-modal__item-description"><%= notebook.description.presence || "No description yet." %></p>
+                  <div class="notebook-section-modal__item-meta">
+                    <span><%= pluralize(notebook.chapters.size, "chapter") %></span>
+                    <span><%= pluralize(notebook.pages.size, "page") %></span>
+                    <span>Updated <%= time_ago_in_words(notebook.updated_at) %> ago</span>
+                  </div>
+                </div>
+              <% end %>
+            <% end %>
+
+            <div class="notebook-section-modal__empty" data-list-modal-target="empty" hidden>
+              No notebooks match your search.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer notebook-section-modal__footer">
+        <div class="notebook-section-modal__page-info" data-list-modal-target="pageInfo"></div>
+        <div class="notebook-section-modal__pagination" data-list-modal-target="pagination">
+          <button type="button" class="btn btn-white btn-sm" data-list-modal-target="previous" data-action="list-modal#previousPage">Previous</button>
+          <button type="button" class="btn btn-white btn-sm" data-list-modal-target="next" data-action="list-modal#nextPage">Next</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

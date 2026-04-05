@@ -7,6 +7,45 @@
     <section class="workspace-grid workspace-grid-halves">
       <article class="dashboard-card workspace-panel">
         <div class="section-header">
+          <div class="eyebrow">Regional</div>
+          <h2>Time zone</h2>
+        </div>
+        <p class="workspace-settings-copy">Choose the time zone used for day-based titles, default dates, and daily grouping across Notebook and Notepad.</p>
+
+        <%= form_with model: @settings_user, url: settings_path, method: :patch, class: "workspace-settings-form" do |form| %>
+          <% if @settings_user.errors[:time_zone].any? %>
+            <div class="alert alert-danger">
+              <%= @settings_user.errors.full_messages_for(:time_zone).to_sentence %>
+            </div>
+          <% end %>
+
+          <div class="form-group">
+            <%= form.label :time_zone, "Time zone", class: "control-label" %>
+            <%= form.select :time_zone,
+              time_zone_options_for_select(@selected_time_zone),
+              {},
+              class: "form-control" %>
+          </div>
+
+          <div class="admin-note-list m-b-md">
+            <div class="stack-note">
+              <strong>Detected from this device: <%= @detected_time_zone_name || "Unavailable" %></strong>
+              <p>The selector is prefilled from the device/browser time zone until you save a manual choice here.</p>
+            </div>
+            <div class="stack-note">
+              <strong>Saved time zone: <%= current_user.time_zone %></strong>
+              <p>This setting drives default dates, titles, and date-based grouping after you save.</p>
+            </div>
+          </div>
+
+          <div class="dashboard-actions">
+            <%= form.submit "Save time zone", class: "button button-primary" %>
+          </div>
+        <% end %>
+      </article>
+
+      <article class="dashboard-card workspace-panel">
+        <div class="section-header">
           <div class="eyebrow">Behavior</div>
           <h2>Current app posture</h2>
         </div>

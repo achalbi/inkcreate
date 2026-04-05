@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-time-zone="<%= effective_time_zone_name %>">
   <head>
     <title>Inkcreate Workspace</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="theme-color" content="#e66239">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
+    <script src="<%= versioned_public_asset_path("/scripts/device_time_zone.js") %>" defer></script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,17 +18,24 @@
     <link rel="icon" type="image/svg+xml" href="<%= versioned_public_asset_path("/icons/app-icon.svg") %>">
   </head>
 
-  <body class="workspace-body">
-    <div id="overlay" class="overlay"></div>
+  <% show_workspace_sidebar = current_user&.admin? %>
 
-    <%= render "shared/workspace_nav" %>
-    <%= render "shared/workspace_topbar" %>
+  <body class="<%= ["workspace-body", ("workspace-body--no-sidebar" unless show_workspace_sidebar)].compact.join(" ") %>">
+    <% if show_workspace_sidebar %>
+      <div id="overlay" class="overlay"></div>
+    <% end %>
+
+    <%= render "shared/workspace_nav" if show_workspace_sidebar %>
+    <%= render "shared/workspace_topbar", show_workspace_sidebar: show_workspace_sidebar %>
 
     <main id="content" class="content py-6 py-lg-6">
       <div class="container-fluid px-3 px-lg-4">
         <%= yield %>
       </div>
     </main>
+
+    <%= render "shared/workspace_footer_nav" %>
+    <%= render "shared/photo_lightbox_modal" %>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="<%= versioned_public_asset_path("/inapp/inapp_workspace.js") %>" defer></script>

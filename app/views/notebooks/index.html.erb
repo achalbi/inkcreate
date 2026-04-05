@@ -1,46 +1,63 @@
 <%= render "shared/workspace_header",
   eyebrow: "Notebook",
   title: "Project notebooks",
-  description: "Create project spaces, organize them into chapters, and store pages with notes, dates, and photos.",
-  action_label: "New notebook",
-  action_path: new_notebook_path %>
+  description: "Create project spaces, organize them into chapters, and store pages with notes, dates, and photos." %>
 
 <div class="wrapper wrapper-content animated fadeInRight">
-  <section class="ibox float-e-margins">
-    <div class="ibox-title">
-      <h5>Current notebooks</h5>
-      <div class="ibox-tools">
-        <span class="label label-primary"><%= pluralize(@active_notebooks.count, "active notebook") %></span>
-      </div>
-    </div>
-    <div class="ibox-content">
-      <p class="text-muted m-b-md">Active notebooks stay first so ongoing work remains visible.</p>
-      <% if @active_notebooks.any? %>
-        <% @active_notebooks.each do |notebook| %>
-          <%= render "notebook_card", notebook: notebook %>
+  <div class="workspace-index-actions">
+    <div class="workspace-index-actions__left">
+      <div class="btn-group workspace-view-toggle" role="group" aria-label="Notebook scope">
+        <%= link_to notebooks_path(scope: "current"),
+          class: ["btn btn-sm workspace-view-toggle__button", ("active" if @notebook_scope == "current")].compact.join(" "),
+          aria: { current: ("page" if @notebook_scope == "current") },
+          title: "Current notebooks" do %>
+          <i class="ti ti-notebook" aria-hidden="true"></i>
         <% end %>
-      <% else %>
-        <%= render "shared/empty_state", title: "No active notebooks yet", description: "Create your first notebook to start organizing project work by chapter and page." %>
-      <% end %>
-    </div>
-  </section>
 
-  <section class="ibox float-e-margins">
-    <div class="ibox-title">
-      <h5>Archived notebooks</h5>
-      <div class="ibox-tools">
-        <span class="label label-default"><%= pluralize(@archived_notebooks.count, "archived notebook") %></span>
+        <%= link_to notebooks_path(scope: "archived"),
+          class: ["btn btn-sm workspace-view-toggle__button", ("active" if @notebook_scope == "archived")].compact.join(" "),
+          aria: { current: ("page" if @notebook_scope == "archived") },
+          title: "Archived notebooks" do %>
+          <i class="ti ti-archive" aria-hidden="true"></i>
+        <% end %>
       </div>
     </div>
-    <div class="ibox-content">
-      <p class="text-muted m-b-md">Completed notebooks remain searchable and can be restored any time.</p>
-      <% if @archived_notebooks.any? %>
-        <% @archived_notebooks.each do |notebook| %>
-          <%= render "notebook_card", notebook: notebook %>
-        <% end %>
-      <% else %>
-        <%= render "shared/empty_state", title: "No archived notebooks", description: "Archive completed notebooks when you want to keep the active list focused." %>
-      <% end %>
-    </div>
-  </section>
+
+  </div>
+
+  <% if @notebook_scope == "archived" %>
+    <%= render "section",
+      title: "Archived notebooks",
+      description: "Completed notebooks remain searchable and can be restored any time.",
+      badge_class: "label-default",
+      badge_text: pluralize(@archived_notebook_count, "archived notebook"),
+      content_id: "archived-notebooks-content",
+      modal_id: "archived-notebooks-modal",
+      notebooks: @archived_notebooks,
+      all_notebooks: @archived_notebooks_all,
+      page_param: :archived_page,
+      current_page: @archived_page,
+      total_pages: @archived_total_pages,
+      show_pagination: true,
+      empty_title: "No archived notebooks",
+      empty_description: "Archive completed notebooks when you want to keep the active list focused." %>
+  <% else %>
+    <%= render "section",
+      title: "Current notebooks",
+      description: "Active notebooks stay first so ongoing work remains visible.",
+      badge_class: "label-primary",
+      badge_text: pluralize(@active_notebook_count, "active notebook"),
+      content_id: "current-notebooks-content",
+      modal_id: "current-notebooks-modal",
+      notebooks: @active_notebooks,
+      all_notebooks: @active_notebooks_all,
+      page_param: :active_page,
+      current_page: @active_page,
+      total_pages: @active_total_pages,
+      show_pagination: false,
+      empty_title: "No active notebooks yet",
+      empty_description: "Create your first notebook to start organizing project work by chapter and page." %>
+  <% end %>
+
+  <%= render "shared/workspace_fab", path: new_notebook_path, title: "Create new notebook" %>
 </div>

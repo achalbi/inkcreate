@@ -9,12 +9,24 @@
 
   <section class="ibox float-e-margins">
     <div class="ibox-title">
-      <h5>Entry overview</h5>
+      <h5>Page overview</h5>
       <div class="ibox-tools">
-        <span class="label label-info">Daily capture</span>
+        <span class="label label-info">Daily page</span>
+        <%= link_to edit_notepad_entry_path(@notepad_entry), class: "btn btn-sm btn-icon notebook-overview-edit-button", title: "Edit page", aria: { label: "Edit page" } do %>
+          <i class="ti ti-edit" aria-hidden="true"></i>
+        <% end %>
+        <%= button_to notepad_entry_path(@notepad_entry),
+          method: :delete,
+          form: { class: "notebook-overview-delete-form", onsubmit: "return confirm('Delete this page?');" },
+          class: "btn btn-sm btn-icon notebook-overview-delete-button",
+          title: "Delete page",
+          aria: { label: "Delete page" } do %>
+          <i class="ti ti-trash" aria-hidden="true"></i>
+        <% end %>
+        <%= render "shared/ibox_toggle_button", target_id: dom_id(@notepad_entry, :overview_content) %>
       </div>
     </div>
-    <div class="ibox-content">
+    <div id="<%= dom_id(@notepad_entry, :overview_content) %>" class="ibox-content collapse show">
       <div class="row">
         <div class="col-sm-8">
           <h2 class="m-t-none"><%= @notepad_entry.display_title %></h2>
@@ -23,26 +35,20 @@
             <span class="label label-default"><%= pluralize(@notepad_entry.photos.count, "photo") %></span>
           </p>
         </div>
-        <div class="col-sm-4">
-          <div class="m-t-sm">
-          <%= link_to "Edit entry", edit_notepad_entry_path(@notepad_entry), class: "btn btn-primary btn-sm" %>
-          <%= button_to "Delete entry", notepad_entry_path(@notepad_entry),
-            method: :delete,
-            form: { style: "display: inline-block; margin: 0;", onsubmit: "return confirm('Delete this entry?');" },
-            class: "btn btn-danger btn-sm" %>
-          </div>
-        </div>
       </div>
     </div>
   </section>
 
-  <section class="row">
+  <section class="row notes-gallery-row">
     <div class="col-lg-4">
       <div class="ibox">
         <div class="ibox-title">
           <h5>Notes</h5>
+          <div class="ibox-tools">
+            <%= render "shared/ibox_toggle_button", target_id: dom_id(@notepad_entry, :notes_content) %>
+          </div>
         </div>
-        <div class="ibox-content">
+        <div id="<%= dom_id(@notepad_entry, :notes_content) %>" class="ibox-content collapse show">
           <% if @notepad_entry.notes.present? %>
             <div><%= simple_format(@notepad_entry.notes) %></div>
           <% else %>
@@ -58,16 +64,17 @@
           <h5>Photo gallery</h5>
           <div class="ibox-tools">
             <%= link_to "Manage photos", edit_notepad_entry_path(@notepad_entry), class: "btn btn-white btn-sm" %>
+            <%= render "shared/ibox_toggle_button", target_id: dom_id(@notepad_entry, :gallery_content) %>
           </div>
         </div>
-        <div class="ibox-content">
+        <div id="<%= dom_id(@notepad_entry, :gallery_content) %>" class="ibox-content collapse show">
 
           <% if @notepad_entry.photos.attached? %>
             <div class="row">
               <% @notepad_entry.photos.each do |photo| %>
                 <div class="col-sm-6">
                   <div class="thumbnail">
-                    <%= image_tag photo, class: "img-responsive", style: "width: 100%; height: 240px; object-fit: cover;", alt: @notepad_entry.display_title %>
+                    <%= render "shared/photo_lightbox", photo:, alt: @notepad_entry.display_title, image_style: "width: 100%; height: 240px; object-fit: cover;" %>
                     <div class="caption">
                       <%= button_to "Remove photo", photo_notepad_entry_path(@notepad_entry, photo),
                         method: :delete,
@@ -79,7 +86,7 @@
               <% end %>
             </div>
           <% else %>
-            <%= render "shared/empty_state", title: "No photos yet", description: "Upload one or more photos to keep this daily entry visually complete." %>
+            <%= render "shared/empty_state", title: "No photos yet", description: "Upload one or more photos to keep this daily page visually complete." %>
           <% end %>
         </div>
       </div>

@@ -12,11 +12,15 @@
       <h5>Notebook overview</h5>
       <div class="ibox-tools">
         <span class="label <%= @notebook.status_active? ? "label-primary" : "label-default" %>"><%= @notebook.status.humanize %></span>
+        <%= link_to edit_notebook_path(@notebook), class: "btn btn-sm btn-icon notebook-overview-edit-button", title: "Edit notebook", aria: { label: "Edit notebook" } do %>
+          <i class="ti ti-edit" aria-hidden="true"></i>
+        <% end %>
+        <%= render "shared/ibox_toggle_button", target_id: dom_id(@notebook, :overview_content) %>
       </div>
     </div>
-    <div class="ibox-content">
+    <div id="<%= dom_id(@notebook, :overview_content) %>" class="ibox-content collapse show">
       <div class="row">
-        <div class="col-sm-8">
+        <div class="col-sm-12">
           <h2 class="m-t-none"><%= @notebook.title %></h2>
           <p class="text-muted"><%= @notebook.description.presence || "Add a description to make the purpose of this notebook clear to future-you." %></p>
           <p class="m-b-none">
@@ -24,23 +28,6 @@
             <span class="label label-default"><%= pluralize(@notebook.pages.count, "page") %></span>
             <span class="label label-default">Created <%= @notebook.created_at.strftime("%b %-d, %Y") %></span>
           </p>
-        </div>
-        <div class="col-sm-4">
-          <div class="m-t-sm">
-          <%= link_to "New chapter", new_notebook_chapter_path(@notebook), class: "btn btn-primary btn-sm" %>
-          <%= link_to "Edit notebook", edit_notebook_path(@notebook), class: "btn btn-white btn-sm" %>
-          <% if @notebook.status_active? %>
-            <%= button_to "Archive", archive_notebook_path(@notebook),
-              method: :patch,
-              form: { style: "display: inline-block; margin: 0;", onsubmit: "return confirm('Archive this notebook?');" },
-              class: "btn btn-white btn-sm" %>
-          <% else %>
-            <%= button_to "Restore", unarchive_notebook_path(@notebook),
-              method: :patch,
-              form: { style: "display: inline-block; margin: 0;" },
-              class: "btn btn-white btn-sm" %>
-          <% end %>
-          </div>
         </div>
       </div>
     </div>
@@ -51,48 +38,40 @@
       <h5>Chapters</h5>
       <div class="ibox-tools">
         <%= link_to "Add chapter", new_notebook_chapter_path(@notebook), class: "btn btn-primary btn-sm" %>
+        <%= render "shared/ibox_toggle_button", target_id: dom_id(@notebook, :chapters_content) %>
       </div>
     </div>
-    <div class="ibox-content">
+    <div id="<%= dom_id(@notebook, :chapters_content) %>" class="ibox-content collapse show">
       <p class="text-muted m-b-md">Chapters create the main sections of this notebook.</p>
       <% if @chapters.any? %>
-        <% @chapters.each do |chapter| %>
-          <div class="panel panel-default">
-            <div class="panel-body">
-              <div class="row">
-                <div class="col-sm-8">
-                  <h4 class="m-t-none m-b-xs">
-                    <%= link_to chapter.title, notebook_chapter_path(@notebook, chapter) %>
-                    <small>Chapter <%= chapter.position %></small>
-                  </h4>
-                  <p class="text-muted m-b-sm"><%= chapter.description.presence || "No chapter description yet." %></p>
-                  <p class="small text-muted m-b-none">
-                    <strong><%= chapter.pages.count %></strong> <%= "page".pluralize(chapter.pages.count) %>
-                    <span class="m-l-md">Updated <%= time_ago_in_words(chapter.updated_at) %> ago</span>
-                  </p>
-                </div>
-                <div class="col-sm-4">
-                  <p class="m-b-sm m-t-none"><span class="label label-default"><%= pluralize(chapter.pages.count, "page") %></span></p>
-                  <p class="m-b-none">
-                    <%= button_to "Up", move_notebook_chapter_path(@notebook, chapter, direction: :up),
-                      method: :patch,
-                      form: { style: "display: inline-block; margin: 0;" },
-                      class: "btn btn-white btn-sm" %>
-                    <%= button_to "Down", move_notebook_chapter_path(@notebook, chapter, direction: :down),
-                      method: :patch,
-                      form: { style: "display: inline-block; margin: 0;" },
-                      class: "btn btn-white btn-sm" %>
-                    <%= link_to "Open", notebook_chapter_path(@notebook, chapter), class: "btn btn-primary btn-sm" %>
-                    <%= link_to "Edit", edit_notebook_chapter_path(@notebook, chapter), class: "btn btn-white btn-sm" %>
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        <% end %>
+        <div class="notebook-list-stack">
+          <% @chapters.each do |chapter| %>
+            <%= render "chapters/chapter_card", notebook: @notebook, chapter: chapter %>
+          <% end %>
+        </div>
       <% else %>
         <%= render "shared/empty_state", title: "No chapters yet", description: "Add the first chapter to start breaking this notebook into clear sections." %>
       <% end %>
     </div>
   </section>
+
+  <% if @deleted_chapters.any? %>
+    <section class="ibox float-e-margins">
+      <div class="ibox-title">
+        <h5>Deleted chapters</h5>
+        <div class="ibox-tools">
+          <span class="label label-default"><%= pluralize(@deleted_chapters.count, "chapter") %></span>
+          <%= render "shared/ibox_toggle_button", target_id: "deleted-chapters-content" %>
+        </div>
+      </div>
+      <div id="deleted-chapters-content" class="ibox-content collapse show">
+        <p class="text-muted m-b-md">Chapters with pages are soft deleted here so their notes can be restored later instead of being removed.</p>
+        <div class="notebook-list-stack">
+          <% @deleted_chapters.each do |chapter| %>
+            <%= render "chapters/deleted_chapter_card", notebook: @notebook, chapter: chapter %>
+          <% end %>
+        </div>
+      </div>
+    </section>
+  <% end %>
 </div>

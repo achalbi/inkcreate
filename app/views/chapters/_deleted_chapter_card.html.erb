@@ -1,0 +1,34 @@
+<article
+  class="notebook-list-card"
+  data-card-link="<%= notebook_chapter_path(notebook, chapter) %>"
+  tabindex="0"
+  role="link"
+  aria-label="Open deleted chapter <%= chapter.title %>"
+>
+  <div class="notebook-list-card__body">
+    <div class="notebook-list-card__header">
+      <div class="notebook-list-card__main">
+        <h6 class="notebook-list-card__title"><%= chapter.title %></h6>
+        <p class="notebook-list-card__description"><%= chapter.description.presence || "No chapter description yet." %></p>
+      </div>
+
+      <div class="notebook-list-card__header-tools">
+        <span class="label label-default notebook-list-card__status">Deleted</span>
+      </div>
+    </div>
+
+    <div class="notebook-list-card__meta">
+      <span class="notebook-list-card__meta-item"><strong><%= chapter.pages.count %></strong> <%= "page".pluralize(chapter.pages.count) %></span>
+      <span class="notebook-list-card__meta-item">Deleted <%= time_ago_in_words(chapter.deleted_at) %> ago</span>
+    </div>
+
+    <div class="content-list-actions">
+      <%= button_to restore_notebook_chapter_path(notebook, chapter),
+        method: :patch,
+        class: "btn btn-white btn-sm",
+        form: { class: "content-list-actions__form" } do %>
+        Restore chapter
+      <% end %>
+    </div>
+  </div>
+</article>

@@ -5,4 +5,34 @@
 
 <div class="wrapper wrapper-content animated fadeInRight">
   <%= render "form", notebook: @notebook, chapter: @chapter %>
+
+  <section class="ibox float-e-margins chapter-actions-section">
+    <div class="ibox-title">
+      <h5>Chapter actions</h5>
+      <div class="ibox-tools">
+        <span class="label label-default"><%= @chapter.soft_deleted? ? "Deleted" : "Chapter #{ @chapter.position }" %></span>
+      </div>
+    </div>
+    <div class="ibox-content collapse show">
+      <% if @chapter.soft_deleted? %>
+        <p class="text-muted m-b-md">This chapter is currently soft deleted. Restore it to bring it back into the notebook’s active chapter list.</p>
+        <%= button_to "Restore chapter", restore_notebook_chapter_path(@notebook, @chapter),
+          method: :patch,
+          form: { style: "display: inline-block; margin: 0;" },
+          class: "btn btn-white btn-sm" %>
+      <% elsif @chapter.pages.exists? %>
+        <p class="text-muted m-b-md">Because this chapter already contains pages, deleting it will soft delete the chapter and move it into the notebook’s deleted chapters section instead of removing the content.</p>
+        <%= button_to "Delete chapter", notebook_chapter_path(@notebook, @chapter),
+          method: :delete,
+          form: { style: "display: inline-block; margin: 0;", onsubmit: "return confirm('Soft delete this chapter and keep its pages?');" },
+          class: "btn btn-danger btn-sm" %>
+      <% else %>
+        <p class="text-muted m-b-md">This chapter has no pages, so deleting it will remove it permanently.</p>
+        <%= button_to "Delete chapter permanently", notebook_chapter_path(@notebook, @chapter),
+          method: :delete,
+          form: { style: "display: inline-block; margin: 0;", onsubmit: "return confirm('Delete this empty chapter permanently?');" },
+          class: "btn btn-danger btn-sm" %>
+      <% end %>
+    </div>
+  </section>
 </div>

@@ -18,6 +18,7 @@ Rails.application.routes.draw do
     resources :chapters do
       member do
         patch :move
+        patch :restore
       end
 
       resources :pages do
@@ -56,6 +57,7 @@ Rails.application.routes.draw do
   get "/search", to: "search#index", as: :search_page
   get "/library", to: "library#index", as: :library
   get "/settings", to: "settings#show", as: :settings
+  patch "/settings", to: "settings#update"
   get "/onboarding", to: "onboarding#show", as: :onboarding
   get "/install", to: "install#show", as: :install
 

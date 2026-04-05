@@ -1,0 +1,13 @@
+<% image_class_names = ["img-responsive", local_assigns[:image_class]].compact.join(" ") %>
+<% lightbox_group = local_assigns[:group].presence || "workspace-gallery" %>
+
+<button
+  type="button"
+  class="<%= ["photo-lightbox-trigger", local_assigns[:button_class]].compact.join(" ") %>"
+  data-photo-lightbox-src="<%= url_for(photo) %>"
+  data-photo-lightbox-alt="<%= alt %>"
+  data-photo-lightbox-group="<%= lightbox_group %>"
+  aria-label="Open <%= alt %> in full screen"
+>
+  <%= image_tag photo, class: image_class_names, style: local_assigns[:image_style], alt: alt, loading: "lazy" %>
+</button>

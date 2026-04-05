@@ -1,53 +1,73 @@
-<div class="form-group m-t-md" data-controller="photo-capture">
-  <div class="clearfix m-b-sm">
-    <div class="pull-left">
-      <%= form.label field_name, label, class: "control-label" %>
-      <div class="text-muted small">Use the rear phone camera for live preview capture, or fall back to the phone camera or gallery picker.</div>
-    </div>
-    <div class="pull-right m-t-xs">
-      <span class="label label-default">Pending photos: <span data-photo-capture-target="count">0</span></span>
-    </div>
+<div class="form-group">
+  <% retained_photo_blobs = form.object.respond_to?(:pending_photo_blobs) ? form.object.pending_photo_blobs : [] %>
+
+  <div class="photo-capture-meta m-b-sm">
+    <div class="text-muted small">Use live preview for quick captures, or upload an image directly from the gallery.</div>
   </div>
 
-  <div class="row">
-    <div class="col-sm-8">
-      <div class="well well-sm text-center" data-photo-capture-target="cameraFrame" style="min-height: 260px; display: flex; align-items: center; justify-content: center; border: 2px dashed #e7eaec; border-radius: 6px; background: #fcfcfc;">
-        <div class="small text-muted" style="max-width: 260px;">
-        <strong>Live camera preview</strong>
-        <p class="mb-0">Use the rear camera, keep the A5 page inside the frame, and capture when the notes look sharp.</p>
-        </div>
+  <% if local_assigns[:tips_target_id].present? %>
+    <div id="<%= tips_target_id %>" class="collapse photo-capture-tips-panel m-b-md">
+      <div class="alert alert-info m-b-none">
+        <p class="text-navy m-b-xs"><strong>Capture tips</strong></p>
+        <ul class="small text-muted m-b-none photo-capture-tips-list">
+          <li>Keep the book flat with the whole page visible inside the guide.</li>
+          <li>Use even lighting and avoid hard shadows from your hand or phone.</li>
+          <li>Hold the camera directly above the notes for a cleaner save.</li>
+        </ul>
       </div>
     </div>
+  <% end %>
 
-    <div class="col-sm-4">
-      <div class="panel panel-default">
-        <div class="panel-body">
-          <p class="text-navy m-b-xs"><strong>A5 capture tips</strong></p>
-          <ul class="small text-muted m-b-none" style="padding-left: 18px;">
-            <li>Keep the book flat with the whole page visible inside the guide.</li>
-            <li>Use even lighting and avoid hard shadows from your hand or phone.</li>
-            <li>Hold the camera directly above the notes for a cleaner save.</li>
-          </ul>
-        </div>
-      </div>
-    </div>
+  <div class="photo-capture-actions m-b-sm" data-photo-capture-target="defaultActions">
+    <button type="button" class="btn btn-primary btn-sm" data-action="photo-capture#start">Live preview</button>
+    <button type="button" class="btn btn-white btn-sm" data-action="photo-capture#chooseFromGallery">Upload from gallery</button>
+    <%= form.file_field field_name, multiple: true, style: "display:none;", accept: "image/*", data: { photo_capture_target: "input", action: "change->photo-capture#syncFromInput" } %>
   </div>
 
-  <div class="m-t-sm">
-    <button type="button" class="btn btn-primary btn-sm" data-action="photo-capture#start">Start live camera</button>
-    <button type="button" class="btn btn-white btn-sm" data-action="photo-capture#capture">Capture photo</button>
-    <button type="button" class="btn btn-white btn-sm" data-action="photo-capture#stop">Stop preview</button>
-    <label class="btn btn-white btn-sm m-b-none">
-      Use phone camera or gallery
-      <%= form.file_field field_name, multiple: true, style: "display:none;", accept: "image/*", capture: "environment", data: { photo_capture_target: "input", action: "change->photo-capture#syncFromInput" } %>
-    </label>
+  <div class="photo-capture-camera-panel m-b-sm" data-photo-capture-target="cameraPanel" hidden>
+    <div class="well well-sm text-center photo-capture-frame" data-photo-capture-target="cameraFrame"></div>
+    <div class="photo-capture-actions m-t-sm" data-photo-capture-target="previewActions" hidden>
+      <button type="button" class="btn btn-primary btn-sm" data-action="photo-capture#capture">Capture</button>
+      <button type="button" class="btn btn-white btn-sm" data-action="photo-capture#cancel">Cancel</button>
+    </div>
   </div>
 
   <div class="m-t-md">
     <p class="text-navy m-b-xs"><strong>Pending uploads</strong></p>
+    <div class="row photo-capture-retained-grid" data-photo-capture-target="retainedGrid">
+      <% retained_photo_blobs.each do |blob| %>
+        <%= form.hidden_field :retained_photo_signed_ids, multiple: true, value: blob.signed_id %>
+        <div class="col-sm-6 col-md-4">
+          <div class="thumbnail photo-capture-retained-card">
+            <%= render "shared/photo_lightbox", photo: blob, alt: blob.filename.to_s, image_style: "width: 100%; height: 180px; object-fit: cover;" %>
+            <div class="caption">
+              <div style="font-weight: 600; word-break: break-word;"><%= blob.filename %></div>
+              <div class="text-muted small">Saved after validation error</div>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
     <div class="row" data-photo-capture-target="previewGrid"></div>
     <div class="alert alert-info m-b-none" data-photo-capture-target="emptyState">
-      No new photos selected yet. Start the camera or use the phone picker to attach note images before saving.
+      No new photos selected yet. Start live preview or upload from the gallery to attach note images before saving.
+    </div>
+  </div>
+
+  <div class="modal fade photo-capture-error-modal" tabindex="-1" aria-hidden="true" data-photo-capture-target="errorModal">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" data-photo-capture-target="errorTitle">Camera access needed</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-0 text-muted" data-photo-capture-target="errorMessage"></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal">OK</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>

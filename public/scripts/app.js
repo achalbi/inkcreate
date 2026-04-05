@@ -5,6 +5,7 @@ import CameraController from "/scripts/controllers/camera_controller.js";
 import PhotoCaptureController from "/scripts/controllers/photo_capture_controller.js";
 import QueueController from "/scripts/controllers/queue_controller.js";
 import SearchFiltersController from "/scripts/controllers/search_filters_controller.js";
+import ListModalController from "/scripts/controllers/list_modal_controller.js";
 
 const application = Application.start();
 application.register("offline-status", OfflineStatusController);
@@ -13,9 +14,32 @@ application.register("camera", CameraController);
 application.register("photo-capture", PhotoCaptureController);
 application.register("queue", QueueController);
 application.register("search-filters", SearchFiltersController);
+application.register("list-modal", ListModalController);
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
+    const isLocalWorkspace = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+
+    if (isLocalWorkspace) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((registration) => registration.unregister());
+      }).catch(() => {
+        // Ignore cleanup failures in local development.
+      });
+
+      if ("caches" in window) {
+        caches.keys().then((cacheKeys) => {
+          cacheKeys
+            .filter((cacheKey) => cacheKey.startsWith("inkcreate-shell"))
+            .forEach((cacheKey) => caches.delete(cacheKey));
+        }).catch(() => {
+          // Ignore cache cleanup failures in local development.
+        });
+      }
+
+      return;
+    }
+
     navigator.serviceWorker.register("/service-worker.js").then((registration) => {
       registration.update();
     }).catch(() => {

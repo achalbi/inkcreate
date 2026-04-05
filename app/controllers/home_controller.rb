@@ -6,7 +6,7 @@ class HomeController < BrowserController
     @total_notebooks = current_user.notebooks.count
     @active_notebooks = current_user.notebooks.active.count
     @today_notepad_entries = current_user.notepad_entries.where(entry_date: @today).count
-    @recent_notebooks = current_user.notebooks.includes(:chapters).ordered.limit(3)
-    @recent_notepad_entries = current_user.notepad_entries.recent_first.limit(3)
+    @recent_notebooks = current_user.notebooks.includes(:chapters).ordered.limit(2)
+    @recent_notepad_entries = current_user.notepad_entries.recent_first.limit(2)
   end
 end

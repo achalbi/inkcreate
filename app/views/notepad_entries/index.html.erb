@@ -1,33 +1,144 @@
 <%= render "shared/workspace_header",
   eyebrow: "Notepad",
   title: "Daily notepad",
-  description: "Capture notes and images directly by date, with the latest entries first.",
-  action_label: "New entry",
-  action_path: new_notepad_entry_path %>
+  description: "Capture notes and images directly by date, with the latest entries first." %>
 
 <div class="wrapper wrapper-content animated fadeInRight">
-  <% if @entries_by_date.any? %>
+  <div class="workspace-index-actions">
+    <div class="workspace-index-actions__left">
+      <div class="workspace-index-controls">
+        <div class="btn-group workspace-view-toggle" role="group" aria-label="Notepad view">
+          <%= link_to notepad_entries_path(view: "list", date: @selected_entry_date&.iso8601),
+            class: ["btn btn-sm workspace-view-toggle__button", ("active" if @view_mode == "list")].compact.join(" "),
+            aria: { current: ("page" if @view_mode == "list") } do %>
+            <i class="ti ti-list-details" aria-hidden="true"></i>
+          <% end %>
+
+          <%= link_to notepad_entries_path(view: "gallery", date: @selected_entry_date&.iso8601),
+            class: ["btn btn-sm workspace-view-toggle__button", ("active" if @view_mode == "gallery")].compact.join(" "),
+            aria: { current: ("page" if @view_mode == "gallery") } do %>
+            <i class="ti ti-photo" aria-hidden="true"></i>
+          <% end %>
+        </div>
+
+        <%= form_tag notepad_entries_path, method: :get, class: "workspace-date-filter-form" do %>
+          <%= hidden_field_tag :view, @view_mode %>
+          <% if @view_mode == "gallery" && @gallery_query.present? %>
+            <%= hidden_field_tag :q, @gallery_query %>
+          <% end %>
+          <button type="button" class="btn btn-sm workspace-date-filter-button" data-date-picker-button title="Select date">
+            <i class="ti ti-calendar-event" aria-hidden="true"></i>
+          </button>
+          <%= date_field_tag :date, @selected_entry_date, class: "workspace-date-filter-input", data: { date_picker_input: true } %>
+        <% end %>
+
+        <% if @selected_entry_date.present? %>
+          <span class="workspace-date-filter-pill"><%= @selected_entry_date.strftime("%b %-d, %Y") %></span>
+          <%= link_to "Clear",
+            notepad_entries_path(view: @view_mode, q: (@view_mode == "gallery" ? @gallery_query.presence : nil)),
+            class: "btn btn-white btn-sm workspace-date-filter-clear" %>
+        <% end %>
+      </div>
+    </div>
+
+  </div>
+
+  <% if @view_mode == "gallery" %>
+    <% if @photo_gallery_items.any? %>
+      <section class="ibox">
+        <div class="ibox-title">
+          <h5>Photo gallery</h5>
+          <div class="ibox-tools">
+            <span class="label label-info"><%= pluralize(@gallery_total_count, "photo") %></span>
+          </div>
+        </div>
+        <div class="ibox-content collapse show">
+          <div class="notepad-gallery-toolbar">
+            <%= form_tag notepad_entries_path, method: :get, class: "notepad-gallery-search-form" do %>
+              <%= hidden_field_tag :view, "gallery" %>
+              <% if @selected_entry_date.present? %>
+                <%= hidden_field_tag :date, @selected_entry_date.iso8601 %>
+              <% end %>
+              <div class="notepad-gallery-search-wrap">
+                <i class="ti ti-search notepad-gallery-search-icon" aria-hidden="true"></i>
+                <%= text_field_tag :q, @gallery_query, class: "form-control notepad-gallery-search-input", placeholder: "Search photos, page titles, notes, or dates" %>
+              </div>
+            <% end %>
+
+            <div class="notepad-gallery-toolbar__actions">
+              <% if @gallery_query.present? %>
+                <%= link_to "Clear", notepad_entries_path(view: "gallery", date: @selected_entry_date&.iso8601), class: "btn btn-white btn-sm" %>
+              <% end %>
+            </div>
+          </div>
+
+          <div class="row notepad-gallery-grid">
+            <% @photo_gallery_items.each do |item| %>
+              <div class="col-6 col-md-4 col-lg-4">
+                <%= render "gallery_photo_card", item: item %>
+              </div>
+            <% end %>
+          </div>
+
+          <div class="notebook-section-pagination">
+            <div class="notebook-section-pagination__meta">
+              Showing <%= @gallery_first_item_number %>-<%= @gallery_last_item_number %> of <%= @gallery_total_count %>
+            </div>
+            <div class="notebook-section-pagination__actions">
+              <% previous_gallery_page = @gallery_page - 1 %>
+              <% next_gallery_page = @gallery_page + 1 %>
+
+              <%= link_to "Previous",
+                @gallery_page > 1 ? notepad_entries_path(view: "gallery", q: @gallery_query.presence, date: @selected_entry_date&.iso8601, page: previous_gallery_page) : "#",
+                class: ["btn btn-white btn-sm notebook-section-pagination__button", ("disabled" unless @gallery_page > 1)].compact.join(" ") %>
+
+              <%= link_to "Next",
+                @gallery_page < @gallery_total_pages ? notepad_entries_path(view: "gallery", q: @gallery_query.presence, date: @selected_entry_date&.iso8601, page: next_gallery_page) : "#",
+                class: ["btn btn-white btn-sm notebook-section-pagination__button", ("disabled" unless @gallery_page < @gallery_total_pages)].compact.join(" ") %>
+            </div>
+          </div>
+        </div>
+      </section>
+    <% else %>
+      <section class="ibox">
+        <div class="ibox-content collapse show">
+          <%= render "shared/empty_state",
+            title: (@gallery_query.present? ? "No matching photos" : "No photos yet"),
+            description: (@gallery_query.present? ? "Try a different search term for titles, notes, or dates." : "Upload photos inside daily pages and they will appear in gallery view here.") %>
+        </div>
+      </section>
+    <% end %>
+  <% elsif @entries_by_date.any? %>
+    <% today = @selected_entry_date || Time.zone.today %>
     <% @entries_by_date.each do |entry_date, entries| %>
+      <% expanded = @selected_entry_date.present? ? true : entry_date == today %>
       <section class="ibox float-e-margins">
         <div class="ibox-title">
           <h5><%= entry_date.strftime("%A, %b %-d, %Y") %></h5>
           <div class="ibox-tools">
             <span class="label label-info"><%= pluralize(entries.sum { |entry| entry.photos.count }, "photo") %></span>
+            <%= render "shared/ibox_toggle_button", target_id: "notepad-date-#{entry_date.strftime("%Y%m%d")}-content", expanded: expanded %>
           </div>
         </div>
-        <div class="ibox-content">
+        <div id="notepad-date-<%= entry_date.strftime("%Y%m%d") %>-content" class="ibox-content collapse <%= "show" if expanded %>">
           <p class="text-muted m-b-md"><%= pluralize(entries.size, "entry") %> stored for this day.</p>
-          <% entries.each do |entry| %>
-            <%= render "entry_card", entry: entry %>
-          <% end %>
+          <div class="notebook-list-stack">
+            <% entries.each do |entry| %>
+              <%= render "entry_card", entry: entry %>
+            <% end %>
+          </div>
         </div>
       </section>
     <% end %>
   <% else %>
     <section class="ibox">
-      <div class="ibox-content">
-        <%= render "shared/empty_state", title: "No notepad entries yet", description: "Create your first daily entry to start capturing notes and photos by date." %>
+      <div class="ibox-content collapse show">
+        <%= render "shared/empty_state",
+          title: (@selected_entry_date.present? ? "No entries for this date" : "No notepad entries yet"),
+          description: (@selected_entry_date.present? ? "Choose another day from the calendar to browse your daily pages." : "Create your first daily entry to start capturing notes and photos by date.") %>
       </div>
     </section>
   <% end %>
+
+  <%= render "shared/workspace_fab", path: new_notepad_entry_path, title: "Create new page" %>
 </div>

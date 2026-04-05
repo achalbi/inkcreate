@@ -27,6 +27,7 @@ class User < ApplicationRecord
   validates :time_zone, presence: true
   validates :locale, presence: true
   validates :role, presence: true
+  validate :time_zone_must_be_supported
 
   def ensure_app_setting!
     app_setting || create_app_setting!
@@ -41,11 +42,21 @@ class User < ApplicationRecord
     google_drive_connected_at.present? && google_drive_refresh_token.present?
   end
 
+  def time_zone_locked?
+    has_attribute?(:time_zone_locked) && self[:time_zone_locked]
+  end
+
   private
 
   def assign_bootstrap_role
     return if @role_explicitly_assigned
 
     self.role = self.class.unscoped.exists? ? :user : :admin
+  end
+
+  def time_zone_must_be_supported
+    return if ActiveSupport::TimeZone[time_zone].present?
+
+    errors.add(:time_zone, "is not supported")
   end
 end

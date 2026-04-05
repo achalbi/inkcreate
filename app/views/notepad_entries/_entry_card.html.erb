@@ -1,18 +1,28 @@
-<div class="panel panel-default">
-  <div class="panel-body">
-    <div class="row">
-      <div class="col-sm-8">
-        <h4 class="m-t-none m-b-xs"><%= link_to entry.display_title, notepad_entry_path(entry) %></h4>
-        <p class="text-muted m-b-sm"><%= entry.notes.to_s.truncate(140).presence || "No notes yet." %></p>
-        <p class="small text-muted m-b-none"><%= entry.entry_date.strftime("%b %-d, %Y") %></p>
+<article class="notebook-list-card">
+  <%= link_to notepad_entry_path(entry), class: "notebook-list-card__body", aria: { label: "Open #{entry.display_title}" } do %>
+    <div class="notebook-list-card__content">
+      <div class="notebook-list-card__main">
+        <div class="notebook-list-card__header">
+          <h6 class="notebook-list-card__title"><%= entry.display_title %></h6>
+
+          <div class="notebook-list-card__header-tools">
+            <span class="label label-info notebook-list-card__status"><%= pluralize(entry.photos.count, "photo") %></span>
+          </div>
+        </div>
+
+        <p class="notebook-list-card__description"><%= entry.notes.to_s.truncate(140).presence || "No notes yet." %></p>
+
+        <div class="notebook-list-card__meta">
+          <span class="notebook-list-card__meta-item">Stored <strong><%= entry.entry_date.strftime("%b %-d, %Y") %></strong></span>
+          <span class="notebook-list-card__meta-item">Updated <%= time_ago_in_words(entry.updated_at) %> ago</span>
+        </div>
       </div>
-      <div class="col-sm-4">
-        <p class="m-b-sm m-t-none"><span class="label label-info"><%= pluralize(entry.photos.count, "photo") %></span></p>
-        <p class="m-b-none">
-          <%= link_to "Open", notepad_entry_path(entry), class: "btn btn-primary btn-sm" %>
-          <%= link_to "Edit", edit_notepad_entry_path(entry), class: "btn btn-white btn-sm" %>
-        </p>
-      </div>
+
+      <% if entry.photos.attached? %>
+        <div class="notebook-list-card__preview">
+          <%= image_tag entry.photos.first, class: "notebook-list-card__preview-image", alt: entry.display_title %>
+        </div>
+      <% end %>
     </div>
-  </div>
-</div>
+  <% end %>
+</article>

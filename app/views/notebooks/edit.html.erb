@@ -5,4 +5,27 @@
 
 <div class="wrapper wrapper-content animated fadeInRight">
   <%= render "form", notebook: @notebook %>
+
+  <section class="ibox float-e-margins">
+    <div class="ibox-title">
+      <h5>Notebook actions</h5>
+      <div class="ibox-tools">
+        <span class="label <%= @notebook.status_active? ? "label-primary" : "label-default" %>"><%= @notebook.status.humanize %></span>
+      </div>
+    </div>
+    <div class="ibox-content collapse show">
+      <p class="text-muted m-b-md">Archive completed notebooks to keep the active list focused, or restore them if they need more work.</p>
+      <% if @notebook.status_active? %>
+        <%= button_to "Archive notebook", archive_notebook_path(@notebook),
+          method: :patch,
+          form: { style: "display: inline-block; margin: 0;", onsubmit: "return confirm('Archive this notebook?');" },
+          class: "btn btn-white btn-sm" %>
+      <% else %>
+        <%= button_to "Restore notebook", unarchive_notebook_path(@notebook),
+          method: :patch,
+          form: { style: "display: inline-block; margin: 0;" },
+          class: "btn btn-white btn-sm" %>
+      <% end %>
+    </div>
+  </section>
 </div>

@@ -1,0 +1,15 @@
+<% expanded = local_assigns.fetch(:expanded, true) %>
+
+<button
+  type="button"
+  class="ibox-toggle-button"
+  data-bs-toggle="collapse"
+  data-bs-target="#<%= target_id %>"
+  aria-expanded="<%= expanded %>"
+  aria-controls="<%= target_id %>"
+  title="<%= expanded ? "Collapse section" : "Expand section" %>"
+>
+  <svg class="ibox-toggle-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 15l6-6 6 6"></path>
+  </svg>
+</button>

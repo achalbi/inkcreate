@@ -1,0 +1,21 @@
+<nav class="mobile-footer-nav d-lg-none" aria-label="Primary mobile navigation">
+  <%= link_to dashboard_path, class: ["mobile-footer-link", ("active" if controller_path == "home")].compact.join(" ") do %>
+    <i class="ti ti-home"></i>
+    <span>Home</span>
+  <% end %>
+
+  <%= link_to notebooks_path, class: ["mobile-footer-link", ("active" if controller_path == "notebooks" || controller_path == "chapters" || controller_path == "pages")].compact.join(" ") do %>
+    <i class="ti ti-notebook"></i>
+    <span>Notebook</span>
+  <% end %>
+
+  <%= link_to notepad_entries_path, class: ["mobile-footer-link", ("active" if controller_path == "notepad_entries")].compact.join(" ") do %>
+    <i class="ti ti-calendar-event"></i>
+    <span>Notepad</span>
+  <% end %>
+
+  <%= link_to settings_path, class: ["mobile-footer-link", ("active" if controller_path == "settings" || controller_path == "settings/backup" || controller_path == "settings/privacy")].compact.join(" ") do %>
+    <i class="ti ti-settings"></i>
+    <span>Settings</span>
+  <% end %>
+</nav>

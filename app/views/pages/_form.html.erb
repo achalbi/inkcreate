@@ -15,13 +15,16 @@
       <div class="ibox">
         <div class="ibox-title">
           <h5>Page details</h5>
+          <div class="ibox-tools">
+            <%= render "shared/ibox_toggle_button", target_id: "page-form-details-content" %>
+          </div>
         </div>
-        <div class="ibox-content">
+        <div id="page-form-details-content" class="ibox-content collapse show">
           <div class="row">
             <div class="col-lg-8">
               <div class="form-group">
                 <%= form.label :title, class: "control-label" %>
-                <%= form.text_field :title, class: "form-control", placeholder: "Interview notes - stakeholder round 1" %>
+                <%= form.text_field :title, class: "form-control", placeholder: "Interview notes - stakeholder round 1 - Page 1" %>
               </div>
             </div>
             <div class="col-lg-4">
@@ -41,12 +44,36 @@
     </div>
 
     <div class="col-lg-5">
-      <div class="ibox" id="page_photos">
+      <div class="ibox" id="page_photos" data-controller="photo-capture">
         <div class="ibox-title">
           <h5>Photos</h5>
+          <div class="ibox-tools">
+            <button
+              type="button"
+              class="btn btn-white btn-sm btn-icon photo-section-camera-button"
+              data-action="photo-capture#start"
+              data-photo-capture-target="cameraToggle"
+              aria-pressed="false"
+              title="Open live preview"
+            >
+              <i class="ti ti-camera" aria-hidden="true"></i>
+            </button>
+            <button
+              type="button"
+              class="btn btn-white btn-sm btn-icon photo-section-info-button"
+              data-bs-toggle="collapse"
+              data-bs-target="#page-form-capture-tips"
+              aria-expanded="false"
+              aria-controls="page-form-capture-tips"
+              title="Capture tips"
+            >
+              <i class="ti ti-info-circle" aria-hidden="true"></i>
+            </button>
+            <%= render "shared/ibox_toggle_button", target_id: "page-form-photos-content" %>
+          </div>
         </div>
-        <div class="ibox-content">
-          <%= render "shared/photo_capture_field", form:, field_name: :photos, label: "Photos" %>
+        <div id="page-form-photos-content" class="ibox-content collapse show">
+          <%= render "shared/photo_capture_field", form:, field_name: :photos, tips_target_id: "page-form-capture-tips" %>
 
           <% if page.photos.attached? %>
             <hr>
@@ -56,7 +83,7 @@
                 <% page.photos.each do |photo| %>
                   <div class="col-sm-6">
                     <div class="thumbnail">
-                      <%= image_tag photo, class: "img-responsive", style: "width: 100%; height: 220px; object-fit: cover;", alt: page.title %>
+                      <%= render "shared/photo_lightbox", photo:, alt: page.display_title, image_style: "width: 100%; height: 220px; object-fit: cover;" %>
                       <div class="caption">
                         <%= button_to "Remove", photo_notebook_chapter_page_path(notebook, chapter, page, photo),
                           method: :delete,

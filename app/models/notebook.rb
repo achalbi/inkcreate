@@ -3,7 +3,9 @@ class Notebook < ApplicationRecord
 
   belongs_to :user
 
-  has_many :chapters, -> { order(position: :asc, created_at: :asc) }, dependent: :destroy
+  has_many :all_chapters, -> { order(position: :asc, created_at: :asc) }, class_name: "Chapter", dependent: :destroy, inverse_of: :notebook
+  has_many :chapters, -> { kept.ordered }, class_name: "Chapter", inverse_of: :notebook
+  has_many :deleted_chapters, -> { deleted.ordered }, class_name: "Chapter", inverse_of: :notebook
   has_many :pages, through: :chapters
   has_many :captures, dependent: :nullify
 

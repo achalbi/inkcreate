@@ -1,0 +1,52 @@
+<article
+  class="notebook-list-card"
+  data-card-link="<%= notebook_chapter_page_path(notebook, chapter, page) %>"
+  tabindex="0"
+  role="link"
+  aria-label="Open <%= page.display_title %>"
+>
+  <div class="notebook-list-card__body">
+    <div class="notebook-list-card__header">
+      <div class="notebook-list-card__main">
+        <h6 class="notebook-list-card__title"><%= page.display_title %></h6>
+        <p class="notebook-list-card__description"><%= page.notes.to_s.truncate(140).presence || "No notes yet." %></p>
+      </div>
+
+      <div class="notebook-list-card__header-tools">
+        <span class="label label-info notebook-list-card__status"><%= pluralize(page.photos.count, "photo") %></span>
+      </div>
+    </div>
+
+    <div class="notebook-list-card__meta">
+      <span class="notebook-list-card__meta-item">Page <strong><%= page.position %></strong></span>
+      <span class="notebook-list-card__meta-item">
+        <% if page.captured_on.present? %>
+          Captured <strong><%= page.captured_on.strftime("%b %-d, %Y") %></strong>
+        <% else %>
+          No capture date yet
+        <% end %>
+      </span>
+      <span class="notebook-list-card__meta-item">Updated <%= time_ago_in_words(page.updated_at) %> ago</span>
+    </div>
+
+    <div class="content-list-actions">
+      <%= button_to move_notebook_chapter_page_path(notebook, chapter, page, direction: :up),
+        method: :patch,
+        class: "btn btn-white btn-sm btn-icon",
+        title: "Move page up",
+        aria: { label: "Move #{page.display_title} up" },
+        form: { class: "content-list-actions__form" } do %>
+        <i class="ti ti-arrow-up" aria-hidden="true"></i>
+      <% end %>
+
+      <%= button_to move_notebook_chapter_page_path(notebook, chapter, page, direction: :down),
+        method: :patch,
+        class: "btn btn-white btn-sm btn-icon",
+        title: "Move page down",
+        aria: { label: "Move #{page.display_title} down" },
+        form: { class: "content-list-actions__form" } do %>
+        <i class="ti ti-arrow-down" aria-hidden="true"></i>
+      <% end %>
+    </div>
+  </div>
+</article>

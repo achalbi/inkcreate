@@ -1,36 +1,107 @@
 import { Controller } from "/scripts/vendor/stimulus.js";
 
 export default class extends Controller {
-  static targets = ["input", "cameraFrame", "previewGrid", "emptyState", "count"];
+  static targets = ["input", "cameraFrame", "cameraPanel", "defaultActions", "previewActions", "previewGrid", "retainedGrid", "emptyState", "cameraToggle", "errorModal", "errorTitle", "errorMessage"];
 
   connect() {
     this.stream = null;
     this.video = null;
+    this.errorModalInstance = null;
     this.pendingFiles = Array.from(this.inputTarget.files || []);
+    this.resetPreviewState();
     this.renderPendingPreviews();
   }
 
   disconnect() {
     this.stop();
+    this.disposeErrorModal();
   }
 
-  placeholderMarkup() {
-    return `
-      <div class="small text-muted" style="max-width: 260px;">
-        <strong>Live camera preview</strong>
-        <p class="mb-0">Use the rear camera, keep the A5 page inside the frame, and capture when the notes look sharp.</p>
-      </div>
-    `;
+  showError({ title, message }) {
+    if (this.hasErrorTitleTarget) {
+      this.errorTitleTarget.textContent = title;
+    }
+
+    if (this.hasErrorMessageTarget) {
+      this.errorMessageTarget.textContent = message;
+    }
+
+    const ModalClass = window.bootstrap?.Modal;
+    if (ModalClass && this.hasErrorModalTarget) {
+      this.errorModalInstance = ModalClass.getOrCreateInstance(this.errorModalTarget);
+      this.errorModalInstance.show();
+      return;
+    }
+
+    window.alert(message);
   }
 
-  async start() {
+  disposeErrorModal() {
+    if (!this.errorModalInstance) return;
+
+    this.errorModalInstance.dispose();
+    this.errorModalInstance = null;
+  }
+
+  resetPreviewState() {
+    if (this.hasCameraPanelTarget) {
+      this.cameraPanelTarget.hidden = true;
+    }
+
+    if (this.hasDefaultActionsTarget) {
+      this.defaultActionsTarget.hidden = false;
+    }
+
+    if (this.hasPreviewActionsTarget) {
+      this.previewActionsTarget.hidden = true;
+    }
+
+    this.toggleCameraButton(false);
+  }
+
+  showPreviewState() {
+    if (this.hasCameraPanelTarget) {
+      this.cameraPanelTarget.hidden = false;
+    }
+
+    if (this.hasDefaultActionsTarget) {
+      this.defaultActionsTarget.hidden = true;
+    }
+
+    if (this.hasPreviewActionsTarget) {
+      this.previewActionsTarget.hidden = false;
+    }
+
+    this.toggleCameraButton(true);
+  }
+
+  toggleCameraButton(active) {
+    if (!this.hasCameraToggleTarget) return;
+
+    this.cameraToggleTargets.forEach((button) => {
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+  }
+
+  async start(event) {
+    event?.preventDefault();
+
+    if (this.stream && this.video) {
+      this.showPreviewState();
+      return;
+    }
+
     if (!navigator.mediaDevices?.getUserMedia) {
-      window.alert("Live camera preview is not available in this browser. Use the phone camera upload button instead.");
+      this.showError({
+        title: "Live preview unavailable",
+        message: "This browser does not support live camera preview here. You can still upload from the gallery."
+      });
       return;
     }
 
     try {
-      this.stop();
+      this.stopStream();
 
       this.stream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -53,14 +124,26 @@ export default class extends Controller {
 
       this.cameraFrameTarget.innerHTML = "";
       this.cameraFrameTarget.appendChild(this.video);
-    } catch (_error) {
-      window.alert("Camera access was blocked. You can still upload from the phone camera or gallery below.");
+      this.showPreviewState();
+    } catch (error) {
+      this.resetPreviewState();
+      const message = error?.name === "NotAllowedError"
+        ? "Camera access was blocked. Allow camera permission and try again, or use Upload from gallery instead."
+        : "The camera could not be opened right now. You can still use Upload from gallery instead.";
+
+      this.showError({
+        title: "Camera access blocked",
+        message
+      });
     }
   }
 
   async capture() {
     if (!this.video) {
-      window.alert("Start the camera preview before capturing.");
+      this.showError({
+        title: "Preview not started",
+        message: "Open live preview before capturing a photo."
+      });
       return;
     }
 
@@ -73,15 +156,28 @@ export default class extends Controller {
 
     const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92));
     if (!blob) {
-      window.alert("The browser could not create the image. Try again.");
+      this.showError({
+        title: "Capture failed",
+        message: "The browser could not create the image. Try again."
+      });
       return;
     }
 
-    const file = new File([blob], `a5-notes-${Date.now()}.jpg`, { type: "image/jpeg" });
+    const file = new File([blob], `note-capture-${Date.now()}.jpg`, { type: "image/jpeg" });
     this.addFiles([file]);
   }
 
+  cancel(event) {
+    event?.preventDefault();
+    this.stop();
+  }
+
   stop() {
+    this.stopStream();
+    this.resetPreviewState();
+  }
+
+  stopStream() {
     if (this.stream) {
       this.stream.getTracks().forEach((track) => track.stop());
     }
@@ -90,13 +186,21 @@ export default class extends Controller {
     this.video = null;
 
     if (this.hasCameraFrameTarget) {
-      this.cameraFrameTarget.innerHTML = this.placeholderMarkup();
+      this.cameraFrameTarget.innerHTML = "";
     }
   }
 
   syncFromInput() {
     this.pendingFiles = Array.from(this.inputTarget.files || []);
     this.renderPendingPreviews();
+  }
+
+  chooseFromGallery(event) {
+    event?.preventDefault();
+
+    if (!this.hasInputTarget) return;
+
+    this.inputTarget.click();
   }
 
   addFiles(files) {
@@ -110,15 +214,15 @@ export default class extends Controller {
   }
 
   renderPendingPreviews() {
-    if (!this.hasPreviewGridTarget || !this.hasEmptyStateTarget || !this.hasCountTarget) {
+    if (!this.hasPreviewGridTarget || !this.hasEmptyStateTarget) {
       return;
     }
 
     this.previewGridTarget.innerHTML = "";
-    this.countTarget.textContent = `${this.pendingFiles.length}`;
+    const hasRetainedUploads = this.hasRetainedGridTarget && this.retainedGridTarget.children.length > 0;
 
     if (this.pendingFiles.length === 0) {
-      this.emptyStateTarget.style.display = "";
+      this.emptyStateTarget.style.display = hasRetainedUploads ? "none" : "";
       return;
     }
 
