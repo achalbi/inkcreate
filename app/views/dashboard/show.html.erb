@@ -1,0 +1,71 @@
+<div class="page-shell">
+  <header class="topbar">
+    <a class="brand" href="<%= root_path %>">
+      <img class="brand-mark" src="/icons/app-icon.svg" alt="Inkcreate icon">
+      <span class="brand-copy">
+        <strong>Inkcreate</strong>
+        <span><%= current_user.role %> workspace</span>
+      </span>
+    </a>
+
+    <div class="nav-actions">
+      <% if current_user.admin? %>
+        <a class="mini-button" href="<%= admin_dashboard_path %>">Admin console</a>
+      <% end %>
+      <%= button_to "Sign out", browser_sign_out_path, class: "mini-button", form_class: "inline-form" %>
+    </div>
+  </header>
+
+  <section class="dashboard-shell">
+    <article class="dashboard-card">
+      <div class="eyebrow">Workspace</div>
+      <h1>Signed in as <span class="break-anywhere"><%= current_user.email %></span>.</h1>
+      <p>
+        This is the first wired browser step after the landing page. From here, the app
+        can branch into a richer capture UI while still leaning on the existing API-first backend.
+      </p>
+
+      <div class="dashboard-grid">
+        <div class="dashboard-stat">
+          <div class="mini-label">Notebooks</div>
+          <strong><%= @notebook_count %></strong>
+        </div>
+        <div class="dashboard-stat">
+          <div class="mini-label">Captures</div>
+          <strong><%= @capture_count %></strong>
+        </div>
+        <div class="dashboard-stat">
+          <div class="mini-label">Tags</div>
+          <strong><%= @tag_count %></strong>
+        </div>
+      </div>
+
+      <div class="dashboard-actions">
+        <a class="button button-primary" href="/api/v1/auth/csrf_token">Check session JSON</a>
+        <a class="button button-secondary" href="/api/v1/notebooks">Inspect notebooks API</a>
+      </div>
+    </article>
+
+    <aside class="dashboard-card">
+      <div class="eyebrow">Role and API</div>
+      <h2><%= current_user.admin? ? "Admin access is active." : "User access is active." %></h2>
+      <p>
+        Google Drive is currently <strong><%= @drive_connected ? "connected" : "not connected" %></strong>.
+        The API endpoints below are already protected by the same signed-in session.
+      </p>
+
+      <% if current_user.admin? %>
+        <div class="dashboard-actions">
+          <a class="button button-secondary" href="<%= admin_users_path %>">Manage users</a>
+        </div>
+      <% end %>
+
+      <% @api_endpoints.each do |verb, path| %>
+        <div class="api-code">
+          <span><%= verb %></span>
+          <span><%= path %></span>
+        </div>
+      <% end %>
+    </aside>
+  </section>
+</div>

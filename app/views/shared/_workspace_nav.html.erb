@@ -1,0 +1,68 @@
+<aside id="sidebar" class="sidebar">
+  <div class="logo-area">
+    <%= link_to dashboard_path, class: "d-inline-flex align-items-center text-decoration-none text-dark fw-semibold" do %>
+      <img src="/icons/app-icon.svg" alt="Inkcreate icon" width="24" height="24">
+      <span class="logo-text ms-2 sidebar-brand-copy">
+        <span>Inkcreate</span>
+        <span>Notebook workspace</span>
+      </span>
+    <% end %>
+  </div>
+
+  <ul class="nav flex-column pb-3">
+    <li class="px-4 py-2 nav-heading"><small class="nav-section-label">Workspace</small></li>
+    <li>
+      <%= link_to dashboard_path, class: ["nav-link", ("active" if current_page?(dashboard_path))].compact.join(" ") do %>
+        <i class="ti ti-home"></i>
+        <span class="nav-text">Home</span>
+      <% end %>
+    </li>
+    <li>
+      <%= link_to notebooks_path, class: ["nav-link", ("active" if current_page?(notebooks_path) || controller_path == "notebooks" || controller_path == "chapters" || controller_path == "pages")].compact.join(" ") do %>
+        <i class="ti ti-notebook"></i>
+        <span class="nav-text">Notebook</span>
+      <% end %>
+    </li>
+    <li>
+      <%= link_to notepad_entries_path, class: ["nav-link", ("active" if current_page?(notepad_entries_path) || controller_path == "notepad_entries")].compact.join(" ") do %>
+        <i class="ti ti-calendar-event"></i>
+        <span class="nav-text">Notepad</span>
+      <% end %>
+    </li>
+    <li>
+      <%= link_to settings_path, class: ["nav-link", ("active" if current_page?(settings_path) || current_page?(settings_backup_path) || current_page?(settings_privacy_path))].compact.join(" ") do %>
+        <i class="ti ti-settings"></i>
+        <span class="nav-text">Settings</span>
+      <% end %>
+    </li>
+
+    <li class="px-4 pt-4 pb-2 nav-heading"><small class="nav-section-label">Shortcuts</small></li>
+    <li>
+      <%= link_to new_notebook_path, class: "nav-link" do %>
+        <i class="ti ti-square-rounded-plus"></i>
+        <span class="nav-text">New notebook</span>
+      <% end %>
+    </li>
+    <li>
+      <%= link_to new_notepad_entry_path, class: "nav-link" do %>
+        <i class="ti ti-edit-circle"></i>
+        <span class="nav-text">New entry</span>
+      <% end %>
+    </li>
+
+    <li class="px-4 pt-4 pb-2 nav-heading"><small class="nav-section-label">Account</small></li>
+    <% if current_user.admin? %>
+      <li>
+        <%= link_to admin_dashboard_path, class: "nav-link" do %>
+          <i class="ti ti-shield-lock"></i>
+          <span class="nav-text">Admin console</span>
+        <% end %>
+      </li>
+    <% end %>
+  </ul>
+
+  <div class="sidebar-footer admin-sidebar-footer">
+    <strong class="small break-anywhere"><%= current_user.email %></strong>
+    <p>Project notebooks and date-wise notes stay organized in one mobile-friendly workspace.</p>
+  </div>
+</aside>

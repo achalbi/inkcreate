@@ -1,0 +1,208 @@
+<% content_for :admin_topbar do %>
+  <%= render "admin/topbar",
+    eyebrow: "Operations",
+    title: "Watch OCR, sync, and backup queues before they become support issues.",
+    primary_label: "Admin overview",
+    primary_path: admin_dashboard_path,
+    secondary_label: "Review captures",
+    secondary_path: admin_captures_path %>
+<% end %>
+
+<%= render "admin/page_header",
+  eyebrow: "Operations",
+  title: "Watch OCR, sync, and backup queues before they become support issues.",
+  description: "This page is the queue-health surface for admins. It keeps OCR, Drive export, backup, and sync work visible so the local-first experience still feels dependable.",
+  primary_label: "Admin overview",
+  primary_path: admin_dashboard_path,
+  secondary_label: "Review captures",
+  secondary_path: admin_captures_path %>
+
+<div class="row g-3 mb-4">
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="card metric-card border-0 surface-card">
+      <div class="card-body">
+        <h6 class="mb-3 text-secondary">OCR active</h6>
+        <h3 class="fw-bold mb-1"><%= @ocr_active_count %></h3>
+        <p class="metric-trend text-soft-info mb-0"><%= pluralize(@ocr_failed_count, "OCR job") %> have failed recently</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="card metric-card border-0 surface-card">
+      <div class="card-body">
+        <h6 class="mb-3 text-secondary">Backup active</h6>
+        <h3 class="fw-bold mb-1"><%= @backup_active_count %></h3>
+        <p class="metric-trend text-soft-warning mb-0"><%= pluralize(@backup_failed_count, "backup") %> in failed state</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="card metric-card border-0 surface-card">
+      <div class="card-body">
+        <h6 class="mb-3 text-secondary">Sync active</h6>
+        <h3 class="fw-bold mb-1"><%= @sync_active_count %></h3>
+        <p class="metric-trend text-soft-danger mb-0"><%= pluralize(@sync_issue_count, "sync issue") %> need intervention</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="card metric-card border-0 surface-card">
+      <div class="card-body">
+        <h6 class="mb-3 text-secondary">Drive exports</h6>
+        <h3 class="fw-bold mb-1"><%= @drive_active_count %></h3>
+        <p class="metric-trend text-soft-primary mb-0"><%= pluralize(@drive_failed_count, "Drive export") %> have failed</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-12 col-xl-6">
+    <div class="card border-0 surface-card h-100">
+      <div class="card-body p-4">
+        <h2 class="fs-5 mb-3">Failure watchlist</h2>
+        <div class="admin-note mb-3">
+          <div class="d-flex justify-content-between gap-3">
+            <div>
+              <h6 class="mb-1">OCR failures</h6>
+              <p class="text-secondary small mb-0">Retry or inspect provider-side extraction quality.</p>
+            </div>
+            <span class="status-pill failed"><%= @ocr_failed_count %></span>
+          </div>
+        </div>
+        <div class="admin-note mb-3">
+          <div class="d-flex justify-content-between gap-3">
+            <div>
+              <h6 class="mb-1">Backup failures</h6>
+              <p class="text-secondary small mb-0">Review Drive access, remote path issues, or attachment availability.</p>
+            </div>
+            <span class="status-pill failed"><%= @backup_failed_count %></span>
+          </div>
+        </div>
+        <div class="admin-note mb-3">
+          <div class="d-flex justify-content-between gap-3">
+            <div>
+              <h6 class="mb-1">Sync issues</h6>
+              <p class="text-secondary small mb-0">Pending, conflict, and failed sync work can leave users out of parity.</p>
+            </div>
+            <span class="status-pill conflict"><%= @sync_issue_count %></span>
+          </div>
+        </div>
+        <div class="admin-note">
+          <div class="d-flex justify-content-between gap-3">
+            <div>
+              <h6 class="mb-1">Drive export failures</h6>
+              <p class="text-secondary small mb-0">Exports affect trust in backup and sharing flows.</p>
+            </div>
+            <span class="status-pill failed"><%= @drive_failed_count %></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-6">
+    <div class="card border-0 surface-card h-100">
+      <div class="card-body p-4">
+        <h2 class="fs-5 mb-3">Recent OCR jobs</h2>
+        <% if @recent_ocr_jobs.any? %>
+          <% @recent_ocr_jobs.each do |job| %>
+            <div class="admin-list-item">
+              <div class="d-flex justify-content-between align-items-start gap-3">
+                <div class="min-w-0">
+                  <h6 class="mb-1 break-anywhere"><%= job.capture.display_title %></h6>
+                  <p class="text-secondary small mb-0 break-anywhere"><%= job.capture.user.email %> • <%= job.provider.humanize %></p>
+                </div>
+                <div class="d-flex flex-column align-items-end gap-2">
+                  <span class="status-pill <%= job.status %>"><%= job.status.humanize %></span>
+                  <span class="text-secondary small text-nowrap"><%= job.created_at.strftime("%b %-d, %Y") %></span>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        <% else %>
+          <div class="admin-empty">Manual OCR requests will populate here as soon as users begin extracting text.</div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-12">
+    <div class="card border-0 surface-card mb-3">
+      <div class="card-body p-4">
+        <h2 class="fs-5 mb-3">Recent backup records</h2>
+        <div class="admin-scroll-table">
+          <table class="table align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Capture</th>
+                <th>User</th>
+                <th>Provider</th>
+                <th>Status</th>
+                <th>Last success</th>
+                <th>Last attempt</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @recent_backup_records.each do |record| %>
+                <tr>
+                  <td><span class="break-anywhere"><%= record.capture.display_title %></span></td>
+                  <td><span class="break-anywhere"><%= record.user.email %></span></td>
+                  <td><%= record.provider %></td>
+                  <td><span class="status-pill <%= record.status %>"><%= record.status.humanize %></span></td>
+                  <td><%= record.last_success_at&.strftime("%b %-d, %Y") || "Not yet" %></td>
+                  <td><%= record.last_attempt_at&.strftime("%b %-d, %Y") || "Not attempted" %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card border-0 surface-card">
+      <div class="card-body p-4">
+        <h2 class="fs-5 mb-3">Recent sync and Drive export jobs</h2>
+        <div class="admin-scroll-table">
+          <table class="table align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Queue</th>
+                <th>Reference</th>
+                <th>User</th>
+                <th>Status</th>
+                <th>Attempts</th>
+                <th>Updated</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @recent_sync_jobs.each do |job| %>
+                <tr>
+                  <td>Sync job</td>
+                  <td><span class="break-anywhere"><%= "#{job.syncable_type}##{job.syncable_id}" %></span></td>
+                  <td><span class="break-anywhere"><%= job.user.email %></span></td>
+                  <td><span class="status-pill <%= job.status %>"><%= job.status.humanize %></span></td>
+                  <td><%= job.attempts %></td>
+                  <td><%= job.updated_at.strftime("%b %-d, %Y") %></td>
+                </tr>
+              <% end %>
+
+              <% @recent_drive_syncs.each do |sync| %>
+                <tr>
+                  <td>Drive export</td>
+                  <td><span class="break-anywhere"><%= sync.capture.display_title %></span></td>
+                  <td><span class="break-anywhere"><%= sync.user.email %></span></td>
+                  <td><span class="status-pill <%= sync.status %>"><%= sync.status.humanize %></span></td>
+                  <td>n/a</td>
+                  <td><%= sync.updated_at.strftime("%b %-d, %Y") %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

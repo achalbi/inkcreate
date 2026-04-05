@@ -1,0 +1,33 @@
+<div class="workspace-page">
+    <%= render "shared/workspace_header",
+      eyebrow: "Daily timeline",
+      title: "Each day gets its own recall bucket.",
+      description: "Daily logs keep time-based retrieval simple even when the physical notebook page has already been wiped and reused." %>
+
+    <section class="dashboard-card workspace-panel">
+      <div class="capture-list">
+        <article class="capture-card">
+          <div class="capture-card-top">
+            <div>
+              <div class="mini-label">Today</div>
+              <h3><%= link_to @today.strftime("%A, %b %-d"), daily_log_path(@today) %></h3>
+            </div>
+          </div>
+          <p>Jump straight into today’s log and capture flow.</p>
+        </article>
+
+        <% @daily_logs.each do |daily_log| %>
+          <article class="capture-card">
+            <div class="capture-card-top">
+              <div>
+                <div class="mini-label">Day</div>
+                <h3><%= link_to daily_log.display_title, daily_log_path(daily_log) %></h3>
+              </div>
+              <span class="role-chip"><%= daily_log.captures.count %> captures</span>
+            </div>
+            <p><%= daily_log.summary.presence || daily_log.quick_note.presence || "No summary yet." %></p>
+          </article>
+        <% end %>
+      </div>
+    </section>
+</div>

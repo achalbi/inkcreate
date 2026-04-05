@@ -1,0 +1,47 @@
+<div class="workspace-page">
+    <%= render "shared/workspace_header",
+      eyebrow: "Project workspace",
+      title: @project.title,
+      description: @project.description.presence || "This project is ready for captures, tasks, media, and future AI digests.",
+      action_label: "Quick capture",
+      action_path: capture_studio_path %>
+
+    <section class="workspace-grid workspace-grid-halves">
+      <article class="dashboard-card workspace-panel">
+        <div class="section-header">
+          <div class="eyebrow">Capture timeline</div>
+          <h2>Pages in this project</h2>
+        </div>
+        <% if @captures.any? %>
+          <div class="capture-list">
+            <% @captures.each do |capture| %>
+              <%= render "shared/capture_card", capture: capture %>
+            <% end %>
+          </div>
+        <% else %>
+          <%= render "shared/empty_state", title: "No captures in this project", description: "Assign a capture to this project from the capture flow or detail page." %>
+        <% end %>
+      </article>
+
+      <article class="dashboard-card workspace-panel">
+        <div class="section-header">
+          <div class="eyebrow">Context panel</div>
+          <h2>Tasks and media</h2>
+        </div>
+        <div class="admin-note-list">
+          <div class="stack-note">
+            <strong><%= @tasks.open.count %> open tasks</strong>
+            <p>Tasks can be created directly from capture details or summarized from AI output.</p>
+          </div>
+          <div class="stack-note">
+            <strong><%= @attachments.count %> related media items</strong>
+            <p>Photos, videos, files, links, and YouTube references attach to captures and roll up here.</p>
+          </div>
+          <div class="stack-note">
+            <strong>AI digest ready for later</strong>
+            <p>The project model is set up so future project-level summaries can be stored as durable records.</p>
+          </div>
+        </div>
+      </article>
+    </section>
+</div>

@@ -1,0 +1,82 @@
+<div class="page-shell">
+  <header class="topbar">
+    <a class="brand" href="<%= root_path %>">
+      <img class="brand-mark" src="/icons/app-icon.svg" alt="Inkcreate icon">
+      <span class="brand-copy">
+        <strong>Inkcreate</strong>
+        <span>Notebook OCR Companion</span>
+      </span>
+    </a>
+
+    <div class="nav-actions">
+      <a class="mini-button" href="<%= root_path %>">Back home</a>
+      <a class="mini-button mini-button-primary" href="<%= browser_sign_in_path %>">Already have an account?</a>
+    </div>
+  </header>
+
+  <section class="auth-shell">
+    <article class="auth-panel">
+      <div class="eyebrow">Create account</div>
+      <h1>Start with a notebook-friendly workspace.</h1>
+      <p>
+        The first account becomes the bootstrap admin. Every account after that
+        starts as a standard user, and admins can manage roles later.
+      </p>
+
+      <%= form_with model: @user, url: browser_sign_up_path, scope: :user, class: "auth-form" do |form| %>
+        <div class="field">
+          <%= form.label :email %>
+          <%= form.email_field :email, autofocus: true, autocomplete: "email", required: true %>
+        </div>
+
+        <div class="auth-form-row">
+          <div class="field">
+            <%= form.label :password %>
+            <%= form.password_field :password, autocomplete: "new-password", required: true %>
+          </div>
+
+          <div class="field">
+            <%= form.label :password_confirmation %>
+            <%= form.password_field :password_confirmation, autocomplete: "new-password", required: true %>
+          </div>
+        </div>
+
+        <div class="auth-form-row">
+          <div class="field">
+            <%= form.label :time_zone %>
+            <%= form.text_field :time_zone, required: true %>
+          </div>
+
+          <div class="field">
+            <%= form.label :locale %>
+            <%= form.text_field :locale, required: true %>
+          </div>
+        </div>
+
+        <%= form.submit "Create account", class: "button button-primary" %>
+      <% end %>
+
+      <div class="helper-links">
+        <a href="<%= browser_sign_in_path %>">Already registered? Sign in</a>
+      </div>
+    </article>
+
+    <aside class="auth-panel">
+      <div class="eyebrow">Role model</div>
+      <h2>Admin and user roles now exist in the app.</h2>
+      <p>
+        Roles are stored on the `users` table, exposed in auth responses, and used
+        for browser-side access control in the new dashboard and admin workspace.
+      </p>
+
+      <div class="stack-note">
+        <strong>Bootstrap admin</strong>
+        <p>The first account becomes admin automatically so a fresh deployment can be managed immediately.</p>
+      </div>
+      <div class="stack-note">
+        <strong>Standard users</strong>
+        <p>Everyone else signs up as `user` and works within their own notebooks and captures.</p>
+      </div>
+    </aside>
+  </section>
+</div>

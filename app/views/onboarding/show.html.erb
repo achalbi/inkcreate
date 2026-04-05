@@ -1,0 +1,41 @@
+<div class="page-shell">
+  <section class="section-card">
+    <div class="section-header">
+      <div class="eyebrow">Onboarding</div>
+      <h1>Write, capture, organize, enrich, and wipe the page clean.</h1>
+      <p>The notebook is reusable. The context is not. Inkcreate preserves the history even when the physical page gets reused.</p>
+    </div>
+
+    <div class="flow">
+      <article class="flow-step">
+        <div class="mini-label">1</div>
+        <strong>Learn the flow</strong>
+        <p>Understand how reusable pages map to projects, days, and durable capture history.</p>
+      </article>
+      <article class="flow-step">
+        <div class="mini-label">2</div>
+        <strong>Delay camera permission</strong>
+        <p>Ask for camera access only when the user taps into the capture workflow.</p>
+      </article>
+      <article class="flow-step">
+        <div class="mini-label">3</div>
+        <strong>Create your first project</strong>
+        <p>Set up a long-running workspace or skip straight to daily capture.</p>
+      </article>
+      <article class="flow-step">
+        <div class="mini-label">4</div>
+        <strong>Optional backup</strong>
+        <p>Connect Google Drive later when you decide cloud backup is worth it.</p>
+      </article>
+    </div>
+
+    <div class="cta-row">
+      <% if @signed_in %>
+        <%= link_to "Open workspace", dashboard_path, class: "button button-primary" %>
+      <% else %>
+        <%= link_to "Create account", browser_sign_up_path, class: "button button-primary" %>
+      <% end %>
+      <%= link_to "Install guidance", install_path, class: "button button-secondary" %>
+    </div>
+  </section>
+</div>

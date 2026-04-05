@@ -1,0 +1,18 @@
+<div class="panel panel-default">
+  <div class="panel-body">
+    <div class="row">
+      <div class="col-sm-8">
+        <h4 class="m-t-none m-b-xs"><%= link_to entry.display_title, notepad_entry_path(entry) %></h4>
+        <p class="text-muted m-b-sm"><%= entry.notes.to_s.truncate(140).presence || "No notes yet." %></p>
+        <p class="small text-muted m-b-none"><%= entry.entry_date.strftime("%b %-d, %Y") %></p>
+      </div>
+      <div class="col-sm-4">
+        <p class="m-b-sm m-t-none"><span class="label label-info"><%= pluralize(entry.photos.count, "photo") %></span></p>
+        <p class="m-b-none">
+          <%= link_to "Open", notepad_entry_path(entry), class: "btn btn-primary btn-sm" %>
+          <%= link_to "Edit", edit_notepad_entry_path(entry), class: "btn btn-white btn-sm" %>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

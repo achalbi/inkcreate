@@ -1,0 +1,18 @@
+<div class="workspace-page">
+    <%= render "shared/workspace_header",
+      eyebrow: "Library",
+      title: "Photos, videos, files, links, and YouTube references.",
+      description: "The media library surfaces all attachment types so captures can hold richer context than OCR alone." %>
+
+    <section class="dashboard-card workspace-panel">
+      <% if @attachments.any? %>
+        <div class="attachment-grid">
+          <% @attachments.each do |attachment| %>
+            <%= render "shared/attachment_card", attachment: attachment, show_capture: true %>
+          <% end %>
+        </div>
+      <% else %>
+        <%= render "shared/empty_state", title: "Library is empty", description: "Add links, YouTube URLs, photos, or files from capture detail pages." %>
+      <% end %>
+    </section>
+</div>

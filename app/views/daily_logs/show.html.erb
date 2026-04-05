@@ -1,0 +1,47 @@
+<div class="workspace-page">
+    <%= render "shared/workspace_header",
+      eyebrow: "Daily log",
+      title: @daily_log.display_title,
+      description: @daily_log.summary.presence || "This day groups captures, media, and tasks that happened together.",
+      action_label: "Quick capture",
+      action_path: capture_studio_path %>
+
+    <section class="workspace-grid workspace-grid-halves">
+      <article class="dashboard-card workspace-panel">
+        <div class="section-header">
+          <div class="eyebrow">Captures</div>
+          <h2>Pages linked to this day</h2>
+        </div>
+        <% if @captures.any? %>
+          <div class="capture-list">
+            <% @captures.each do |capture| %>
+              <%= render "shared/capture_card", capture: capture %>
+            <% end %>
+          </div>
+        <% else %>
+          <%= render "shared/empty_state", title: "No captures yet", description: "Use save-to-today from capture to drop a page straight into this day." %>
+        <% end %>
+      </article>
+
+      <article class="dashboard-card workspace-panel">
+        <div class="section-header">
+          <div class="eyebrow">Context</div>
+          <h2>Tasks and media</h2>
+        </div>
+        <div class="admin-note-list">
+          <div class="stack-note">
+            <strong><%= @tasks.open.count %> open tasks</strong>
+            <p>Tasks extracted from captures stay visible inside the day they came from.</p>
+          </div>
+          <div class="stack-note">
+            <strong><%= @attachments.count %> related media items</strong>
+            <p>Daily logs can carry supporting photos, files, and links through their captures.</p>
+          </div>
+          <div class="stack-note">
+            <strong>AI recap placeholder</strong>
+            <p>The daily log model is set up for future recap generation without changing the core routes.</p>
+          </div>
+        </div>
+      </article>
+    </section>
+</div>

@@ -1,0 +1,48 @@
+<div class="workspace-page">
+    <%= render "shared/workspace_header",
+      eyebrow: "Retrieve",
+      title: "Search titles, tags, OCR, projects, and dates.",
+      description: "Search stays useful even when OCR is missing because titles, manual notes, tags, projects, and dates all contribute." %>
+
+    <section class="dashboard-card workspace-panel">
+      <%= form_with url: search_page_path, method: :get, class: "auth-form", data: { controller: "search-filters" } do |form| %>
+        <div class="field">
+          <%= form.label :q, "Search query" %>
+          <%= form.search_field :q, value: @query, placeholder: "retro notes, action items, weekly sync..." %>
+        </div>
+        <div class="auth-form-row">
+          <div class="field">
+            <%= form.label :project_id, "Project" %>
+            <%= form.select :project_id, options_for_select([["All projects", ""]] + @projects.map { |project| [project.title, project.id] }, params[:project_id]) %>
+          </div>
+          <div class="field">
+            <%= form.label :date %>
+            <%= form.date_field :date, value: params[:date] %>
+          </div>
+        </div>
+        <div class="auth-form-row">
+          <div class="field">
+            <%= form.label :page_type %>
+            <%= form.select :page_type, options_for_select([["Any page type", ""]] + PageTemplate::SYSTEM_KEYS.map { |key| [key.humanize, key] }, params[:page_type]) %>
+          </div>
+          <div class="field">
+            <%= form.label :tag %>
+            <%= form.text_field :tag, value: params[:tag] %>
+          </div>
+        </div>
+        <%= form.submit "Search", class: "button button-primary" %>
+      <% end %>
+    </section>
+
+    <section class="dashboard-card workspace-panel">
+      <% if @captures.any? %>
+        <div class="capture-list">
+          <% @captures.each do |capture| %>
+            <%= render "shared/capture_card", capture: capture %>
+          <% end %>
+        </div>
+      <% else %>
+        <%= render "shared/empty_state", title: "No results yet", description: "Try a title keyword, tag, project filter, or a date from the daily timeline." %>
+      <% end %>
+    </section>
+</div>

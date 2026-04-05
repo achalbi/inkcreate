@@ -1,0 +1,116 @@
+<%= render "shared/workspace_header",
+  eyebrow: "Home",
+  title: "Choose how you want to organize your work.",
+  description: "Notebook keeps project-based material structured by chapter and page. Notepad keeps fast daily capture organized by date." %>
+
+<div class="wrapper wrapper-content animated fadeInRight">
+  <section class="row g-2 g-md-3 home-metric-grid">
+    <div class="col-4 col-md-4">
+      <div class="ibox float-e-margins">
+        <div class="ibox-content home-metric-card">
+          <h2 class="home-metric-value"><%= @total_notebooks %></h2>
+          <h5 class="home-metric-title">Total notebooks</h5>
+          <small class="home-metric-copy">Total notebooks across your workspace.</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-4 col-md-4">
+      <div class="ibox float-e-margins">
+        <div class="ibox-content home-metric-card">
+          <h2 class="home-metric-value"><%= @active_notebooks %></h2>
+          <h5 class="home-metric-title">Active notebooks</h5>
+          <small class="home-metric-copy">Project notebooks currently in progress.</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-4 col-md-4">
+      <div class="ibox float-e-margins">
+        <div class="ibox-content home-metric-card">
+          <h2 class="home-metric-value"><%= @today_notepad_entries %></h2>
+          <h5 class="home-metric-title">Today's notepad</h5>
+          <small class="home-metric-copy">Notepad entries stored for <%= @today.strftime("%b %-d, %Y") %>.</small>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="row">
+    <div class="col-lg-6">
+      <div class="ibox float-e-margins">
+        <div class="ibox-title">
+          <h5>Notebook</h5>
+          <div class="ibox-tools">
+            <span class="label label-primary">Project-based</span>
+          </div>
+        </div>
+        <div class="ibox-content">
+          <p class="m-b-md">Organize work into notebooks, chapters, and pages with photos, notes, and captured dates.</p>
+
+          <p class="m-b-md">
+            <span class="label label-default">Active: <%= @active_notebooks %></span>
+            <span class="label label-default">Total: <%= @total_notebooks %></span>
+          </p>
+
+          <h5 class="m-b-sm">Recent notebooks</h5>
+          <% if @recent_notebooks.any? %>
+            <ul class="list-group clear-list m-b-md">
+              <% @recent_notebooks.each do |notebook| %>
+                <li class="list-group-item">
+                  <span class="label <%= notebook.status_active? ? "label-primary" : "label-default" %> pull-right"><%= notebook.status.humanize %></span>
+                  <strong><%= link_to notebook.title, notebook_path(notebook) %></strong><br>
+                  <small class="text-muted"><%= pluralize(notebook.chapters.size, "chapter") %></small>
+                </li>
+              <% end %>
+            </ul>
+          <% else %>
+            <%= render "shared/empty_state", title: "No notebooks yet", description: "Create your first notebook to start building chapters and pages." %>
+          <% end %>
+
+          <div class="m-t-md">
+            <%= link_to "Open notebooks", notebooks_path, class: "btn btn-primary btn-sm" %>
+            <%= link_to "Create notebook", new_notebook_path, class: "btn btn-white btn-sm" %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="ibox float-e-margins">
+        <div class="ibox-title">
+          <h5>Notepad</h5>
+          <div class="ibox-tools">
+            <span class="label label-info">Date-based</span>
+          </div>
+        </div>
+        <div class="ibox-content">
+          <p class="m-b-md">Capture daily notes and photos directly by date without the notebook and chapter hierarchy.</p>
+
+          <p class="m-b-md">
+            <span class="label label-default">Today: <%= @today_notepad_entries %></span>
+            <span class="label label-default">Latest first</span>
+          </p>
+
+          <h5 class="m-b-sm">Recent entries</h5>
+          <% if @recent_notepad_entries.any? %>
+            <ul class="list-group clear-list m-b-md">
+              <% @recent_notepad_entries.each do |entry| %>
+                <li class="list-group-item">
+                  <span class="label label-default pull-right"><%= pluralize(entry.photos.count, "photo") %></span>
+                  <strong><%= link_to entry.display_title, notepad_entry_path(entry) %></strong><br>
+                  <small class="text-muted"><%= entry.entry_date.strftime("%b %-d, %Y") %></small>
+                </li>
+              <% end %>
+            </ul>
+          <% else %>
+            <%= render "shared/empty_state", title: "No daily entries yet", description: "Start the notepad flow to capture notes and photos by date." %>
+          <% end %>
+
+          <div class="m-t-md">
+            <%= link_to "Open notepad", notepad_entries_path, class: "btn btn-primary btn-sm" %>
+            <%= link_to "New entry", new_notepad_entry_path, class: "btn btn-white btn-sm" %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

@@ -1,0 +1,122 @@
+services:
+  web:
+    build:
+      context: .
+      args:
+        BUNDLE_WITHOUT: ${BUNDLE_WITHOUT:-test}
+    image: inkcreate:latest
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      PORT: 8080
+      RAILS_ENV: ${RAILS_ENV:-production}
+      DATABASE_URL: ${DOCKER_DATABASE_URL:-postgres://postgres:postgres@postgres:5432/inkcreate_production}
+      REDIS_URL: ${DOCKER_REDIS_URL:-redis://redis:6379/0}
+      ACTIVE_STORAGE_SERVICE: ${ACTIVE_STORAGE_SERVICE:-local}
+      JOB_BACKEND: ${JOB_BACKEND:-sidekiq}
+      WAIT_FOR_DB: "true"
+      RUN_DB_PREPARE: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command:
+      [
+        "sh",
+        "-lc",
+        "bundle exec rails tailwindcss:watch & exec bundle exec puma -C config/puma.rb"
+      ]
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+      - rails_storage:/app/storage
+
+  worker:
+    build:
+      context: .
+      args:
+        BUNDLE_WITHOUT: ${BUNDLE_WITHOUT:-test}
+    image: inkcreate:latest
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      RAILS_ENV: ${RAILS_ENV:-production}
+      DATABASE_URL: ${DOCKER_DATABASE_URL:-postgres://postgres:postgres@postgres:5432/inkcreate_production}
+      REDIS_URL: ${DOCKER_REDIS_URL:-redis://redis:6379/0}
+      ACTIVE_STORAGE_SERVICE: ${ACTIVE_STORAGE_SERVICE:-local}
+      JOB_BACKEND: sidekiq
+      WAIT_FOR_DB: "true"
+      RUN_DB_PREPARE: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_started
+    command: ["bundle", "exec", "sidekiq", "-C", "config/sidekiq.yml"]
+    volumes:
+      - rails_storage:/app/storage
+
+  migrate:
+    build:
+      context: .
+      args:
+        BUNDLE_WITHOUT: ${BUNDLE_WITHOUT:-test}
+    image: inkcreate:latest
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      RAILS_ENV: ${RAILS_ENV:-production}
+      DATABASE_URL: ${DOCKER_DATABASE_URL:-postgres://postgres:postgres@postgres:5432/inkcreate_production}
+      REDIS_URL: ${DOCKER_REDIS_URL:-redis://redis:6379/0}
+      ACTIVE_STORAGE_SERVICE: ${ACTIVE_STORAGE_SERVICE:-local}
+      WAIT_FOR_DB: "true"
+      RUN_DB_PREPARE: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["bundle", "exec", "rails", "db:prepare"]
+    volumes:
+      - rails_storage:/app/storage
+    profiles:
+      - ops
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-inkcreate_production}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-inkcreate_production}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  postgres_data:
+  redis_data:
+  rails_storage:

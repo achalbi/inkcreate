@@ -1,0 +1,63 @@
+<div class="page-shell">
+  <header class="topbar">
+    <a class="brand" href="<%= root_path %>">
+      <img class="brand-mark" src="/icons/app-icon.svg" alt="Inkcreate icon">
+      <span class="brand-copy">
+        <strong>Inkcreate</strong>
+        <span>Notebook OCR Companion</span>
+      </span>
+    </a>
+
+    <div class="nav-actions">
+      <a class="mini-button" href="<%= root_path %>">Back home</a>
+      <a class="mini-button mini-button-primary" href="<%= browser_sign_up_path %>">Create account</a>
+    </div>
+  </header>
+
+  <section class="auth-shell">
+    <article class="auth-panel">
+      <div class="eyebrow">Sign in</div>
+      <h1>Resume your notebook workflow.</h1>
+      <p>
+        Sign in to review captures, request upload URLs, search extracted text,
+        and continue the OCR flow from the same workspace.
+      </p>
+
+      <%= form_with url: browser_sign_in_path, scope: :user, class: "auth-form" do |form| %>
+        <div class="field">
+          <%= form.label :email %>
+          <%= form.email_field :email, autofocus: true, autocomplete: "email", required: true %>
+        </div>
+
+        <div class="field">
+          <%= form.label :password %>
+          <%= form.password_field :password, autocomplete: "current-password", required: true %>
+        </div>
+
+        <%= form.submit "Sign in", class: "button button-primary" %>
+      <% end %>
+
+      <div class="helper-links">
+        <a href="<%= browser_sign_up_path %>">Need an account? Create one</a>
+      </div>
+    </article>
+
+    <aside class="auth-panel">
+      <div class="eyebrow">What you unlock</div>
+      <h2>Auth is now wired from the landing page.</h2>
+      <p>
+        The browser flow sits on top of the existing API auth endpoints, so the
+        same session works for both the new web UI and the API-first backend.
+      </p>
+
+      <div class="stack-note">
+        <strong>User role</strong>
+        <p>Standard users get a personal workspace for notebooks, captures, tags, and Drive connection state.</p>
+      </div>
+      <div class="stack-note">
+        <strong>Admin role</strong>
+        <p>The bootstrap admin can review users and manage role assignment from the admin screen.</p>
+      </div>
+    </aside>
+  </section>
+</div>

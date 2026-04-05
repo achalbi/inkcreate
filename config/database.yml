@@ -1,0 +1,19 @@
+default: &default
+  adapter: postgresql
+  encoding: unicode
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS", 5) %>
+  timeout: 5000
+  variables:
+    statement_timeout: <%= ENV.fetch("DB_STATEMENT_TIMEOUT_MS", 5000) %>
+
+development:
+  <<: *default
+  url: <%= ENV.fetch("DATABASE_URL", "postgres://localhost/inkcreate_development") %>
+
+test:
+  <<: *default
+  url: <%= ENV.fetch("DATABASE_URL_TEST", "postgres://localhost/inkcreate_test") %>
+
+production:
+  <<: *default
+  url: <%= ENV.fetch("DATABASE_URL") %>

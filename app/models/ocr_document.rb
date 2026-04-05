@@ -1,0 +1,2 @@
+class OcrDocument < OcrResult
+end

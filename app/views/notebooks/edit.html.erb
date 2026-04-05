@@ -1,0 +1,8 @@
+<%= render "shared/workspace_header",
+  eyebrow: "Notebook",
+  title: "Edit notebook",
+  description: "Update the notebook title, description, or status." %>
+
+<div class="wrapper wrapper-content animated fadeInRight">
+  <%= render "form", notebook: @notebook %>
+</div>

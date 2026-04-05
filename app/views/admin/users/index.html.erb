@@ -1,0 +1,158 @@
+<% content_for :admin_topbar do %>
+  <%= render "admin/topbar",
+    eyebrow: "User access",
+    title: "Manage roles without leaving the admin workspace.",
+    primary_label: "Admin overview",
+    primary_path: admin_dashboard_path,
+    secondary_label: "Capture oversight",
+    secondary_path: admin_captures_path %>
+<% end %>
+
+<%= render "admin/page_header",
+  eyebrow: "User access",
+  title: "Manage roles without leaving the admin workspace.",
+  description: "Promote or demote accounts, keep track of connected users, and review access changes with the rest of the admin context still in view.",
+  primary_label: "Admin overview",
+  primary_path: admin_dashboard_path,
+  secondary_label: "Operations",
+  secondary_path: admin_operations_path %>
+
+<div class="row g-3 mb-4">
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="card metric-card border-0 surface-card">
+      <div class="card-body">
+        <h6 class="mb-3 text-secondary">Accounts</h6>
+        <h3 class="fw-bold mb-1"><%= @user_count %></h3>
+        <p class="metric-trend text-soft-info mb-0">Total users currently enrolled in the product.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="card metric-card border-0 surface-card">
+      <div class="card-body">
+        <h6 class="mb-3 text-secondary">Admins</h6>
+        <h3 class="fw-bold mb-1"><%= @admin_count %></h3>
+        <p class="metric-trend text-soft-primary mb-0">Protected accounts with elevated access.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="card metric-card border-0 surface-card">
+      <div class="card-body">
+        <h6 class="mb-3 text-secondary">Standard users</h6>
+        <h3 class="fw-bold mb-1"><%= @standard_user_count %></h3>
+        <p class="metric-trend text-soft-warning mb-0">Accounts working inside the regular notebook workspace.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="card metric-card border-0 surface-card">
+      <div class="card-body">
+        <h6 class="mb-3 text-secondary">New this week</h6>
+        <h3 class="fw-bold mb-1"><%= @new_users_this_week %></h3>
+        <p class="metric-trend text-soft-success mb-0">Recent signups that may need onboarding help.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-12 col-xl-5">
+    <div class="card border-0 surface-card h-100">
+      <div class="card-body p-4">
+        <h2 class="fs-5 mb-3">Admin safety rails</h2>
+        <div class="admin-note mb-3">
+          <h6 class="mb-1">Last admin protection</h6>
+          <p class="text-secondary small mb-0">The browser flow prevents demoting the final admin account.</p>
+        </div>
+        <div class="admin-note mb-3">
+          <h6 class="mb-1">Role changes stay operationally grounded</h6>
+          <p class="text-secondary small mb-0">Check queue health or capture oversight before broad access changes.</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          <%= link_to "Queue health", admin_operations_path, class: "btn btn-outline-secondary btn-sm" %>
+          <%= link_to "Capture oversight", admin_captures_path, class: "btn btn-primary btn-sm" %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-7">
+    <div class="card border-0 surface-card h-100">
+      <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h2 class="fs-5 mb-1">Drive-ready accounts</h2>
+            <p class="text-secondary mb-0">Users already connected to Google Drive and ready for export flows.</p>
+          </div>
+          <span class="status-pill synced"><%= pluralize(@connected_drive_count, "connected user") %></span>
+        </div>
+
+        <% if @recent_drive_users.any? %>
+          <% @recent_drive_users.each do |user| %>
+            <div class="admin-list-item">
+              <div class="d-flex justify-content-between align-items-start gap-3">
+                <div class="d-flex align-items-center gap-3">
+                  <span class="table-avatar"><%= user.email.first.upcase %></span>
+                  <div class="min-w-0">
+                    <div class="fw-semibold break-anywhere"><%= user.email %></div>
+                    <div class="text-secondary small">Connected <%= user.google_drive_connected_at.strftime("%b %-d, %Y") %></div>
+                  </div>
+                </div>
+                <span class="status-pill synced">Connected</span>
+              </div>
+            </div>
+          <% end %>
+        <% else %>
+          <div class="admin-empty">Connections will show up here as backup adoption grows.</div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 surface-card">
+  <div class="card-body p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h2 class="fs-5 mb-1">User roles</h2>
+        <p class="text-secondary mb-0">Promote or demote accounts without exposing role selection on public sign-up.</p>
+      </div>
+    </div>
+
+    <div class="admin-scroll-table">
+      <table class="table align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>User</th>
+            <th>Role</th>
+            <th>Created</th>
+            <th>Drive</th>
+            <th>Change role</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @users.each do |user| %>
+            <tr>
+              <td>
+                <div class="d-flex align-items-center gap-3">
+                  <span class="table-avatar"><%= user.email.first.upcase %></span>
+                  <div class="fw-semibold break-anywhere"><%= user.email %></div>
+                </div>
+              </td>
+              <td><span class="status-pill <%= user.admin? ? "ready" : "not_started" %>"><%= user.role %></span></td>
+              <td><%= user.created_at.strftime("%b %-d, %Y") %></td>
+              <td><%= user.google_drive_connected? ? "Connected" : "Not connected" %></td>
+              <td>
+                <%= form_with scope: :user, url: admin_user_role_path(user), class: "d-flex flex-wrap gap-2 align-items-center" do |form| %>
+                  <%= form.select :role, User.roles.keys.map { |role| [role.titleize, role] }, {}, class: "form-select form-select-sm", style: "max-width: 10rem;", aria: { label: "Role for #{user.email}" } %>
+                  <%= form.submit "Save", class: "btn btn-primary btn-sm" %>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

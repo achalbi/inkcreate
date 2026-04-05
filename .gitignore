@@ -1,0 +1,15 @@
+/.bundle
+/.env
+/.env.local
+/.env.*.local
+/log/*
+/tmp/*
+/vendor/bundle
+/coverage
+/node_modules
+/storage
+/app/assets/builds/*
+/app/assets/builds/.keep
+/public/assets
+/public/packs
+!.keep

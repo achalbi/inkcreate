@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+require_runtime_env() {
+  if [[ "${RAILS_ENV:-development}" == "production" && -z "${SECRET_KEY_BASE:-}" ]]; then
+    echo "SECRET_KEY_BASE is required when RAILS_ENV=production."
+    echo "Set SECRET_KEY_BASE in your .env before starting Docker Compose."
+    exit 1
+  fi
+}
+
+wait_for_database() {
+  local attempts=0
+  local max_attempts="${DB_WAIT_MAX_ATTEMPTS:-30}"
+
+  echo "Waiting for database connection..."
+  until bundle exec rails runner "ActiveRecord::Base.connection.execute('SELECT 1')" >/tmp/db-wait.log 2>&1; do
+    attempts=$((attempts + 1))
+
+    if [[ "$attempts" -ge "$max_attempts" ]]; then
+      echo "Database did not become reachable after ${max_attempts} attempts."
+      cat /tmp/db-wait.log
+      return 1
+    fi
+
+    if (( attempts == 1 || attempts % 5 == 0 )); then
+      echo "Database still unavailable after ${attempts} attempt(s)..."
+      cat /tmp/db-wait.log
+    fi
+
+    sleep 2
+  done
+
+  rm -f /tmp/db-wait.log
+  echo "Database is reachable."
+}
+
+require_runtime_env
+
+if [[ "${WAIT_FOR_DB:-true}" == "true" ]]; then
+  wait_for_database
+fi
+
+if [[ "${RUN_DB_PREPARE:-false}" == "true" ]]; then
+  echo "Running db:prepare..."
+  bundle exec rails db:prepare
+fi
+
+rm -f tmp/pids/server.pid
+
+exec "$@"

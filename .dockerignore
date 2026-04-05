@@ -1,0 +1,10 @@
+.git
+.github
+.bundle
+.env
+.env.local
+log
+tmp
+node_modules
+coverage
+vendor/bundle

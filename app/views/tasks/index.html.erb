@@ -1,0 +1,69 @@
+<div class="workspace-page">
+    <%= render "shared/workspace_header",
+      eyebrow: "Tasks",
+      title: "Extracted actions and manual tasks in one place.",
+      description: "Tasks can come from AI summaries or be created manually from capture context, then tracked across projects and days." %>
+
+    <section class="workspace-grid workspace-grid-halves">
+      <article class="dashboard-card workspace-panel">
+        <div class="section-header">
+          <div class="eyebrow">Create task</div>
+          <h2>Manual task entry</h2>
+        </div>
+        <%= form_with model: @task, url: tasks_path, class: "auth-form" do |form| %>
+          <div class="field">
+            <%= form.label :title %>
+            <%= form.text_field :title, required: true %>
+          </div>
+          <div class="field">
+            <%= form.label :description %>
+            <%= form.text_area :description, rows: 4 %>
+          </div>
+          <div class="auth-form-row">
+            <div class="field">
+              <%= form.label :priority %>
+              <%= form.select :priority, Task.priorities.keys.map { |priority| [priority.humanize, priority] } %>
+            </div>
+            <div class="field">
+              <%= form.label :due_date %>
+              <%= form.date_field :due_date %>
+            </div>
+          </div>
+          <%= form.submit "Create task", class: "button button-primary" %>
+        <% end %>
+      </article>
+
+      <article class="dashboard-card workspace-panel">
+        <div class="section-header">
+          <div class="eyebrow">Task list</div>
+          <h2>Open and completed work</h2>
+        </div>
+        <% if @tasks.any? %>
+          <div class="capture-list">
+            <% @tasks.each do |task| %>
+              <article class="capture-card">
+                <div class="capture-card-top">
+                  <div>
+                    <div class="mini-label"><%= task.priority.humanize %> priority</div>
+                    <h3><%= task.title %></h3>
+                  </div>
+                  <span class="role-chip"><%= task.completed? ? "Done" : "Open" %></span>
+                </div>
+                <p><%= task.description.presence || "No description." %></p>
+                <div class="capture-meta">
+                  <span><%= task.project&.title || task.daily_log&.display_title || task.capture&.display_title || "General" %></span>
+                  <span><%= task.due_date&.strftime("%b %-d, %Y") || "No due date" %></span>
+                </div>
+                <%= form_with model: task, url: task_path(task), method: :patch, class: "inline-form" do |form| %>
+                  <%= form.hidden_field :completed, value: (!task.completed?).to_s %>
+                  <%= form.submit(task.completed? ? "Mark open" : "Mark complete", class: "mini-button mini-button-primary") %>
+                <% end %>
+              </article>
+            <% end %>
+          </div>
+        <% else %>
+          <%= render "shared/empty_state", title: "No tasks yet", description: "Tasks extracted from captures and tasks added manually will show up here." %>
+        <% end %>
+      </article>
+    </section>
+</div>

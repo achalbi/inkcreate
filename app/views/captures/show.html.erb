@@ -1,0 +1,171 @@
+<div class="workspace-page">
+    <%= render "shared/workspace_header",
+      eyebrow: "Capture detail",
+      title: @capture.display_title,
+      description: "Each capture is the center of a knowledge object: image, OCR, links, media, tasks, revisions, and backups live together." %>
+
+    <section class="workspace-grid">
+      <article class="dashboard-card workspace-panel">
+        <div class="section-header">
+          <div class="eyebrow">Image and metadata</div>
+          <h2>Primary note record</h2>
+        </div>
+
+        <div class="dashboard-actions">
+          <%= link_to "Preview image", preview_capture_path(@capture), class: "button button-secondary", target: "_blank", rel: "noreferrer" %>
+          <%= button_to "Extract text", extract_text_capture_path(@capture), class: "button button-primary", form_class: "inline-form" %>
+          <%= button_to "Generate summary", generate_summary_capture_path(@capture), class: "button button-secondary", form_class: "inline-form" %>
+          <%= button_to "Backup to Drive", backup_capture_path(@capture), class: "button button-secondary", form_class: "inline-form" %>
+        </div>
+
+        <%= form_with model: @capture, url: capture_path(@capture), scope: :capture, class: "auth-form" do |form| %>
+          <div class="field">
+            <%= form.label :title %>
+            <%= form.text_field :title %>
+          </div>
+          <div class="field">
+            <%= form.label :description %>
+            <%= form.text_area :description, rows: 4 %>
+          </div>
+          <div class="auth-form-row">
+            <div class="field">
+              <%= form.label :page_type %>
+              <%= form.text_field :page_type %>
+            </div>
+            <div class="field">
+              <%= form.label :favorite %>
+              <%= form.select :favorite, [["No", false], ["Yes", true]] %>
+            </div>
+          </div>
+          <div class="auth-form-row">
+            <div class="field">
+              <%= form.label :project_id, "Project" %>
+              <%= form.select :project_id, options_for_select([["Inbox only", ""]] + @projects.map { |project| [project.title, project.id] }, @capture.project_id) %>
+            </div>
+            <div class="field">
+              <%= form.label :daily_log_id, "Daily log" %>
+              <%= form.select :daily_log_id, options_for_select([["No daily log", ""]] + @daily_logs.map { |daily_log| [daily_log.display_title, daily_log.id] }, @capture.daily_log_id) %>
+            </div>
+          </div>
+          <div class="field">
+            <%= label_tag "capture_tags", "Tags (comma separated)" %>
+            <%= text_field_tag "capture[tags][]", @capture.tags.order(:name).pluck(:name).join(", "), id: "capture_tags" %>
+          </div>
+          <%= form.submit "Save capture", class: "button button-primary" %>
+        <% end %>
+      </article>
+
+      <aside class="dashboard-card workspace-panel">
+        <div class="section-header">
+          <div class="eyebrow">Status</div>
+          <h2>OCR, AI, backup, and sync</h2>
+        </div>
+        <div class="admin-note-list">
+          <div class="stack-note">
+            <strong>OCR: <%= @capture.ocr_status.humanize %></strong>
+            <p><%= @capture.latest_ocr_result&.cleaned_text.to_s.truncate(140).presence || "No extracted text yet." %></p>
+          </div>
+          <div class="stack-note">
+            <strong>AI: <%= @capture.ai_status.humanize %></strong>
+            <p><%= @capture.latest_ai_summary&.summary.to_s.truncate(140).presence || "No summary yet." %></p>
+          </div>
+          <div class="stack-note">
+            <strong>Backup: <%= @capture.backup_status.humanize %></strong>
+            <p>Latest backup attempts remain visible and retryable from this detail surface.</p>
+          </div>
+          <div class="stack-note">
+            <strong>Sync: <%= @capture.sync_status.humanize %></strong>
+            <p>Client-originated changes can be replayed safely through the sync queue.</p>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="workspace-grid workspace-grid-halves">
+      <article class="dashboard-card workspace-panel">
+        <div class="section-header">
+          <div class="eyebrow">Context panel</div>
+          <h2>Attachments, tasks, and links</h2>
+        </div>
+
+        <div class="context-form-grid">
+          <%= form_with url: capture_attachments_path(@capture), scope: :attachment, class: "auth-form compact-form" do |form| %>
+            <div class="field">
+              <%= form.label :attachment_type, "Attachment type" %>
+              <%= form.select :attachment_type, [["Auto-detect", ""]] + Attachment::TYPES.map { |kind| [kind.humanize, kind] } %>
+            </div>
+            <div class="field">
+              <%= form.label :title %>
+              <%= form.text_field :title %>
+            </div>
+            <div class="field">
+              <%= form.label :url %>
+              <%= form.url_field :url, placeholder: "https://..." %>
+            </div>
+            <div class="field">
+              <%= form.label :file, "Upload file" %>
+              <%= form.file_field :file, direct_upload: false, accept: "image/*,video/*,audio/*,.pdf,.doc,.docx,.txt" %>
+            </div>
+            <%= form.submit "Add attachment", class: "mini-button mini-button-primary" %>
+          <% end %>
+
+          <%= form_with url: capture_tasks_path(@capture), scope: :task, class: "auth-form compact-form" do |form| %>
+            <div class="field">
+              <%= form.label :title, "Task title" %>
+              <%= form.text_field :title %>
+            </div>
+            <div class="field">
+              <%= form.label :priority %>
+              <%= form.select :priority, Task.priorities.keys.map { |priority| [priority.humanize, priority] } %>
+            </div>
+            <div class="field">
+              <%= form.label :due_date %>
+              <%= form.date_field :due_date %>
+            </div>
+            <%= form.submit "Add task", class: "mini-button mini-button-primary" %>
+          <% end %>
+
+          <%= form_with url: capture_reference_links_path(@capture), scope: :reference_link, class: "auth-form compact-form" do |form| %>
+            <div class="field">
+              <%= form.label :target_capture_id, "Related capture" %>
+              <%= form.select :target_capture_id, @related_capture_options.map { |capture| [capture.display_title, capture.id] } %>
+            </div>
+            <div class="field">
+              <%= form.label :relation_type %>
+              <%= form.text_field :relation_type, value: "related" %>
+            </div>
+            <%= form.submit "Link capture", class: "mini-button mini-button-primary" %>
+          <% end %>
+        </div>
+
+        <% if @capture.attachments.any? %>
+          <div class="attachment-grid">
+            <% @capture.attachments.recent_first.each do |attachment| %>
+              <%= render "shared/attachment_card", attachment: attachment %>
+            <% end %>
+          </div>
+        <% end %>
+      </article>
+
+      <article class="dashboard-card workspace-panel">
+        <div class="section-header">
+          <div class="eyebrow">History</div>
+          <h2>Revisions and related notes</h2>
+        </div>
+        <div class="admin-note-list">
+          <% @capture.capture_revisions.recent_first.limit(5).each do |revision| %>
+            <div class="stack-note">
+              <strong>Revision <%= revision.revision_number %></strong>
+              <p><%= revision.created_at.strftime("%b %-d, %Y %H:%M") %></p>
+            </div>
+          <% end %>
+          <% @capture.outgoing_reference_links.each do |reference_link| %>
+            <div class="stack-note">
+              <strong><%= reference_link.relation_type.humanize %></strong>
+              <p><%= link_to reference_link.target_capture.display_title, capture_path(reference_link.target_capture) %></p>
+            </div>
+          <% end %>
+        </div>
+      </article>
+    </section>
+</div>

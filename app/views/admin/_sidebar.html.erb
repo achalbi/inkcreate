@@ -1,0 +1,88 @@
+<aside id="sidebar" class="sidebar">
+  <div class="logo-area">
+    <%= link_to admin_dashboard_path, class: "d-inline-flex align-items-center text-decoration-none text-dark fw-semibold" do %>
+      <img src="/icons/app-icon.svg" alt="Inkcreate icon" width="24" height="24">
+      <span class="logo-text ms-2 sidebar-brand-copy">
+        <span>Inkcreate Admin</span>
+        <span>Operations console</span>
+      </span>
+    <% end %>
+  </div>
+
+  <ul class="nav flex-column pb-3">
+    <li class="px-4 py-2 nav-heading"><small class="nav-section-label">Main</small></li>
+    <li>
+      <%= link_to admin_dashboard_path, class: ["nav-link", ("active" if current_page?(admin_dashboard_path))].compact.join(" ") do %>
+        <i class="ti ti-home"></i>
+        <span class="nav-text">Dashboard</span>
+      <% end %>
+    </li>
+    <li>
+      <%= link_to admin_captures_path, class: ["nav-link", ("active" if current_page?(admin_captures_path))].compact.join(" ") do %>
+        <i class="ti ti-box-seam"></i>
+        <span class="nav-text">Captures</span>
+      <% end %>
+    </li>
+    <li>
+      <%= link_to admin_operations_path, class: ["nav-link", ("active" if current_page?(admin_operations_path))].compact.join(" ") do %>
+        <i class="ti ti-receipt"></i>
+        <span class="nav-text">Operations</span>
+      <% end %>
+    </li>
+    <li>
+      <%= link_to admin_users_path, class: ["nav-link", ("active" if current_page?(admin_users_path))].compact.join(" ") do %>
+        <i class="ti ti-users"></i>
+        <span class="nav-text">User roles</span>
+      <% end %>
+    </li>
+
+    <li class="px-4 pt-4 pb-2 nav-heading"><small class="nav-section-label">At a glance</small></li>
+    <li class="px-3">
+      <div class="row g-2 mb-3">
+        <div class="col-6">
+          <div class="admin-sidebar-metric p-2">
+            <span>Users</span>
+            <strong><%= @admin_shell_metrics[:users] %></strong>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="admin-sidebar-metric p-2">
+            <span>Captures</span>
+            <strong><%= @admin_shell_metrics[:captures] %></strong>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="admin-sidebar-metric p-2">
+            <span>In flight</span>
+            <strong><%= @admin_shell_metrics[:inflight] %></strong>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="admin-sidebar-metric p-2">
+            <span>Issues</span>
+            <strong><%= @admin_shell_metrics[:issues] %></strong>
+          </div>
+        </div>
+      </div>
+    </li>
+
+    <li class="px-4 pt-2 pb-2 nav-heading"><small class="nav-section-label">Account</small></li>
+    <li>
+      <%= link_to dashboard_path, class: "nav-link" do %>
+        <i class="ti ti-layout-dashboard"></i>
+        <span class="nav-text">Workspace</span>
+      <% end %>
+    </li>
+    <li>
+      <%= link_to root_path, class: "nav-link" do %>
+        <i class="ti ti-world"></i>
+        <span class="nav-text">Landing page</span>
+      <% end %>
+    </li>
+  </ul>
+
+  <div class="sidebar-footer admin-sidebar-footer">
+    <strong class="small break-anywhere"><%= current_user.email %></strong>
+    <p>Admin controls are active for access, queue health, and capture oversight.</p>
+  </div>
+</aside>

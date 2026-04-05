@@ -1,0 +1,223 @@
+<div class="page-shell">
+  <header class="topbar">
+    <a class="brand" href="/">
+      <img class="brand-mark" src="/icons/app-icon.svg" alt="Inkcreate icon">
+      <span class="brand-copy">
+        <strong>Inkcreate</strong>
+        <span>Notebook OCR Companion</span>
+      </span>
+    </a>
+
+    <div class="topbar-right">
+      <nav aria-label="Landing sections">
+        <a href="#why">Why it works</a>
+        <a href="#flow">Workflow</a>
+        <a href="#api">API surface</a>
+      </nav>
+
+      <div class="nav-actions">
+        <% if user_signed_in? %>
+          <a class="mini-button mini-button-primary" href="<%= dashboard_path %>">Open workspace</a>
+        <% else %>
+          <a class="mini-button" href="<%= browser_sign_in_path %>">Sign in</a>
+          <a class="mini-button mini-button-primary" href="<%= browser_sign_up_path %>">Create account</a>
+        <% end %>
+      </div>
+    </div>
+  </header>
+
+  <section class="hero">
+    <article class="hero-copy">
+      <div class="eyebrow">Mobile-first capture for handwritten notes</div>
+      <h1>Turn notebook pages into structured, searchable records.</h1>
+      <p>
+        Inkcreate is built for the messy reality of real notebooks: angled photos,
+        recurring page templates, OCR that needs background processing, and exports
+        that should land cleanly in Google Drive without manual cleanup.
+      </p>
+
+      <div class="cta-row">
+        <% if user_signed_in? %>
+          <a class="button button-primary" href="<%= dashboard_path %>">Open workspace</a>
+          <a class="button button-secondary" href="#flow">See the workflow</a>
+        <% else %>
+          <a class="button button-primary" href="<%= browser_sign_up_path %>">Create account</a>
+          <a class="button button-secondary" href="<%= browser_sign_in_path %>">Sign in</a>
+        <% end %>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat">
+          <div class="mini-label">Capture</div>
+          <strong>Direct uploads to cloud storage</strong>
+        </div>
+        <div class="stat">
+          <div class="mini-label">Extract</div>
+          <strong>Async OCR with template-aware processing</strong>
+        </div>
+        <div class="stat">
+          <div class="mini-label">Ship</div>
+          <strong>Searchable records and Drive-ready exports</strong>
+        </div>
+      </div>
+    </article>
+
+    <aside class="hero-stack" aria-label="Product workflow preview">
+      <div class="paper-column">
+        <article class="paper">
+          <span class="paper-accent"></span>
+          <div class="mini-label">01 Scan</div>
+          <h3>Capture pages in motion</h3>
+          <p>Phone-first uploads keep the flow fast even when pages are skewed, shadowed, or mid-session.</p>
+        </article>
+
+        <article class="paper">
+          <span class="paper-accent"></span>
+          <div class="mini-label">02 Classify</div>
+          <h3>Recognize the template</h3>
+          <p>Page patterns and notebook metadata help the OCR pipeline understand what kind of page just arrived.</p>
+        </article>
+
+        <article class="paper">
+          <span class="paper-accent"></span>
+          <div class="mini-label">03 Extract</div>
+          <h3>Normalize the text</h3>
+          <p>Background jobs keep extraction out of the request path so the experience stays responsive.</p>
+        </article>
+
+        <article class="paper">
+          <span class="paper-accent"></span>
+          <div class="mini-label">04 Export</div>
+          <h3>Push the result where it belongs</h3>
+          <p>Search, tags, and Google Drive export turn a pile of page photos into something you can actually use.</p>
+        </article>
+      </div>
+    </aside>
+  </section>
+
+  <main>
+    <section class="section-card" id="why">
+      <div class="section-header">
+        <div class="eyebrow">Why it works</div>
+        <h2>Built for notebook chaos, not lab-perfect OCR samples.</h2>
+        <p>
+          The product is shaped around real capture behavior: quick uploads from mobile,
+          structured storage, resilient async jobs, and enough metadata to recover meaning
+          after the image leaves the camera roll.
+        </p>
+      </div>
+
+      <div class="feature-grid">
+        <article class="feature-card">
+          <div class="pill">Same-origin sessions</div>
+          <h3>Secure by default</h3>
+          <p>
+            Cookie-based sessions and CSRF protection keep auth simple for a same-origin
+            web app without bolting on a second identity layer.
+          </p>
+        </article>
+
+        <article class="feature-card">
+          <div class="pill">Background OCR</div>
+          <h3>Responsive under load</h3>
+          <p>
+            OCR and Drive sync work leaves the request cycle quickly, so uploads stay fast
+            while Sidekiq or Cloud Tasks handle the expensive work behind the scenes.
+          </p>
+        </article>
+
+        <article class="feature-card">
+          <div class="pill">Structured records</div>
+          <h3>Searchable after capture</h3>
+          <p>
+            Notebook, tag, and capture models give the extracted text a real home instead
+            of treating each image as an isolated blob.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section-card" id="flow">
+      <div class="section-header">
+        <div class="eyebrow">Workflow</div>
+        <h2>From photo to usable note in four deliberate steps.</h2>
+        <p>
+          The pipeline is intentionally simple to follow: ingest, queue, extract, and deliver.
+          That makes it easier to scale the heavy parts without turning the product into a black box.
+        </p>
+      </div>
+
+      <div class="flow">
+        <article class="flow-step">
+          <div class="mini-label">Step 1</div>
+          <strong>Upload the page</strong>
+          <p>The client requests a signed upload URL and sends the original image straight to storage.</p>
+        </article>
+
+        <article class="flow-step">
+          <div class="mini-label">Step 2</div>
+          <strong>Create the capture</strong>
+          <p>Inkcreate stores the notebook context, template hints, and OCR provider settings for the page.</p>
+        </article>
+
+        <article class="flow-step">
+          <div class="mini-label">Step 3</div>
+          <strong>Run OCR asynchronously</strong>
+          <p>Workers preprocess the image, run extraction, and attach structured results without blocking the user.</p>
+        </article>
+
+        <article class="flow-step">
+          <div class="mini-label">Step 4</div>
+          <strong>Search or export</strong>
+          <p>Clean text becomes available for search, reprocessing, tagging, and Drive export when needed.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section-card" id="api">
+      <div class="section-header">
+        <div class="eyebrow">API Surface</div>
+        <h2>An API-first backbone with a product-facing entry point.</h2>
+        <p>
+          Inkcreate is still a Rails API under the hood. The landing page simply gives the
+          app a proper front door while the core product remains organized around JSON endpoints
+          and background job orchestration.
+        </p>
+      </div>
+
+      <div class="api-grid">
+        <article class="api-card">
+          <p>Core endpoints already model the capture lifecycle directly:</p>
+          <div class="api-list">
+            <div class="api-code"><span>GET</span><span>/api/v1/notebooks</span></div>
+            <div class="api-code"><span>POST</span><span>/api/v1/upload_urls</span></div>
+            <div class="api-code"><span>POST</span><span>/api/v1/captures</span></div>
+            <div class="api-code"><span>POST</span><span>/api/v1/captures/:id/reprocess</span></div>
+            <div class="api-code"><span>POST</span><span>/api/v1/captures/:id/export_to_drive</span></div>
+            <div class="api-code"><span>GET</span><span>/api/v1/search</span></div>
+          </div>
+        </article>
+
+        <article class="api-card">
+          <div class="stack-note">
+            <strong>Direct browser uploads</strong>
+            <p>Heavy image payloads skip the Rails box and go straight to storage through signed URLs.</p>
+          </div>
+          <div class="stack-note">
+            <strong>Flexible job backend</strong>
+            <p>Sidekiq works locally while Cloud Tasks can take over in production without changing the product flow.</p>
+          </div>
+          <div class="stack-note">
+            <strong>Same data, more polish</strong>
+            <p>The landing page is intentionally lightweight so the app keeps its API-first posture while feeling like a product.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-note">Rails API + PostgreSQL + Redis + OCR + Google Drive</div>
+    <p>Inkcreate turns raw page captures into a workflow you can search, tag, and trust.</p>
+  </footer>
+</div>

@@ -1,0 +1,54 @@
+<div class="workspace-page">
+    <%= render "shared/workspace_header",
+      eyebrow: "Settings",
+      title: "Privacy, storage, OCR mode, AI, and backup controls.",
+      description: "The app stays local-first, explicit, and editable by making operational controls visible." %>
+
+    <section class="workspace-grid workspace-grid-halves">
+      <article class="dashboard-card workspace-panel">
+        <div class="section-header">
+          <div class="eyebrow">Behavior</div>
+          <h2>Current app posture</h2>
+        </div>
+        <div class="admin-note-list">
+          <div class="stack-note">
+            <strong>OCR mode: <%= @app_setting.ocr_mode %></strong>
+            <p>OCR is manual-only by design so capture speed never depends on text extraction.</p>
+          </div>
+          <div class="stack-note">
+            <strong>AI enabled: <%= @app_setting.ai_enabled? ? "yes" : "no" %></strong>
+            <p>AI enrichment is explicit and opt-in for each capture.</p>
+          </div>
+          <div class="stack-note">
+            <strong>Backup enabled: <%= @app_setting.backup_enabled? ? "yes" : "no" %></strong>
+            <p>Backups remain optional and user-controlled.</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="dashboard-card workspace-panel">
+        <div class="section-header">
+          <div class="eyebrow">Storage health</div>
+          <h2>What the app is holding</h2>
+        </div>
+        <div class="admin-note-list">
+          <div class="stack-note">
+            <strong><%= @storage_stats[:captures] %> captures</strong>
+            <p>Primary note records persisted on the server.</p>
+          </div>
+          <div class="stack-note">
+            <strong><%= @storage_stats[:attachments] %> attachments</strong>
+            <p>Supporting media and links attached to captures.</p>
+          </div>
+          <div class="stack-note">
+            <strong><%= @storage_stats[:pending_sync_jobs] %> pending sync jobs</strong>
+            <p>Deferred operations waiting for a clean client-server handshake.</p>
+          </div>
+        </div>
+        <div class="dashboard-actions">
+          <%= link_to "Backup settings", settings_backup_path, class: "button button-secondary" %>
+          <%= link_to "Privacy settings", settings_privacy_path, class: "button button-secondary" %>
+        </div>
+      </article>
+    </section>
+</div>

@@ -1,0 +1,84 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  IMAGE_NAME: inkcreate
+  REGION: asia-south1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.4.9
+          bundler-cache: true
+
+      - name: Run tests
+        run: bundle exec rspec
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOYER_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker auth
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+      - name: Build image
+        run: |
+          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/containers/${{ env.IMAGE_NAME }}:${{ github.sha }} .
+
+      - name: Push image
+        run: |
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/containers/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Run migrations
+        run: |
+          gcloud run jobs deploy inkcreate-migrate \
+            --image=${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/containers/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            --region=${{ env.REGION }} \
+            --command=bundle \
+            --args=exec,rails,db:migrate \
+            --set-env-vars=RAILS_ENV=production
+          gcloud run jobs execute inkcreate-migrate --region=${{ env.REGION }} --wait
+
+      - name: Deploy public API service
+        run: |
+          gcloud run deploy inkcreate-api \
+            --image=${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/containers/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            --region=${{ env.REGION }} \
+            --allow-unauthenticated \
+            --concurrency=40 \
+            --cpu=1 \
+            --memory=1Gi \
+            --min-instances=1 \
+            --max-instances=20 \
+            --set-env-vars=RAILS_ENV=production,JOB_BACKEND=cloud_tasks,GCP_REGION=${{ env.REGION }},GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }},WORKER_BASE_URL=${{ secrets.WORKER_BASE_URL }},CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL=${{ secrets.CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL }}
+
+      - name: Deploy private worker service
+        run: |
+          gcloud run deploy inkcreate-worker \
+            --image=${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/containers/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            --region=${{ env.REGION }} \
+            --no-allow-unauthenticated \
+            --concurrency=1 \
+            --cpu=2 \
+            --memory=2Gi \
+            --timeout=900 \
+            --min-instances=0 \
+            --max-instances=10 \
+            --set-env-vars=RAILS_ENV=production,JOB_BACKEND=cloud_tasks,GCP_REGION=${{ env.REGION }},GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }},WORKER_BASE_URL=${{ secrets.WORKER_BASE_URL }},CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL=${{ secrets.CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL }}

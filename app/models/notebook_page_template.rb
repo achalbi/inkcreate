@@ -1,0 +1,2 @@
+class NotebookPageTemplate < PageTemplate
+end

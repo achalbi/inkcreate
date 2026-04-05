@@ -1,0 +1,31 @@
+{
+  "name": "Inkcreate",
+  "short_name": "Inkcreate",
+  "description": "Capture reusable notebook pages, organize them by project or day, and enrich them with OCR, media, links, and summaries.",
+  "start_url": "/app",
+  "display": "standalone",
+  "background_color": "#f7f5ef",
+  "theme_color": "#123524",
+  "orientation": "portrait",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icons/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Quick Capture",
+      "short_name": "Capture",
+      "url": "/capture"
+    },
+    {
+      "name": "Today",
+      "short_name": "Daily",
+      "url": "/daily"
+    }
+  ]
+}

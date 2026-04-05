@@ -1,0 +1,81 @@
+<%= form_with model: notepad_entry do |form| %>
+  <% if notepad_entry.errors.any? %>
+    <div class="alert alert-danger">
+      <strong>Please fix the following:</strong>
+      <ul class="m-b-none m-t-sm">
+        <% notepad_entry.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="row">
+    <div class="col-lg-7">
+      <div class="ibox">
+        <div class="ibox-title">
+          <h5>Entry details</h5>
+        </div>
+        <div class="ibox-content">
+          <div class="row">
+            <div class="col-lg-8">
+              <div class="form-group">
+                <%= form.label :title, class: "control-label" %>
+                <%= form.text_field :title, class: "form-control", placeholder: "Daily review, meeting recap, ideas, or notes" %>
+              </div>
+            </div>
+            <div class="col-lg-4">
+              <div class="form-group">
+                <%= form.label :entry_date, class: "control-label" %>
+                <%= form.date_field :entry_date, class: "form-control" %>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <%= form.label :notes, class: "control-label" %>
+            <%= form.text_area :notes, rows: 10, class: "form-control", placeholder: "Write the day's notes, observations, reminders, or quick captures." %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="ibox">
+        <div class="ibox-title">
+          <h5>Photos</h5>
+        </div>
+        <div class="ibox-content">
+          <%= render "shared/photo_capture_field", form:, field_name: :photos, label: "Photos" %>
+
+          <% if notepad_entry.photos.attached? %>
+            <hr>
+            <h5 class="m-t-none m-b-md">Current photos</h5>
+            <div>
+              <div class="row">
+                <% notepad_entry.photos.each do |photo| %>
+                  <div class="col-sm-6">
+                    <div class="thumbnail">
+                      <%= image_tag photo, class: "img-responsive", style: "width: 100%; height: 220px; object-fit: cover;", alt: notepad_entry.display_title %>
+                      <div class="caption">
+                        <%= button_to "Remove", photo_notepad_entry_path(notepad_entry, photo),
+                          method: :delete,
+                          form: { style: "margin: 0;", onsubmit: "return confirm('Remove this photo?');" },
+                          class: "btn btn-danger btn-sm" %>
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="m-t-md">
+    <%= form.submit class: "btn btn-primary btn-sm" %>
+    <%= link_to "Cancel", notepad_entry.persisted? ? notepad_entry_path(notepad_entry) : notepad_entries_path, class: "btn btn-white btn-sm" %>
+  </div>
+<% end %>

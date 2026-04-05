@@ -1,0 +1,47 @@
+<div class="workspace-page">
+    <%= render "shared/workspace_header",
+      eyebrow: "Backup",
+      title: "Google Drive backup stays explicit and observable.",
+      description: "The backup adapter tracks local-only, pending, uploaded, and failed states so users always know where their notes live." %>
+
+    <section class="workspace-grid workspace-grid-halves">
+      <article class="dashboard-card workspace-panel">
+        <%= form_with model: @app_setting, url: settings_backup_path, method: :patch, class: "auth-form" do |form| %>
+          <div class="field">
+            <%= form.label :backup_enabled %>
+            <%= form.select :backup_enabled, [["No", false], ["Yes", true]] %>
+          </div>
+          <div class="field">
+            <%= form.label :backup_provider %>
+            <%= form.select :backup_provider, options_for_select([["None", ""], ["Google Drive", "google_drive"]], @app_setting.backup_provider) %>
+          </div>
+          <%= form.submit "Save backup settings", class: "button button-primary" %>
+        <% end %>
+      </article>
+
+      <article class="dashboard-card workspace-panel">
+        <div class="section-header">
+          <div class="eyebrow">Recent backup records</div>
+          <h2>Status history</h2>
+        </div>
+        <% if @backup_records.any? %>
+          <div class="capture-list">
+            <% @backup_records.each do |backup_record| %>
+              <article class="capture-card">
+                <div class="capture-card-top">
+                  <div>
+                    <div class="mini-label"><%= backup_record.provider.humanize %></div>
+                    <h3><%= link_to backup_record.capture.display_title, capture_path(backup_record.capture) %></h3>
+                  </div>
+                  <span class="status-chip status-chip-<%= backup_record.status %>"><%= backup_record.status.humanize %></span>
+                </div>
+                <p><%= backup_record.error_message.presence || backup_record.remote_path.presence || "Backup record ready." %></p>
+              </article>
+            <% end %>
+          </div>
+        <% else %>
+          <%= render "shared/empty_state", title: "No backup records yet", description: "Run a manual backup from a capture detail page to seed the history." %>
+        <% end %>
+      </article>
+    </section>
+</div>

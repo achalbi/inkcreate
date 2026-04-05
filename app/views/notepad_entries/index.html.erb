@@ -1,0 +1,33 @@
+<%= render "shared/workspace_header",
+  eyebrow: "Notepad",
+  title: "Daily notepad",
+  description: "Capture notes and images directly by date, with the latest entries first.",
+  action_label: "New entry",
+  action_path: new_notepad_entry_path %>
+
+<div class="wrapper wrapper-content animated fadeInRight">
+  <% if @entries_by_date.any? %>
+    <% @entries_by_date.each do |entry_date, entries| %>
+      <section class="ibox float-e-margins">
+        <div class="ibox-title">
+          <h5><%= entry_date.strftime("%A, %b %-d, %Y") %></h5>
+          <div class="ibox-tools">
+            <span class="label label-info"><%= pluralize(entries.sum { |entry| entry.photos.count }, "photo") %></span>
+          </div>
+        </div>
+        <div class="ibox-content">
+          <p class="text-muted m-b-md"><%= pluralize(entries.size, "entry") %> stored for this day.</p>
+          <% entries.each do |entry| %>
+            <%= render "entry_card", entry: entry %>
+          <% end %>
+        </div>
+      </section>
+    <% end %>
+  <% else %>
+    <section class="ibox">
+      <div class="ibox-content">
+        <%= render "shared/empty_state", title: "No notepad entries yet", description: "Create your first daily entry to start capturing notes and photos by date." %>
+      </div>
+    </section>
+  <% end %>
+</div>

@@ -1,0 +1,29 @@
+<div class="mb-4">
+  <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+    <div>
+      <div class="text-uppercase text-secondary fw-semibold small mb-2"><%= eyebrow %></div>
+      <h1 class="fs-3 mb-1"><%= title %></h1>
+      <p class="mb-0 text-secondary admin-page-lead"><%= description %></p>
+    </div>
+
+    <% if local_assigns[:primary_path].present? || local_assigns[:secondary_path].present? %>
+      <div class="d-flex flex-wrap gap-2">
+        <% if local_assigns[:primary_path].present? && local_assigns[:primary_label].present? %>
+          <%= link_to primary_label, primary_path, class: "btn btn-primary" %>
+        <% end %>
+
+        <% if local_assigns[:secondary_path].present? && local_assigns[:secondary_label].present? %>
+          <%= link_to secondary_label, secondary_path, class: "btn btn-outline-secondary" %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <% if notice.present? %>
+    <div class="alert alert-success border-0 shadow-sm mt-3 mb-0" role="alert"><%= notice %></div>
+  <% end %>
+
+  <% if alert.present? %>
+    <div class="alert alert-warning border-0 shadow-sm mt-3 mb-0" role="alert"><%= alert %></div>
+  <% end %>
+</div>

@@ -1,0 +1,45 @@
+<article class="capture-card attachment-card">
+  <% if attachment.asset.attached? %>
+    <div class="attachment-preview">
+      <% if attachment.image? %>
+        <%= image_tag url_for(attachment.asset), alt: attachment.display_title, class: "attachment-media" %>
+      <% elsif attachment.video? %>
+        <%= video_tag url_for(attachment.asset), controls: true, preload: "metadata", class: "attachment-media" %>
+      <% elsif attachment.audio? %>
+        <div class="attachment-audio">
+          <strong>Audio attachment</strong>
+          <%= audio_tag url_for(attachment.asset), controls: true, preload: "metadata" %>
+        </div>
+      <% else %>
+        <div class="attachment-file">
+          <strong>Uploaded file</strong>
+          <span><%= attachment.asset.filename.to_s %></span>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <div class="capture-card-top">
+    <div>
+      <div class="mini-label"><%= attachment.attachment_type.humanize %></div>
+      <h3 class="capture-card-title"><%= attachment.display_title.to_s.truncate(60) %></h3>
+    </div>
+    <% if attachment.asset.attached? %>
+      <span class="role-chip">
+        <%= link_to "Open", url_for(attachment.asset), target: "_blank", rel: "noreferrer" %>
+      </span>
+    <% elsif attachment.url.present? %>
+      <span class="role-chip">
+        <%= link_to "Open", attachment.url, target: "_blank", rel: "noreferrer" %>
+      </span>
+    <% end %>
+  </div>
+
+  <% if local_assigns[:show_capture] %>
+    <p>Attached to <%= link_to attachment.capture.display_title, capture_path(attachment.capture) %></p>
+  <% elsif attachment.url.present? %>
+    <p><%= attachment.url.truncate(80) %></p>
+  <% elsif attachment.asset.attached? %>
+    <p><%= number_to_human_size(attachment.byte_size) %> • <%= attachment.content_type %></p>
+  <% end %>
+</article>

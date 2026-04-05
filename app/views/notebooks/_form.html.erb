@@ -1,0 +1,45 @@
+<%= form_with model: notebook do |form| %>
+  <div class="ibox">
+    <div class="ibox-title">
+      <h5>Notebook details</h5>
+    </div>
+    <div class="ibox-content">
+    <% if notebook.errors.any? %>
+      <div class="alert alert-danger">
+        <strong>Please fix the following:</strong>
+        <ul class="m-b-none m-t-sm">
+          <% notebook.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+      <div class="row">
+        <div class="col-lg-8">
+          <div class="form-group">
+            <%= form.label :title, class: "control-label" %>
+            <%= form.text_field :title, class: "form-control", placeholder: "Q2 Product Research" %>
+          </div>
+        </div>
+
+        <div class="col-lg-4">
+          <div class="form-group">
+            <%= form.label :status, class: "control-label" %>
+            <%= form.select :status, Notebook.statuses.keys.map { |value| [value.humanize, value] }, {}, class: "form-control" %>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <%= form.label :description, class: "control-label" %>
+        <%= form.text_area :description, rows: 5, class: "form-control", placeholder: "What this notebook is for, who it serves, and what will live inside it." %>
+      </div>
+
+      <div class="m-t-md">
+        <%= form.submit class: "btn btn-primary btn-sm" %>
+        <%= link_to "Cancel", notebook.persisted? ? notebook_path(notebook) : notebooks_path, class: "btn btn-white btn-sm" %>
+      </div>
+    </div>
+  </div>
+<% end %>

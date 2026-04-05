@@ -1,0 +1,30 @@
+<article class="capture-card">
+  <div class="capture-card-top">
+    <div>
+      <div class="mini-label"><%= capture.page_type.to_s.humanize %></div>
+      <h3 class="capture-card-title"><%= link_to capture.display_title, capture_path(capture), class: "stretched-link position-relative text-decoration-none" %></h3>
+    </div>
+    <span class="status-chip status-chip-<%= capture.ocr_status %>"><%= capture.ocr_status.humanize %></span>
+  </div>
+
+  <p><%= capture.description.presence || capture.search_text.to_s.truncate(140) || "No note body yet." %></p>
+
+  <div class="capture-meta">
+    <span><%= (capture.captured_at || capture.created_at).strftime("%b %-d, %Y") %></span>
+    <% if capture.project %>
+      <span>Project: <%= capture.project.title %></span>
+    <% elsif capture.daily_log %>
+      <span>Day: <%= capture.daily_log.entry_date.strftime("%b %-d") %></span>
+    <% else %>
+      <span>Inbox</span>
+    <% end %>
+  </div>
+
+  <% if capture.tags.any? %>
+    <div class="chip-row">
+      <% capture.tags.order(:name).each do |tag| %>
+        <span class="role-chip"><%= tag.name %></span>
+      <% end %>
+    </div>
+  <% end %>
+</article>

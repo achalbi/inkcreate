@@ -1,0 +1,34 @@
+<%= form_with model: [notebook, chapter] do |form| %>
+  <div class="ibox">
+    <div class="ibox-title">
+      <h5>Chapter details</h5>
+    </div>
+    <div class="ibox-content">
+    <% if chapter.errors.any? %>
+      <div class="alert alert-danger">
+        <strong>Please fix the following:</strong>
+        <ul class="m-b-none m-t-sm">
+          <% chapter.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+      <div class="form-group">
+        <%= form.label :title, class: "control-label" %>
+        <%= form.text_field :title, class: "form-control", placeholder: "Research findings" %>
+      </div>
+
+      <div class="form-group">
+        <%= form.label :description, class: "control-label" %>
+        <%= form.text_area :description, rows: 5, class: "form-control", placeholder: "Optional context for what belongs in this chapter." %>
+      </div>
+
+      <div class="m-t-md">
+        <%= form.submit class: "btn btn-primary btn-sm" %>
+        <%= link_to "Cancel", chapter.persisted? ? notebook_chapter_path(notebook, chapter) : notebook_path(notebook), class: "btn btn-white btn-sm" %>
+      </div>
+    </div>
+  </div>
+<% end %>

@@ -1,0 +1,8 @@
+<%= render "shared/workspace_header",
+  eyebrow: "Page",
+  title: "Edit page",
+  description: "Update notes, dates, and attached photos for this page." %>
+
+<div class="wrapper wrapper-content animated fadeInRight">
+  <%= render "form", notebook: @notebook, chapter: @chapter, page: @page %>
+</div>

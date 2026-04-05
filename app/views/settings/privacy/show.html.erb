@@ -1,0 +1,16 @@
+<div class="workspace-page">
+    <%= render "shared/workspace_header",
+      eyebrow: "Privacy",
+      title: "Keep privacy choices explicit and export-friendly.",
+      description: "Privacy options are stored as structured settings so data export and local-data clearing can evolve cleanly." %>
+
+    <section class="dashboard-card workspace-panel">
+      <%= form_with url: settings_privacy_path, method: :patch, scope: :app_setting, class: "auth-form" do |form| %>
+        <div class="field">
+          <%= form.label :privacy_options, "Privacy options JSON" %>
+          <%= form.text_area :privacy_options, value: JSON.pretty_generate(@app_setting.privacy_options), rows: 12 %>
+        </div>
+        <%= form.submit "Save privacy settings", class: "button button-primary" %>
+      <% end %>
+    </section>
+</div>

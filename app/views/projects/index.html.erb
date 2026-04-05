@@ -1,0 +1,56 @@
+<div class="workspace-page">
+    <%= render "shared/workspace_header",
+      eyebrow: "Projects",
+      title: "Long-term containers for notebook knowledge.",
+      description: "Projects gather captures, extracted tasks, links, and media without tying them to a single day." %>
+
+    <section class="workspace-grid workspace-grid-halves">
+      <article class="dashboard-card workspace-panel">
+        <div class="section-header">
+          <div class="eyebrow">Create project</div>
+          <h2>Start a durable context</h2>
+        </div>
+
+        <%= form_with model: @project, url: projects_path, class: "auth-form" do |form| %>
+          <div class="field">
+            <%= form.label :title %>
+            <%= form.text_field :title, required: true %>
+          </div>
+          <div class="field">
+            <%= form.label :description %>
+            <%= form.text_area :description, rows: 4 %>
+          </div>
+          <div class="field">
+            <%= form.label :color %>
+            <%= form.text_field :color %>
+          </div>
+          <%= form.submit "Create project", class: "button button-primary" %>
+        <% end %>
+      </article>
+
+      <article class="dashboard-card workspace-panel">
+        <div class="section-header">
+          <div class="eyebrow">Project list</div>
+          <h2>Active workspaces</h2>
+        </div>
+        <% if @projects.any? %>
+          <div class="capture-list">
+            <% @projects.each do |project| %>
+              <article class="capture-card">
+                <div class="capture-card-top">
+                  <div>
+                    <div class="mini-label">Project</div>
+                    <h3><%= link_to project.title, project_path(project) %></h3>
+                  </div>
+                  <span class="role-chip"><%= project.tasks.open.count %> open tasks</span>
+                </div>
+                <p><%= project.description.presence || "No description yet." %></p>
+              </article>
+            <% end %>
+          </div>
+        <% else %>
+          <%= render "shared/empty_state", title: "No projects yet", description: "Create a project to collect captures that matter beyond a single day." %>
+        <% end %>
+      </article>
+    </section>
+</div>

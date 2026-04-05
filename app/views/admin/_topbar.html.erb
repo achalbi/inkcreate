@@ -1,0 +1,76 @@
+<nav id="topbar" class="navbar bg-white border-bottom fixed-top topbar px-3 px-lg-4">
+  <div class="d-flex align-items-center gap-2 flex-grow-1 min-w-0">
+    <button id="toggleBtn" class="d-none d-lg-inline-flex btn btn-light btn-icon btn-sm">
+      <i class="ti ti-layout-sidebar-left-expand"></i>
+    </button>
+
+    <button id="mobileBtn" class="btn btn-light btn-icon btn-sm d-lg-none">
+      <i class="ti ti-layout-sidebar-left-expand"></i>
+    </button>
+
+    <div class="ms-2 min-w-0">
+      <div class="text-uppercase text-secondary fw-semibold small"><%= eyebrow %></div>
+      <div class="fw-semibold text-truncate"><%= title %></div>
+    </div>
+  </div>
+
+  <div class="d-flex align-items-center gap-2 admin-topbar-actions">
+    <% if local_assigns[:primary_path].present? && local_assigns[:primary_label].present? %>
+      <%= link_to primary_label, primary_path, class: "btn btn-primary d-none d-md-inline-flex" %>
+    <% end %>
+
+    <% if local_assigns[:secondary_path].present? && local_assigns[:secondary_label].present? %>
+      <%= link_to secondary_label, secondary_path, class: "btn btn-outline-secondary d-none d-md-inline-flex" %>
+    <% end %>
+
+    <div class="dropdown">
+      <a class="position-relative btn btn-light btn-icon btn-sm rounded-circle" data-bs-toggle="dropdown" aria-expanded="false" href="#" role="button">
+        <i class="ti ti-bell"></i>
+        <% if @admin_shell_metrics[:issues].positive? %>
+          <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"><%= @admin_shell_metrics[:issues] %></span>
+        <% end %>
+      </a>
+      <div class="dropdown-menu dropdown-menu-end shadow-sm border-0 p-0" style="min-width: 18rem;">
+        <div class="p-3 border-bottom">
+          <h6 class="mb-1">Admin watchlist</h6>
+          <p class="text-secondary mb-0 small">Signals from the live product and queues.</p>
+        </div>
+        <div class="p-3">
+          <div class="d-flex justify-content-between small mb-2">
+            <span>Open issues</span>
+            <strong><%= @admin_shell_metrics[:issues] %></strong>
+          </div>
+          <div class="d-flex justify-content-between small mb-2">
+            <span>Captures in flight</span>
+            <strong><%= @admin_shell_metrics[:inflight] %></strong>
+          </div>
+          <div class="d-flex justify-content-between small">
+            <span>Total users</span>
+            <strong><%= @admin_shell_metrics[:users] %></strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dropdown">
+      <a href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" class="text-decoration-none">
+        <span class="table-avatar"><%= current_user.email.first.upcase %></span>
+      </a>
+      <div class="dropdown-menu dropdown-menu-end shadow-sm border-0 p-0" style="min-width: 16rem;">
+        <div class="px-3 py-3 border-bottom">
+          <div class="admin-topbar-status">Signed in as</div>
+          <strong class="break-anywhere"><%= current_user.email %></strong>
+          <div class="admin-topbar-status"><%= current_user.role.humanize %> access</div>
+        </div>
+        <div class="p-2 d-grid gap-1">
+          <%= link_to "Admin overview", admin_dashboard_path, class: "dropdown-item rounded-2" %>
+          <%= link_to "Workspace", dashboard_path, class: "dropdown-item rounded-2" %>
+          <%= link_to "Landing page", root_path, class: "dropdown-item rounded-2" %>
+        </div>
+        <div class="border-top p-2">
+          <%= button_to "Sign out", browser_sign_out_path, class: "btn btn-outline-secondary w-100", form_class: "d-grid" %>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>

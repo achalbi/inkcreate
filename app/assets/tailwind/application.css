@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+@source "../../views/**/*.erb";
+@source "../../helpers/**/*.rb";
+@source "../../controllers/**/*.rb";
+
+@layer base {
+  .flash-banner {
+    @apply mb-4 rounded-2xl border px-4 py-3 text-sm font-semibold shadow-sm;
+  }
+
+  .flash-banner.notice {
+    @apply border-emerald-200 bg-emerald-50 text-emerald-900;
+  }
+
+  .flash-banner.alert {
+    @apply border-amber-200 bg-amber-50 text-amber-900;
+  }
+}
+
+@layer components {
+  .attachment-grid {
+    @apply mt-6 grid gap-4 md:grid-cols-2;
+  }
+
+  .attachment-card {
+    @apply overflow-hidden;
+  }
+
+  .attachment-preview {
+    @apply mb-4 overflow-hidden rounded-2xl border border-stone-200 bg-stone-100;
+  }
+
+  .attachment-media {
+    @apply block h-56 w-full object-cover;
+  }
+
+  .attachment-audio,
+  .attachment-file {
+    @apply flex min-h-40 flex-col justify-center gap-2 px-5 py-6 text-sm text-stone-700;
+  }
+
+  .attachment-file span {
+    @apply break-all font-medium text-stone-900;
+  }
+}

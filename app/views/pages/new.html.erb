@@ -1,0 +1,8 @@
+<%= render "shared/workspace_header",
+  eyebrow: "Page",
+  title: "Create page",
+  description: "Add a new content page inside #{@chapter.title}." %>
+
+<div class="wrapper wrapper-content animated fadeInRight">
+  <%= render "form", notebook: @notebook, chapter: @chapter, page: @page %>
+</div>

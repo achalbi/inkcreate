@@ -1,0 +1,8 @@
+<%= render "shared/workspace_header",
+  eyebrow: "Notepad",
+  title: "Edit daily entry",
+  description: "Update the date, notes, or photos for this entry." %>
+
+<div class="wrapper wrapper-content animated fadeInRight">
+  <%= render "form", notepad_entry: @notepad_entry %>
+</div>
