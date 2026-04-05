@@ -1,0 +1,111 @@
+<%
+  detailed = local_assigns.fetch(:detailed, false)
+  show_backup_link = local_assigns.fetch(:show_backup_link, false)
+  google_drive_available = Drive::OauthClient.configured?
+  connected = current_user.google_drive_connected?
+  ready = current_user.google_drive_ready?
+  badge_label =
+    if !google_drive_available
+      "Unavailable"
+    elsif ready
+      "Ready"
+    elsif connected
+      "Needs folder"
+    else
+      "Not connected"
+    end
+  badge_class =
+    if !google_drive_available
+      "text-bg-secondary"
+    elsif ready
+      "text-bg-success"
+    elsif connected
+      "text-bg-warning"
+    else
+      "text-bg-light"
+    end
+%>
+
+<section class="ibox h-100">
+  <div class="ibox-title">
+    <h5>Google Drive</h5>
+    <span class="badge rounded-pill <%= badge_class %>"><%= badge_label %></span>
+  </div>
+
+  <div class="ibox-content">
+    <p class="text-secondary mb-4">
+      Connect Google Drive so backups can be exported to a dedicated folder that stays visible and user-controlled.
+    </p>
+
+    <% unless google_drive_available %>
+      <div class="alert alert-warning mb-0">
+        Google Drive OAuth is not configured for this deployment yet. Add the Google client ID, secret, and redirect URI to enable it.
+      </div>
+    <% else %>
+      <div class="alert alert-info">
+        Each user connects their own Google Drive account. When Drive backup is enabled, Notebook pages and Notepad pages export their notes plus attached photos into that user's selected Drive folder.
+      </div>
+
+      <div class="vstack gap-3 mb-4">
+        <div class="border rounded-4 p-3 bg-light-subtle">
+          <div class="text-uppercase text-secondary fw-semibold small mb-1">Connection</div>
+          <div class="fw-semibold"><%= connected ? "Connected" : "Not connected" %></div>
+          <div class="text-secondary small">
+            <% if connected %>
+              Connected <%= time_ago_in_words(current_user.google_drive_connected_at) %> ago.
+            <% else %>
+              Start OAuth once, then choose a backup folder.
+            <% end %>
+          </div>
+        </div>
+
+        <div class="border rounded-4 p-3 bg-light-subtle">
+          <div class="text-uppercase text-secondary fw-semibold small mb-1">Backup folder</div>
+          <% if current_user.google_drive_folder_id.present? %>
+            <div class="fw-semibold break-anywhere"><%= current_user.google_drive_folder_id %></div>
+            <div class="text-secondary small">This folder ID is used for Drive backup exports.</div>
+          <% else %>
+            <div class="fw-semibold">Not selected yet</div>
+            <div class="text-secondary small">Create a dedicated folder automatically or paste a folder link or ID after connecting.</div>
+          <% end %>
+        </div>
+      </div>
+
+      <% if connected && detailed %>
+        <%= form_with url: settings_drive_connection_path, method: :patch, scope: :drive_connection, class: "row g-3 align-items-end mb-4" do |form| %>
+          <div class="col-12">
+            <%= form.label :folder_reference, "Drive folder link or ID", class: "form-label" %>
+            <%= form.text_field :folder_reference,
+              value: current_user.google_drive_folder_url || current_user.google_drive_folder_id,
+              class: "form-control",
+              placeholder: "https://drive.google.com/drive/folders/... or folder ID" %>
+            <div class="form-text">Paste a Google Drive folder link, an ID, or create a new Inkcreate folder below.</div>
+          </div>
+          <div class="col-12">
+            <%= form.submit "Save folder", class: "btn btn-primary" %>
+          </div>
+        <% end %>
+      <% end %>
+
+      <div class="d-flex flex-wrap gap-2">
+        <% if connected %>
+          <% if detailed %>
+            <%= button_to "Create Inkcreate folder", create_folder_settings_drive_connection_path, method: :post, class: "btn btn-outline-primary", form_class: "d-inline-flex" %>
+            <% if current_user.google_drive_folder_url.present? %>
+              <%= link_to "Open Drive folder", current_user.google_drive_folder_url, class: "btn btn-outline-secondary", target: "_blank", rel: "noreferrer" %>
+            <% end %>
+          <% end %>
+          <% if show_backup_link %>
+            <%= link_to "Backup settings", settings_backup_path, class: "btn btn-outline-secondary" %>
+          <% end %>
+          <%= button_to "Disconnect", settings_drive_connection_path, method: :delete, class: "btn btn-outline-danger", form_class: "d-inline-flex" %>
+        <% else %>
+          <%= button_to "Connect Google Drive", settings_drive_connection_path, method: :post, class: "btn btn-primary", form_class: "d-inline-flex" %>
+          <% if show_backup_link %>
+            <%= link_to "Backup settings", settings_backup_path, class: "btn btn-outline-secondary" %>
+          <% end %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</section>

@@ -30,6 +30,7 @@ class BrowserController < ActionController::Base
 
   helper_method :current_user, :user_signed_in?, :workspace_header_page?, :workspace_layout_page?, :versioned_public_asset_path
   before_action :set_request_context
+  before_action :promote_browser_session_flash
 
   rescue_from ActiveRecord::RecordNotFound do
     head :not_found
@@ -74,5 +75,10 @@ class BrowserController < ActionController::Base
     return "/#{logical_path}" unless absolute_path.file?
 
     "/#{logical_path}?v=#{absolute_path.mtime.to_i}"
+  end
+
+  def promote_browser_session_flash
+    flash.now[:notice] = session.delete(:browser_notice) if session[:browser_notice].present?
+    flash.now[:alert] = session.delete(:browser_alert) if session[:browser_alert].present?
   end
 end

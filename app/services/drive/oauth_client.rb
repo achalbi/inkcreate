@@ -2,6 +2,12 @@ module Drive
   class OauthClient
     SCOPE = "https://www.googleapis.com/auth/drive.file".freeze
 
+    def self.configured?
+      ENV["GOOGLE_OAUTH_CLIENT_ID"].present? &&
+        ENV["GOOGLE_OAUTH_CLIENT_SECRET"].present? &&
+        ENV["GOOGLE_DRIVE_REDIRECT_URI"].present?
+    end
+
     def authorization_url(state:)
       oauth_client.update!(
         state: state,

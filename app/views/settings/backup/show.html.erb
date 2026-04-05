@@ -1,47 +1,69 @@
 <div class="workspace-page">
-    <%= render "shared/workspace_header",
-      eyebrow: "Backup",
-      title: "Google Drive backup stays explicit and observable.",
-      description: "The backup adapter tracks local-only, pending, uploaded, and failed states so users always know where their notes live." %>
+  <%= render "shared/workspace_header",
+    eyebrow: "Backup",
+    title: "Google Drive backup stays explicit and observable.",
+    description: "The backup adapter tracks local-only, pending, uploaded, and failed states so users always know where their notes live." %>
 
-    <section class="workspace-grid workspace-grid-halves">
-      <article class="dashboard-card workspace-panel">
-        <%= form_with model: @app_setting, url: settings_backup_path, method: :patch, class: "auth-form" do |form| %>
-          <div class="field">
-            <%= form.label :backup_enabled %>
-            <%= form.select :backup_enabled, [["No", false], ["Yes", true]] %>
-          </div>
-          <div class="field">
-            <%= form.label :backup_provider %>
-            <%= form.select :backup_provider, options_for_select([["None", ""], ["Google Drive", "google_drive"]], @app_setting.backup_provider) %>
-          </div>
-          <%= form.submit "Save backup settings", class: "button button-primary" %>
-        <% end %>
-      </article>
+  <div class="row g-3">
+    <div class="col-lg-6">
+      <%= render "settings/google_drive_box", detailed: true %>
+    </div>
 
-      <article class="dashboard-card workspace-panel">
-        <div class="section-header">
-          <div class="eyebrow">Recent backup records</div>
-          <h2>Status history</h2>
+    <div class="col-lg-6">
+      <section class="ibox h-100">
+        <div class="ibox-title">
+          <h5>Backup behavior</h5>
         </div>
-        <% if @backup_records.any? %>
-          <div class="capture-list">
-            <% @backup_records.each do |backup_record| %>
-              <article class="capture-card">
-                <div class="capture-card-top">
-                  <div>
-                    <div class="mini-label"><%= backup_record.provider.humanize %></div>
-                    <h3><%= link_to backup_record.capture.display_title, capture_path(backup_record.capture) %></h3>
+        <div class="ibox-content">
+          <p class="text-secondary mb-4">Turn Drive backup on only after the connection and destination folder are ready.</p>
+
+          <%= form_with model: @app_setting, url: settings_backup_path, method: :patch do |form| %>
+            <div class="mb-3">
+              <%= form.label :backup_enabled, "Enable backups", class: "form-label" %>
+              <%= form.select :backup_enabled, [["No", false], ["Yes", true]], {}, class: "form-select" %>
+            </div>
+
+            <div class="mb-4">
+              <%= form.label :backup_provider, "Provider", class: "form-label" %>
+              <%= form.select :backup_provider,
+                options_for_select([["None", ""], ["Google Drive", "google_drive"]], @app_setting.backup_provider),
+                {},
+                class: "form-select" %>
+            </div>
+
+            <%= form.submit "Save backup settings", class: "btn btn-primary" %>
+          <% end %>
+        </div>
+      </section>
+    </div>
+
+    <div class="col-12">
+      <section class="ibox">
+        <div class="ibox-title">
+          <h5>Status history</h5>
+          <span class="badge rounded-pill text-bg-light"><%= @backup_records.size %> recent records</span>
+        </div>
+        <div class="ibox-content">
+          <% if @backup_records.any? %>
+            <div class="vstack gap-3">
+              <% @backup_records.each do |backup_record| %>
+                <article class="border rounded-4 p-3">
+                  <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                    <div class="min-w-0">
+                      <div class="text-uppercase text-secondary fw-semibold small mb-1"><%= backup_record.provider.humanize %></div>
+                      <div class="fw-semibold break-anywhere"><%= link_to backup_record.capture.display_title, capture_path(backup_record.capture), class: "text-decoration-none" %></div>
+                    </div>
+                    <span class="badge rounded-pill text-bg-light"><%= backup_record.status.humanize %></span>
                   </div>
-                  <span class="status-chip status-chip-<%= backup_record.status %>"><%= backup_record.status.humanize %></span>
-                </div>
-                <p><%= backup_record.error_message.presence || backup_record.remote_path.presence || "Backup record ready." %></p>
-              </article>
-            <% end %>
-          </div>
-        <% else %>
-          <%= render "shared/empty_state", title: "No backup records yet", description: "Run a manual backup from a capture detail page to seed the history." %>
-        <% end %>
-      </article>
-    </section>
+                  <div class="text-secondary small break-anywhere"><%= backup_record.error_message.presence || backup_record.remote_path.presence || "Backup record ready." %></div>
+                </article>
+              <% end %>
+            </div>
+          <% else %>
+            <%= render "shared/empty_state", title: "No backup records yet", description: "Run a manual backup from a capture detail page to seed the history." %>
+          <% end %>
+        </div>
+      </section>
+    </div>
+  </div>
 </div>

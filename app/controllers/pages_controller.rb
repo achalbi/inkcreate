@@ -17,6 +17,7 @@ class PagesController < BrowserController
 
     if @page.save
       attach_pending_photos(@page)
+      schedule_drive_export(@page)
       redirect_to notebook_chapter_page_path(@notebook, @chapter, @page), notice: "Page created."
     else
       render :new, status: :unprocessable_entity
@@ -30,6 +31,7 @@ class PagesController < BrowserController
 
     if @page.update(page_attributes)
       attach_pending_photos(@page)
+      schedule_drive_export(@page)
       redirect_to notebook_chapter_page_path(@notebook, @chapter, @page), notice: "Page updated."
     else
       render :edit, status: :unprocessable_entity
@@ -49,6 +51,7 @@ class PagesController < BrowserController
   def destroy_photo
     attachment = @page.photos.attachments.find(params[:attachment_id])
     attachment.purge
+    schedule_drive_export(@page)
     redirect_to notebook_chapter_page_path(@notebook, @chapter, @page), notice: "Photo removed."
   end
 
@@ -100,6 +103,10 @@ class PagesController < BrowserController
 
     page.photos.attach(signed_ids)
     page.retained_photo_signed_ids = []
+  end
+
+  def schedule_drive_export(page)
+    Drive::ScheduleRecordExport.new(record: page).call
   end
 
   def move_within_scope(scope, record, direction)

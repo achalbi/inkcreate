@@ -3,6 +3,7 @@ class NotepadEntry < ApplicationRecord
 
   belongs_to :user
   has_many_attached :photos
+  has_one :google_drive_export, as: :exportable, dependent: :destroy
 
   validates :entry_date, presence: true
   validate :notes_or_photos_present

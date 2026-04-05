@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_06_194500) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_06_203000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -224,6 +224,28 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_06_194500) do
     t.index ["capture_id"], name: "index_drive_syncs_on_capture_id"
     t.index ["user_id", "status"], name: "index_drive_syncs_on_user_id_and_status"
     t.index ["user_id"], name: "index_drive_syncs_on_user_id"
+  end
+
+  create_table "google_drive_exports", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "drive_folder_id"
+    t.text "error_message"
+    t.uuid "exportable_id", null: false
+    t.string "exportable_type", null: false
+    t.datetime "exported_at"
+    t.datetime "last_attempted_at"
+    t.jsonb "metadata", default: {}, null: false
+    t.string "remote_folder_id"
+    t.string "remote_manifest_file_id"
+    t.string "remote_notes_file_id"
+    t.jsonb "remote_photo_file_ids", default: {}, null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.uuid "user_id", null: false
+    t.index ["exportable_type", "exportable_id"], name: "idx_on_exportable_type_exportable_id_06996d1409", unique: true
+    t.index ["exportable_type", "exportable_id"], name: "index_google_drive_exports_on_exportable"
+    t.index ["user_id", "status"], name: "index_google_drive_exports_on_user_id_and_status"
+    t.index ["user_id"], name: "index_google_drive_exports_on_user_id"
   end
 
   create_table "notebooks", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -449,6 +471,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_06_194500) do
   add_foreign_key "daily_logs", "users"
   add_foreign_key "drive_syncs", "captures"
   add_foreign_key "drive_syncs", "users"
+  add_foreign_key "google_drive_exports", "users"
   add_foreign_key "notebooks", "users"
   add_foreign_key "notepad_entries", "users"
   add_foreign_key "ocr_jobs", "captures"

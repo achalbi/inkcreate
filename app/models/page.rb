@@ -3,6 +3,7 @@ class Page < ApplicationRecord
 
   belongs_to :chapter
   has_many_attached :photos
+  has_one :google_drive_export, as: :exportable, dependent: :destroy
 
   # Titles stay required because pages appear in nested notebook lists,
   # but we generate one from the content/date when the user leaves it blank.

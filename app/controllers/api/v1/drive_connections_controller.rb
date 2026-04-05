@@ -19,7 +19,18 @@ module Api
       end
 
       def callback
-        raise ArgumentError, "Invalid OAuth state" unless ActiveSupport::SecurityUtils.secure_compare(session[:drive_oauth_state].to_s, params[:state].to_s)
+        return_to = session.delete(:drive_oauth_return_to)
+        expected_state = session.delete(:drive_oauth_state).to_s
+
+        if params[:error].present?
+          return handle_browser_callback_error(return_to, "Google Drive connection was canceled.")
+        end
+
+        unless expected_state.present? &&
+               params[:state].present? &&
+               ActiveSupport::SecurityUtils.secure_compare(expected_state, params[:state].to_s)
+          return handle_browser_callback_error(return_to, "Google Drive connection could not be verified.")
+        end
 
         token_payload = Drive::OauthClient.new.exchange_code!(code: params.fetch(:code))
         current_user.update!(
@@ -29,7 +40,16 @@ module Api
           google_drive_connected_at: Time.current
         )
 
-        render json: { connected: true }
+        if return_to.present?
+          session[:browser_notice] = "Google Drive connected. Create or choose a backup folder to finish setup."
+          redirect_to return_to
+        else
+          render json: { connected: true }
+        end
+      rescue StandardError => error
+        return handle_browser_callback_error(return_to, error.message) if return_to.present?
+
+        raise
       end
 
       def update
@@ -53,6 +73,11 @@ module Api
 
       def drive_connection_params
         params.require(:drive_connection).permit(:google_drive_folder_id)
+      end
+
+      def handle_browser_callback_error(return_to, message)
+        session[:browser_alert] = message
+        redirect_to(return_to.presence || settings_backup_path)
       end
     end
   end

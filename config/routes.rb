@@ -64,6 +64,9 @@ Rails.application.routes.draw do
   namespace :settings do
     resource :backup, only: %i[show update], controller: "backup"
     resource :privacy, only: %i[show update], controller: "privacy"
+    resource :drive_connection, only: %i[create update destroy], controller: "drive_connections" do
+      post :create_folder, on: :collection
+    end
   end
 
   namespace :admin do

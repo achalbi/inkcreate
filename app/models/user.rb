@@ -19,6 +19,7 @@ class User < ApplicationRecord
   has_many :backup_records, dependent: :destroy
   has_many :sync_jobs, dependent: :destroy
   has_many :drive_syncs, dependent: :destroy
+  has_many :google_drive_exports, dependent: :destroy
   has_one :app_setting, dependent: :destroy
 
   before_validation :assign_bootstrap_role, on: :create
@@ -40,6 +41,16 @@ class User < ApplicationRecord
 
   def google_drive_connected?
     google_drive_connected_at.present? && google_drive_refresh_token.present?
+  end
+
+  def google_drive_ready?
+    google_drive_connected? && google_drive_folder_id.present?
+  end
+
+  def google_drive_folder_url
+    return if google_drive_folder_id.blank?
+
+    "https://drive.google.com/drive/folders/#{google_drive_folder_id}"
   end
 
   def time_zone_locked?

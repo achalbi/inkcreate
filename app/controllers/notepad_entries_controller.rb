@@ -26,6 +26,7 @@ class NotepadEntriesController < BrowserController
 
     if @notepad_entry.save
       attach_pending_photos(@notepad_entry)
+      schedule_drive_export(@notepad_entry)
       redirect_to notepad_entry_path(@notepad_entry), notice: "Notepad entry created."
     else
       render :new, status: :unprocessable_entity
@@ -39,6 +40,7 @@ class NotepadEntriesController < BrowserController
 
     if @notepad_entry.update(notepad_entry_attributes)
       attach_pending_photos(@notepad_entry)
+      schedule_drive_export(@notepad_entry)
       redirect_to notepad_entry_path(@notepad_entry), notice: "Notepad entry updated."
     else
       render :edit, status: :unprocessable_entity
@@ -53,6 +55,7 @@ class NotepadEntriesController < BrowserController
   def destroy_photo
     attachment = @notepad_entry.photos.attachments.find(params[:attachment_id])
     attachment.purge
+    schedule_drive_export(@notepad_entry)
     redirect_to notepad_entry_path(@notepad_entry), notice: "Photo removed."
   end
 
@@ -96,6 +99,10 @@ class NotepadEntriesController < BrowserController
 
     entry.photos.attach(signed_ids)
     entry.retained_photo_signed_ids = []
+  end
+
+  def schedule_drive_export(entry)
+    Drive::ScheduleRecordExport.new(record: entry).call
   end
 
   def index_view_mode
