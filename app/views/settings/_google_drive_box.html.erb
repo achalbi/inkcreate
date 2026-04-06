@@ -100,7 +100,18 @@
           <% end %>
           <%= button_to "Disconnect", settings_drive_connection_path, method: :delete, class: "btn btn-outline-danger", form_class: "d-inline-flex" %>
         <% else %>
-          <%= button_to "Connect Google Drive", settings_drive_connection_path, method: :post, class: "btn btn-primary", form_class: "d-inline-flex" %>
+          <%= button_to "Connect Google Drive",
+            settings_drive_connection_path(popup: true),
+            method: :post,
+            class: "btn btn-primary",
+            form: {
+              class: "d-inline-flex",
+              data: {
+                controller: "drive-oauth",
+                action: "submit->drive-oauth#open",
+                drive_oauth_return_to_value: settings_backup_path
+              }
+            } %>
           <% if show_backup_link %>
             <%= link_to "Backup settings", settings_backup_path, class: "btn btn-outline-secondary" %>
           <% end %>

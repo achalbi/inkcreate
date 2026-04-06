@@ -6,6 +6,7 @@ import PhotoCaptureController from "/scripts/controllers/photo_capture_controlle
 import QueueController from "/scripts/controllers/queue_controller.js";
 import SearchFiltersController from "/scripts/controllers/search_filters_controller.js";
 import ListModalController from "/scripts/controllers/list_modal_controller.js";
+import DriveOauthController from "/scripts/controllers/drive_oauth_controller.js";
 
 const application = Application.start();
 application.register("offline-status", OfflineStatusController);
@@ -15,6 +16,7 @@ application.register("photo-capture", PhotoCaptureController);
 application.register("queue", QueueController);
 application.register("search-filters", SearchFiltersController);
 application.register("list-modal", ListModalController);
+application.register("drive-oauth", DriveOauthController);
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {

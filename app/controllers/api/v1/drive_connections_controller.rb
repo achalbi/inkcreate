@@ -20,16 +20,17 @@ module Api
 
       def callback
         return_to = session.delete(:drive_oauth_return_to)
+        popup_flow = ActiveModel::Type::Boolean.new.cast(session.delete(:drive_oauth_popup))
         expected_state = session.delete(:drive_oauth_state).to_s
 
         if params[:error].present?
-          return handle_browser_callback_error(return_to, "Google Drive connection was canceled.")
+          return handle_browser_callback_error(return_to, "Google Drive connection was canceled.", popup: popup_flow)
         end
 
         unless expected_state.present? &&
                params[:state].present? &&
                ActiveSupport::SecurityUtils.secure_compare(expected_state, params[:state].to_s)
-          return handle_browser_callback_error(return_to, "Google Drive connection could not be verified.")
+          return handle_browser_callback_error(return_to, "Google Drive connection could not be verified.", popup: popup_flow)
         end
 
         token_payload = Drive::OauthClient.new.exchange_code!(code: params.fetch(:code))
@@ -42,12 +43,12 @@ module Api
 
         if return_to.present?
           session[:browser_notice] = "Google Drive connected. Create or choose a backup folder to finish setup."
-          redirect_to return_to
+          popup_flow ? render_popup_callback(return_to) : redirect_to(return_to)
         else
           render json: { connected: true }
         end
       rescue StandardError => error
-        return handle_browser_callback_error(return_to, error.message) if return_to.present?
+        return handle_browser_callback_error(return_to, error.message, popup: popup_flow) if return_to.present?
 
         raise
       end
@@ -75,9 +76,44 @@ module Api
         params.require(:drive_connection).permit(:google_drive_folder_id)
       end
 
-      def handle_browser_callback_error(return_to, message)
+      def handle_browser_callback_error(return_to, message, popup: false)
         session[:browser_alert] = message
-        redirect_to(return_to.presence || settings_backup_path)
+        target = return_to.presence || settings_backup_path
+        popup ? render_popup_callback(target) : redirect_to(target)
+      end
+
+      def render_popup_callback(return_to)
+        render html: <<~HTML.html_safe, layout: false
+          <!DOCTYPE html>
+          <html lang="en">
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width,initial-scale=1">
+              <title>Inkcreate Drive Connection</title>
+            </head>
+            <body>
+              <script>
+                (function() {
+                  var payload = {
+                    type: "inkcreate:drive-oauth",
+                    returnTo: #{return_to.to_json}
+                  };
+
+                  try {
+                    if (window.opener && !window.opener.closed) {
+                      window.opener.postMessage(payload, #{request.base_url.to_json});
+                    }
+                  } catch (error) {
+                    // Ignore cross-window messaging errors and fall back to redirect.
+                  }
+
+                  window.close();
+                  window.location.replace(payload.returnTo);
+                })();
+              </script>
+            </body>
+          </html>
+        HTML
       end
     end
   end
