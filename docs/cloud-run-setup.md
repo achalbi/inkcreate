@@ -166,6 +166,9 @@ The current [cloudbuild.yaml](/Users/achalindiresh/workspace/inkcreate/cloudbuil
 - `inkcreate-secret-key-base`
 - `inkcreate-google-oauth-client-id`
 - `inkcreate-google-oauth-client-secret`
+- `inkcreate-active-record-encryption-primary-key`
+- `inkcreate-active-record-encryption-deterministic-key`
+- `inkcreate-active-record-encryption-key-derivation-salt`
 - `inkcreate-internal-task-token`
 - optional: `inkcreate-sentry-dsn`
 
@@ -179,6 +182,9 @@ for SECRET in \
   inkcreate-secret-key-base \
   inkcreate-google-oauth-client-id \
   inkcreate-google-oauth-client-secret \
+  inkcreate-active-record-encryption-primary-key \
+  inkcreate-active-record-encryption-deterministic-key \
+  inkcreate-active-record-encryption-key-derivation-salt \
   inkcreate-internal-task-token
 do
   gcloud secrets create "$SECRET" \
@@ -194,8 +200,23 @@ printf '%s' 'postgresql://...' | gcloud secrets versions add inkcreate-database-
 printf '%s' 'your-secret-key-base' | gcloud secrets versions add inkcreate-secret-key-base --project=$PROJECT_ID --data-file=-
 printf '%s' 'your-google-oauth-client-id.apps.googleusercontent.com' | gcloud secrets versions add inkcreate-google-oauth-client-id --project=$PROJECT_ID --data-file=-
 printf '%s' 'your-google-oauth-client-secret' | gcloud secrets versions add inkcreate-google-oauth-client-secret --project=$PROJECT_ID --data-file=-
+printf '%s' 'your-active-record-encryption-primary-key' | gcloud secrets versions add inkcreate-active-record-encryption-primary-key --project=$PROJECT_ID --data-file=-
+printf '%s' 'your-active-record-encryption-deterministic-key' | gcloud secrets versions add inkcreate-active-record-encryption-deterministic-key --project=$PROJECT_ID --data-file=-
+printf '%s' 'your-active-record-encryption-key-derivation-salt' | gcloud secrets versions add inkcreate-active-record-encryption-key-derivation-salt --project=$PROJECT_ID --data-file=-
 printf '%s' 'replace-with-random-internal-task-token' | gcloud secrets versions add inkcreate-internal-task-token --project=$PROJECT_ID --data-file=-
 ```
+
+Generate the three Active Record encryption values once with Rails:
+
+```bash
+bin/rails db:encryption:init
+```
+
+Use the printed values for:
+
+- `ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY`
+- `ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY`
+- `ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT`
 
 ### Allow the runtime service account to read the secrets
 
@@ -208,6 +229,9 @@ for SECRET in \
   inkcreate-secret-key-base \
   inkcreate-google-oauth-client-id \
   inkcreate-google-oauth-client-secret \
+  inkcreate-active-record-encryption-primary-key \
+  inkcreate-active-record-encryption-deterministic-key \
+  inkcreate-active-record-encryption-key-derivation-salt \
   inkcreate-internal-task-token
 do
   gcloud secrets add-iam-policy-binding "$SECRET" \
@@ -256,6 +280,9 @@ The secret-name substitutions should usually stay at their defaults unless you r
 - `_SECRET_KEY_BASE_SECRET=inkcreate-secret-key-base`
 - `_GOOGLE_OAUTH_CLIENT_ID_SECRET=inkcreate-google-oauth-client-id`
 - `_GOOGLE_OAUTH_CLIENT_SECRET_SECRET=inkcreate-google-oauth-client-secret`
+- `_ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY_SECRET=inkcreate-active-record-encryption-primary-key`
+- `_ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY_SECRET=inkcreate-active-record-encryption-deterministic-key`
+- `_ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT_SECRET=inkcreate-active-record-encryption-key-derivation-salt`
 - `_INTERNAL_TASK_TOKEN_SECRET=inkcreate-internal-task-token`
 
 ## 7. Notes
