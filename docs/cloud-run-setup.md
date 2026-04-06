@@ -206,10 +206,18 @@ printf '%s' 'your-active-record-encryption-key-derivation-salt' | gcloud secrets
 printf '%s' 'replace-with-random-internal-task-token' | gcloud secrets versions add inkcreate-internal-task-token --project=$PROJECT_ID --data-file=-
 ```
 
-Generate the three Active Record encryption values once with Rails:
+Generate the three Active Record encryption values once with Rails from the app root:
 
 ```bash
+cd /Users/achalindiresh/workspace/inkcreate
 bin/rails db:encryption:init
+```
+
+If your local Ruby or Bundler version does not match the app yet, run the same command in Docker instead:
+
+```bash
+cd /Users/achalindiresh/workspace/inkcreate
+docker compose run --rm web bin/rails db:encryption:init
 ```
 
 Use the printed values for:
@@ -217,6 +225,11 @@ Use the printed values for:
 - `ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY`
 - `ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY`
 - `ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT`
+
+Important:
+
+- Generate these values only once for the production dataset.
+- Replacing them later will make existing encrypted Google Drive tokens unreadable.
 
 ### Allow the runtime service account to read the secrets
 
