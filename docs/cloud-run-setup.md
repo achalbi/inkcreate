@@ -166,7 +166,6 @@ The current [cloudbuild.yaml](/Users/achalindiresh/workspace/inkcreate/cloudbuil
 - `inkcreate-secret-key-base`
 - `inkcreate-google-oauth-client-id`
 - `inkcreate-google-oauth-client-secret`
-- `inkcreate-redis-url`
 - `inkcreate-internal-task-token`
 - optional: `inkcreate-sentry-dsn`
 
@@ -180,7 +179,6 @@ for SECRET in \
   inkcreate-secret-key-base \
   inkcreate-google-oauth-client-id \
   inkcreate-google-oauth-client-secret \
-  inkcreate-redis-url \
   inkcreate-internal-task-token
 do
   gcloud secrets create "$SECRET" \
@@ -196,7 +194,6 @@ printf '%s' 'postgresql://...' | gcloud secrets versions add inkcreate-database-
 printf '%s' 'your-secret-key-base' | gcloud secrets versions add inkcreate-secret-key-base --project=$PROJECT_ID --data-file=-
 printf '%s' 'your-google-oauth-client-id.apps.googleusercontent.com' | gcloud secrets versions add inkcreate-google-oauth-client-id --project=$PROJECT_ID --data-file=-
 printf '%s' 'your-google-oauth-client-secret' | gcloud secrets versions add inkcreate-google-oauth-client-secret --project=$PROJECT_ID --data-file=-
-printf '%s' 'redis://...' | gcloud secrets versions add inkcreate-redis-url --project=$PROJECT_ID --data-file=-
 printf '%s' 'replace-with-random-internal-task-token' | gcloud secrets versions add inkcreate-internal-task-token --project=$PROJECT_ID --data-file=-
 ```
 
@@ -211,7 +208,6 @@ for SECRET in \
   inkcreate-secret-key-base \
   inkcreate-google-oauth-client-id \
   inkcreate-google-oauth-client-secret \
-  inkcreate-redis-url \
   inkcreate-internal-task-token
 do
   gcloud secrets add-iam-policy-binding "$SECRET" \
@@ -259,7 +255,6 @@ The secret-name substitutions should usually stay at their defaults unless you r
 - `_SECRET_KEY_BASE_SECRET=inkcreate-secret-key-base`
 - `_GOOGLE_OAUTH_CLIENT_ID_SECRET=inkcreate-google-oauth-client-id`
 - `_GOOGLE_OAUTH_CLIENT_SECRET_SECRET=inkcreate-google-oauth-client-secret`
-- `_REDIS_URL_SECRET=inkcreate-redis-url`
 - `_INTERNAL_TASK_TOKEN_SECRET=inkcreate-internal-task-token`
 
 ## 7. Notes

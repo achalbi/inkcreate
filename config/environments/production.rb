@@ -9,6 +9,6 @@ Rails.application.configure do
   config.public_file_server.enabled = ENV.fetch("RAILS_SERVE_STATIC_FILES", "true") == "true"
   config.action_controller.perform_caching = true
   config.action_mailer.perform_caching = false
-  config.active_job.queue_adapter = :sidekiq
+  config.active_job.queue_adapter = ENV.fetch("JOB_BACKEND", "sidekiq") == "cloud_tasks" ? :async : :sidekiq
   config.active_storage.service = ENV.fetch("ACTIVE_STORAGE_SERVICE", "local").to_sym
 end

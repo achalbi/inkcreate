@@ -16,9 +16,17 @@ module Async
       )
     end
 
+    def self.enqueue_record_export(google_drive_export_id)
+      dispatch(
+        queue: ENV.fetch("CLOUD_TASKS_DRIVE_QUEUE", "drive-sync-jobs"),
+        path: "/internal/google_drive_exports/#{google_drive_export_id}/perform",
+        job_fallback: -> { GoogleDriveExportJob.perform_later(google_drive_export_id) }
+      )
+    end
+
     def self.dispatch(queue:, path:, job_fallback:)
       if backend == "cloud_tasks"
-        CloudTasksEnqueuer.new.enqueue(queue:, path:)
+        CloudTasksEnqueuer.new.enqueue(queue: queue, path: path)
       else
         job_fallback.call
       end

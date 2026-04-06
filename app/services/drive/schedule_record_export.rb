@@ -15,7 +15,7 @@ module Drive
       google_drive_export.remote_photo_file_ids ||= {}
       google_drive_export.save!
 
-      GoogleDriveExportJob.perform_later(google_drive_export.id)
+      Async::Dispatcher.enqueue_record_export(google_drive_export.id)
       google_drive_export
     end
 

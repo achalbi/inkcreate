@@ -87,6 +87,10 @@ Rails.application.routes.draw do
     resources :drive_syncs, only: [] do
       post :perform, on: :member
     end
+
+    resources :google_drive_exports, only: [] do
+      post :perform, on: :member
+    end
   end
 
   namespace :api do
