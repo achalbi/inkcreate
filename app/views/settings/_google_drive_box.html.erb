@@ -98,7 +98,7 @@
           <% if show_backup_link %>
             <%= link_to "Backup settings", settings_backup_path, class: "btn btn-outline-secondary" %>
           <% end %>
-          <%= button_to "Disconnect", settings_drive_connection_path, method: :delete, class: "btn btn-outline-danger", form_class: "d-inline-flex" %>
+          <%= button_to "Remove connection from Google Drive", settings_drive_connection_path, method: :delete, class: "btn btn-outline-danger", form_class: "d-inline-flex" %>
         <% else %>
           <%= button_to "Connect Google Drive",
             settings_drive_connection_path(popup: true),

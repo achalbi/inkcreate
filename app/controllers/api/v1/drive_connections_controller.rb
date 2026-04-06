@@ -34,18 +34,24 @@ module Api
         end
 
         token_payload = Drive::OauthClient.new.exchange_code!(code: params.fetch(:code))
+        refresh_token = token_payload["refresh_token"].presence || current_user.google_drive_refresh_token
+
         current_user.update!(
           google_drive_access_token: token_payload["access_token"],
-          google_drive_refresh_token: token_payload["refresh_token"].presence || current_user.google_drive_refresh_token,
+          google_drive_refresh_token: refresh_token,
           google_drive_token_expires_at: Time.current + token_payload.fetch("expires_in", 3600).to_i.seconds,
           google_drive_connected_at: Time.current
         )
 
         if return_to.present?
-          session[:browser_notice] = "Google Drive connected. Create or choose a backup folder to finish setup."
+          if refresh_token.present?
+            session[:browser_notice] = "Google Drive connected. Create or choose a backup folder to finish setup."
+          else
+            session[:browser_alert] = "Google Drive authorization completed, but offline access was not granted. Please connect again."
+          end
           popup_flow ? render_popup_callback(return_to) : redirect_to(return_to)
         else
-          render json: { connected: true }
+          render json: { connected: refresh_token.present? }
         end
       rescue StandardError => error
         return handle_browser_callback_error(return_to, error.message, popup: popup_flow) if return_to.present?

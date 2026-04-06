@@ -9,13 +9,18 @@ module Drive
     end
 
     def authorization_url(state:)
-      oauth_client.update!(
-        state: state,
+      uri = URI("https://accounts.google.com/o/oauth2/auth")
+      uri.query = URI.encode_www_form(
         access_type: "offline",
+        client_id: ENV.fetch("GOOGLE_OAUTH_CLIENT_ID"),
+        include_granted_scopes: "true",
         prompt: "consent",
-        include_granted_scopes: true
+        redirect_uri: ENV.fetch("GOOGLE_DRIVE_REDIRECT_URI"),
+        response_type: "code",
+        scope: SCOPE,
+        state: state
       )
-      oauth_client.authorization_uri.to_s
+      uri.to_s
     end
 
     def exchange_code!(code:)
