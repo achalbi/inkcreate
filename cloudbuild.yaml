@@ -242,7 +242,7 @@ substitutions:
   _GCS_UPLOAD_BUCKET: inkcreate-uploads
   _APP_URL: 'https://inkcreate.thoughtbasics.com'
   _DEVISE_MAILER_SENDER: noreply@inkcreate.thoughtbasics.com
-  _GOOGLE_DRIVE_REDIRECT_URI: 'https://www.inkcreate.thoughtbasics.com/api/v1/drive_connection/callback'
+  _GOOGLE_DRIVE_REDIRECT_URI: 'https://inkcreate.thoughtbasics.com/api/v1/drive_connection/callback'
   _CLOUD_TASKS_OCR_QUEUE: ocr-jobs
   _CLOUD_TASKS_DRIVE_QUEUE: drive-sync-jobs
   _CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL: ''

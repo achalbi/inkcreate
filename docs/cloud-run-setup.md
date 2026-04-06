@@ -231,7 +231,8 @@ gcloud secrets add-iam-policy-binding inkcreate-sentry-dsn \
 The main substitutions to set or confirm are:
 
 - `_RUNTIME_SERVICE_ACCOUNT=inkcreate-runtime@thoughtbasics.iam.gserviceaccount.com`
-- `_GOOGLE_DRIVE_REDIRECT_URI=https://www.inkcreate.thoughtbasics.com/api/v1/drive_connection/callback`
+- `_APP_URL=https://inkcreate.thoughtbasics.com`
+- `_GOOGLE_DRIVE_REDIRECT_URI=https://inkcreate.thoughtbasics.com/api/v1/drive_connection/callback`
 - `_DEPLOY_REGION=asia-south1`
 - `_GCS_UPLOAD_BUCKET=inkcreate-uploads`
 
