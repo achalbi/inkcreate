@@ -22,7 +22,7 @@ module Drive
         error_message: nil
       )
 
-      reset_remote_references_if_root_changed!
+      relocate_remote_folder_if_structure_changed!
 
       folder_id = ensure_remote_folder!
       notes_file_id = upsert_text_file(
@@ -48,7 +48,7 @@ module Drive
         remote_photo_file_ids: photo_file_ids,
         exported_at: Time.current,
         error_message: nil,
-        metadata: manifest_payload.merge("exported_at" => Time.current.iso8601)
+        metadata: export_metadata
       )
     rescue StandardError => error
       google_drive_export.update!(
@@ -68,46 +68,84 @@ module Drive
       raise ArgumentError, "Record no longer exists" if record.blank?
     end
 
-    def reset_remote_references_if_root_changed!
-      return if google_drive_export.drive_folder_id.blank? || google_drive_export.drive_folder_id == user.google_drive_folder_id
+    def relocate_remote_folder_if_structure_changed!
+      root_changed = google_drive_export.drive_folder_id.present? && google_drive_export.drive_folder_id != user.google_drive_folder_id
+      path_changed = stored_folder_path_signature.present? && stored_folder_path_signature != current_folder_path_signature
+
+      return unless root_changed || path_changed
+
+      google_drive_export.update!(drive_folder_id: user.google_drive_folder_id)
+      return reset_remote_references! if google_drive_export.remote_folder_id.blank?
+
+      parent_folder_id = ensure_export_parent_folder_id
+      remote_folder = drive_service.get_file(google_drive_export.remote_folder_id, fields: "id,name,parents")
+      previous_parent_id = Array(remote_folder.parents).first
+      update_options = { fields: "id" }
+      if previous_parent_id.present? && previous_parent_id != parent_folder_id
+        update_options[:add_parents] = parent_folder_id
+        update_options[:remove_parents] = previous_parent_id
+      end
+
+      drive_service.update_file(
+        remote_folder.id,
+        Google::Apis::DriveV3::File.new(name: remote_folder_name),
+        **update_options
+      )
 
       google_drive_export.update!(
-        drive_folder_id: user.google_drive_folder_id,
-        remote_folder_id: nil,
-        remote_notes_file_id: nil,
-        remote_manifest_file_id: nil,
-        remote_photo_file_ids: {}
+        metadata: google_drive_export.metadata.to_h.merge(
+          "folder_path" => export_folder_segments,
+          "folder_path_signature" => current_folder_path_signature
+        )
       )
+    rescue Google::Apis::ClientError
+      reset_remote_references!
     end
 
     def ensure_remote_folder!
       return google_drive_export.remote_folder_id if google_drive_export.remote_folder_id.present?
 
-      folder = drive_service.create_file(
-        Google::Apis::DriveV3::File.new(
-          name: remote_folder_name,
-          mime_type: "application/vnd.google-apps.folder",
-          parents: [user.google_drive_folder_id]
-        ),
-        fields: "id"
-      )
+      folder = Drive::EnsureFolderPath.new(
+        user: user,
+        parent_id: ensure_export_parent_folder_id,
+        segments: [Drive::ExportLayout.record_folder_name(record)]
+      ).call
 
-      google_drive_export.update!(remote_folder_id: folder.id)
+      google_drive_export.update!(
+        remote_folder_id: folder.id,
+        metadata: google_drive_export.metadata.to_h.merge(
+          "folder_path" => export_folder_segments,
+          "folder_path_signature" => current_folder_path_signature
+        )
+      )
       folder.id
     end
 
-    def remote_folder_name
-      base =
-        case record
-        when Page
-          "#{record.notebook.title} - #{record.chapter.title} - #{record.display_title}"
-        when NotepadEntry
-          record.display_title
-        else
-          record.class.name
-        end
+    def ensure_export_parent_folder_id
+      segments = Drive::ExportLayout.folder_segments(record)[0...-1]
+      return user.google_drive_folder_id if segments.blank?
 
-      "#{base.to_s.truncate(90, omission: "").strip} (#{record.id.to_s.first(8)})"
+      Drive::EnsureFolderPath.new(
+        user: user,
+        parent_id: user.google_drive_folder_id,
+        segments: segments
+      ).call.id
+    end
+
+    def export_folder_segments
+      Drive::ExportLayout.folder_segments(record)
+    end
+
+    def current_folder_path_signature
+      Drive::ExportLayout.folder_path_signature(record)
+    end
+
+    def stored_folder_path_signature
+      google_drive_export.metadata.to_h["folder_path_signature"].to_s.presence
+    end
+
+    def remote_folder_name
+      Drive::ExportLayout.record_folder_name(record)
     end
 
     def notes_content
@@ -139,6 +177,15 @@ module Drive
       else
         []
       end
+    end
+
+    def export_metadata
+      google_drive_export.metadata.to_h.merge(
+        manifest_payload,
+        "exported_at" => Time.current.iso8601,
+        "folder_path" => export_folder_segments,
+        "folder_path_signature" => current_folder_path_signature
+      )
     end
 
     def manifest_payload
@@ -242,6 +289,20 @@ module Drive
 
     def drive_service
       @drive_service ||= ClientFactory.build(user: user)
+    end
+
+    def reset_remote_references!
+      google_drive_export.update!(
+        drive_folder_id: user.google_drive_folder_id,
+        remote_folder_id: nil,
+        remote_notes_file_id: nil,
+        remote_manifest_file_id: nil,
+        remote_photo_file_ids: {},
+        metadata: google_drive_export.metadata.to_h.merge(
+          "folder_path" => export_folder_segments,
+          "folder_path_signature" => current_folder_path_signature
+        )
+      )
     end
   end
 end

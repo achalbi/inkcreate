@@ -15,6 +15,7 @@ class Page < ApplicationRecord
 
   before_validation :assign_position, on: :create
   before_validation :sync_title_with_page_number
+  after_update_commit :rename_google_drive_folder, if: :google_drive_folder_rename_required?
 
   delegate :notebook, to: :chapter
   delegate :user, to: :notebook
@@ -63,5 +64,13 @@ class Page < ApplicationRecord
     return if notes.present? || photos.attached? || pending_photo_blobs.any?
 
     errors.add(:base, "Add notes or at least one photo.")
+  end
+
+  def google_drive_folder_rename_required?
+    (saved_change_to_title? || saved_change_to_position?) && user.google_drive_ready?
+  end
+
+  def rename_google_drive_folder
+    Drive::RenameRecordFolder.new(record: self).call
   end
 end

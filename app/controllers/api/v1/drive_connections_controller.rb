@@ -43,9 +43,24 @@ module Api
           google_drive_connected_at: Time.current
         )
 
+        folder_bootstrap_error = nil
+        if refresh_token.present? && current_user.google_drive_folder_id.blank?
+          begin
+            folder = Drive::CreateFolder.new(user: current_user).call
+            current_user.update!(google_drive_folder_id: folder.id)
+            Drive::BackfillRecordExports.new(user: current_user).call if current_user.ensure_app_setting!.google_drive_backup?
+          rescue StandardError => error
+            folder_bootstrap_error = error
+          end
+        end
+
         if return_to.present?
           if refresh_token.present?
-            session[:browser_notice] = "Google Drive connected. Create or choose a backup folder to finish setup."
+            if folder_bootstrap_error.present?
+              session[:browser_alert] = "Google Drive connected, but Inkcreate folders could not be created yet. #{folder_bootstrap_error.message}"
+            else
+              session[:browser_notice] = "Google Drive connected. Inkcreate folders are ready."
+            end
           else
             session[:browser_alert] = "Google Drive authorization completed, but offline access was not granted. Please connect again."
           end

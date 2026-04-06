@@ -1,6 +1,7 @@
 module Drive
   class CreateFolder
-    DEFAULT_FOLDER_NAME = "Inkcreate Backups".freeze
+    DEFAULT_FOLDER_NAME = "Inkcreate".freeze
+    DEFAULT_CHILD_FOLDERS = ["Notebooks", "Notepad"].freeze
 
     def initialize(user:, name: DEFAULT_FOLDER_NAME)
       @user = user
@@ -8,13 +9,11 @@ module Drive
     end
 
     def call
-      ClientFactory.build(user: user).create_file(
-        Google::Apis::DriveV3::File.new(
-          name: name,
-          mime_type: "application/vnd.google-apps.folder"
-        ),
-        fields: "id,name,webViewLink"
-      )
+      root_folder = Drive::EnsureFolderPath.new(user: user, segments: [name]).call
+      DEFAULT_CHILD_FOLDERS.each do |child_folder|
+        Drive::EnsureFolderPath.new(user: user, parent_id: root_folder.id, segments: [child_folder]).call
+      end
+      root_folder
     end
 
     private
