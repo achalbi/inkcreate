@@ -7,14 +7,9 @@
         <span>Notebook OCR Companion</span>
       </span>
     </a>
-
-    <div class="nav-actions">
-      <a class="mini-button" href="<%= root_path %>">Back home</a>
-      <a class="mini-button mini-button-primary" href="<%= browser_sign_up_path %>">Create account</a>
-    </div>
   </header>
 
-  <section class="auth-shell">
+  <section class="auth-shell auth-shell-single">
     <article class="auth-panel">
       <div class="eyebrow">Sign in</div>
       <h1>Resume your notebook workflow.</h1>
@@ -41,24 +36,6 @@
         <a href="<%= browser_sign_up_path %>">Need an account? Create one</a>
       </div>
     </article>
-
-    <aside class="auth-panel">
-      <div class="eyebrow">What you unlock</div>
-      <h2>Auth is now wired from the landing page.</h2>
-      <p>
-        The browser flow sits on top of the existing API auth endpoints, so the
-        same session works for both the new web UI and the API-first backend.
-      </p>
-
-      <div class="stack-note">
-        <strong>User role</strong>
-        <p>Standard users get a personal workspace for notebooks, captures, tags, and Drive connection state.</p>
-      </div>
-      <div class="stack-note">
-        <strong>Admin role</strong>
-        <p>The bootstrap admin can review users and manage role assignment from the admin screen.</p>
-      </div>
-    </aside>
   </section>
 
   <%= render "shared/public_footer" %>

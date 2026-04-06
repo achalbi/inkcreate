@@ -176,6 +176,10 @@
         min-width: 0;
       }
 
+      .nav-actions-auth {
+        flex-wrap: nowrap;
+      }
+
       .mini-button {
         display: inline-flex;
         align-items: center;
@@ -263,7 +267,7 @@
       }
 
       h1 {
-        font-size: clamp(3.3rem, 8vw, 6rem);
+        font-size: clamp(2.8rem, 6.7vw, 5rem);
         max-width: 9ch;
         overflow-wrap: anywhere;
       }
@@ -865,6 +869,15 @@
         align-items: start;
       }
 
+      .auth-shell-single {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .auth-shell-single .auth-panel {
+        width: min(100%, 720px);
+        margin: 0 auto;
+      }
+
       .auth-panel,
       .dashboard-card,
       .table-card {
@@ -877,7 +890,12 @@
         min-width: 0;
       }
 
-      .auth-panel h1,
+      .auth-panel h1 {
+        font-size: clamp(2.1rem, 5.1vw, 3.45rem);
+        max-width: none;
+        overflow-wrap: anywhere;
+      }
+
       .dashboard-card h1 {
         font-size: clamp(2.4rem, 6vw, 4rem);
         max-width: none;
@@ -1807,6 +1825,11 @@
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
+        .nav-actions-auth {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
         .nav-actions .mini-button {
           width: 100%;
         }
@@ -1847,7 +1870,7 @@
         }
 
         h1 {
-          font-size: clamp(2.8rem, 16vw, 4.2rem);
+          font-size: clamp(2.5rem, 14.5vw, 3.8rem);
         }
 
         .admin-activity {
@@ -1911,6 +1934,10 @@
 
         .nav-actions {
           grid-template-columns: minmax(0, 1fr);
+        }
+
+        .nav-actions-auth {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
         .flash-stack--floating {

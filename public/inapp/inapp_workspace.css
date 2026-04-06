@@ -780,7 +780,7 @@ body.workspace-body {
 .workspace-body h1,
 .workspace-body .h1,
 .workspace-body .fs-3 {
-  font-size: 1.22rem !important;
+  font-size: 1.1rem !important;
 }
 
 .workspace-body h2,
@@ -1570,6 +1570,17 @@ body.workspace-body {
 
 .workspace-body .photo-capture-actions {
   display: flex;
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.workspace-body .workspace-form-actions {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: flex-start;
   align-items: center;
   flex-wrap: wrap;
   gap: 0.5rem;
@@ -1656,6 +1667,23 @@ body.workspace-body {
 
 .workspace-body .photo-capture-retained-card {
   margin-bottom: 15px;
+}
+
+.workspace-body .photo-capture-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.workspace-body .photo-capture-card-heading > :first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.workspace-body .photo-capture-remove-button {
+  flex: 0 0 auto;
+  margin-left: auto;
 }
 
 .workspace-body .photo-capture-error-modal .modal-content {
@@ -2188,7 +2216,7 @@ body.workspace-body {
 }
 
 .workspace-body .workspace-header .fs-3 {
-  font-size: 1rem !important;
+  font-size: 0.84rem !important;
   line-height: 1.2;
 }
 
@@ -2376,6 +2404,11 @@ body.workspace-body {
 .workspace-body .thumbnail {
   padding: 0;
   overflow: hidden;
+}
+
+.workspace-body .photo-card-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .workspace-body .photo-lightbox-trigger {
@@ -2895,7 +2928,7 @@ body.workspace-body {
   .workspace-body h1,
   .workspace-body .h1,
   .workspace-body .fs-3 {
-    font-size: 1.1rem !important;
+    font-size: 0.98rem !important;
   }
 
   .workspace-body .home-metric-card {

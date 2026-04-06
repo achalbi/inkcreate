@@ -12,10 +12,9 @@
       <nav aria-label="Landing sections">
         <a href="#why">Why it works</a>
         <a href="#flow">Workflow</a>
-        <a href="#api">API surface</a>
       </nav>
 
-      <div class="nav-actions">
+      <div class="nav-actions <%= "nav-actions-auth" unless user_signed_in? %>">
         <% if user_signed_in? %>
           <a class="mini-button mini-button-primary" href="<%= dashboard_path %>">Open workspace</a>
         <% else %>
@@ -36,15 +35,12 @@
         that should land cleanly in Google Drive without manual cleanup.
       </p>
 
-      <div class="cta-row">
-        <% if user_signed_in? %>
+      <% if user_signed_in? %>
+        <div class="cta-row">
           <a class="button button-primary" href="<%= dashboard_path %>">Open workspace</a>
           <a class="button button-secondary" href="#flow">See the workflow</a>
-        <% else %>
-          <a class="button button-primary" href="<%= browser_sign_up_path %>">Create account</a>
-          <a class="button button-secondary" href="<%= browser_sign_in_path %>">Sign in</a>
-        <% end %>
-      </div>
+        </div>
+      <% end %>
 
       <div class="stat-row">
         <div class="stat">
@@ -174,46 +170,6 @@
       </div>
     </section>
 
-    <section class="section-card" id="api">
-      <div class="section-header">
-        <div class="eyebrow">API Surface</div>
-        <h2>An API-first backbone with a product-facing entry point.</h2>
-        <p>
-          Inkcreate is still a Rails API under the hood. The landing page simply gives the
-          app a proper front door while the core product remains organized around JSON endpoints
-          and background job orchestration.
-        </p>
-      </div>
-
-      <div class="api-grid">
-        <article class="api-card">
-          <p>Core endpoints already model the capture lifecycle directly:</p>
-          <div class="api-list">
-            <div class="api-code"><span>GET</span><span>/api/v1/notebooks</span></div>
-            <div class="api-code"><span>POST</span><span>/api/v1/upload_urls</span></div>
-            <div class="api-code"><span>POST</span><span>/api/v1/captures</span></div>
-            <div class="api-code"><span>POST</span><span>/api/v1/captures/:id/reprocess</span></div>
-            <div class="api-code"><span>POST</span><span>/api/v1/captures/:id/export_to_drive</span></div>
-            <div class="api-code"><span>GET</span><span>/api/v1/search</span></div>
-          </div>
-        </article>
-
-        <article class="api-card">
-          <div class="stack-note">
-            <strong>Direct browser uploads</strong>
-            <p>Heavy image payloads skip the Rails box and go straight to storage through signed URLs.</p>
-          </div>
-          <div class="stack-note">
-            <strong>Flexible job backend</strong>
-            <p>Sidekiq works locally while Cloud Tasks can take over in production without changing the product flow.</p>
-          </div>
-          <div class="stack-note">
-            <strong>Same data, more polish</strong>
-            <p>The landing page is intentionally lightweight so the app keeps its API-first posture while feeling like a product.</p>
-          </div>
-        </article>
-      </div>
-    </section>
   </main>
 
   <%= render "shared/public_footer" %>

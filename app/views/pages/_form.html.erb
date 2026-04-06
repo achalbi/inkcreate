@@ -84,7 +84,7 @@
                   <div class="col-sm-6">
                     <div class="thumbnail">
                       <%= render "shared/photo_lightbox", photo:, alt: page.display_title, image_style: "width: 100%; height: 220px; object-fit: cover;" %>
-                      <div class="caption">
+                      <div class="caption photo-card-actions">
                         <%= button_to "Remove", photo_notebook_chapter_page_path(notebook, chapter, page, photo),
                           method: :delete,
                           form: { style: "margin: 0;", onsubmit: "return confirm('Remove this photo?');" },
@@ -101,7 +101,7 @@
     </div>
   </div>
 
-  <div class="m-t-md">
+  <div class="m-t-md workspace-form-actions">
     <%= form.submit class: "btn btn-primary btn-sm" %>
     <%= link_to "Cancel", page.persisted? ? notebook_chapter_page_path(notebook, chapter, page) : notebook_chapter_path(notebook, chapter), class: "btn btn-white btn-sm" %>
   </div>

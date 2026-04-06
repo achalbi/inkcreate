@@ -1,7 +1,7 @@
 import { Controller } from "/scripts/vendor/stimulus.js";
 
 export default class extends Controller {
-  static targets = ["input", "cameraFrame", "cameraPanel", "defaultActions", "previewActions", "previewGrid", "retainedGrid", "emptyState", "cameraToggle", "errorModal", "errorTitle", "errorMessage"];
+  static targets = ["input", "cameraFrame", "cameraPanel", "defaultActions", "previewActions", "previewGrid", "retainedGrid", "retainedInput", "retainedItem", "emptyState", "cameraToggle", "errorModal", "errorTitle", "errorMessage"];
 
   connect() {
     this.stream = null;
@@ -206,9 +206,37 @@ export default class extends Controller {
   addFiles(files) {
     this.pendingFiles = [...this.pendingFiles, ...files];
 
-    const dataTransfer = new DataTransfer();
-    this.pendingFiles.forEach((file) => dataTransfer.items.add(file));
-    this.inputTarget.files = dataTransfer.files;
+    this.syncInputFiles();
+
+    this.renderPendingPreviews();
+  }
+
+  removePendingUpload(event) {
+    event?.preventDefault();
+
+    const index = Number.parseInt(event.currentTarget.dataset.pendingIndex || "", 10);
+    if (!Number.isInteger(index) || index < 0 || index >= this.pendingFiles.length) {
+      return;
+    }
+
+    this.pendingFiles = this.pendingFiles.filter((_, fileIndex) => fileIndex !== index);
+    this.syncInputFiles();
+    this.renderPendingPreviews();
+  }
+
+  removeRetainedUpload(event) {
+    event?.preventDefault();
+
+    const signedId = event.currentTarget.dataset.signedId;
+    if (!signedId) return;
+
+    this.retainedInputTargets
+      .filter((input) => input.value === signedId)
+      .forEach((input) => input.remove());
+
+    this.retainedItemTargets
+      .filter((item) => item.dataset.signedId === signedId)
+      .forEach((item) => item.remove());
 
     this.renderPendingPreviews();
   }
@@ -228,7 +256,7 @@ export default class extends Controller {
 
     this.emptyStateTarget.style.display = "none";
 
-    this.pendingFiles.forEach((file) => {
+    this.pendingFiles.forEach((file, index) => {
       const item = document.createElement("div");
       item.className = "col-sm-6 col-md-4";
 
@@ -249,13 +277,23 @@ export default class extends Controller {
         image.src = URL.createObjectURL(file);
         preview.appendChild(image);
       } else {
-        preview.innerHTML = `<div class="small text-muted" style="padding: 24px 12px; text-align: center;"><strong>${file.name}</strong></div>`;
+        preview.innerHTML = `<div class="small text-muted" style="padding: 24px 12px; text-align: center;"><strong>${this.escapeHtml(file.name)}</strong></div>`;
       }
 
       const body = document.createElement("div");
       body.className = "caption";
       body.innerHTML = `
-        <div style="font-weight: 600; word-break: break-word;">${file.name}</div>
+        <div class="photo-capture-card-heading">
+          <div style="font-weight: 600; word-break: break-word;">${this.escapeHtml(file.name)}</div>
+          <button
+            type="button"
+            class="btn btn-danger btn-xs photo-capture-remove-button"
+            data-action="photo-capture#removePendingUpload"
+            data-pending-index="${index}"
+          >
+            Remove
+          </button>
+        </div>
         <div class="text-muted small">${this.humanSize(file.size)}</div>
       `;
 
@@ -271,5 +309,20 @@ export default class extends Controller {
     const size = bytes / 1024;
     if (size < 1024) return `${Math.round(size)} KB`;
     return `${(size / 1024).toFixed(1)} MB`;
+  }
+
+  syncInputFiles() {
+    const dataTransfer = new DataTransfer();
+    this.pendingFiles.forEach((file) => dataTransfer.items.add(file));
+    this.inputTarget.files = dataTransfer.files;
+  }
+
+  escapeHtml(value) {
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll("\"", "&quot;")
+      .replaceAll("'", "&#39;");
   }
 }

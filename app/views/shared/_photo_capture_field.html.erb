@@ -36,12 +36,25 @@
     <p class="text-navy m-b-xs"><strong>Pending uploads</strong></p>
     <div class="row photo-capture-retained-grid" data-photo-capture-target="retainedGrid">
       <% retained_photo_blobs.each do |blob| %>
-        <%= form.hidden_field :retained_photo_signed_ids, multiple: true, value: blob.signed_id %>
-        <div class="col-sm-6 col-md-4">
+        <%= form.hidden_field :retained_photo_signed_ids,
+          multiple: true,
+          value: blob.signed_id,
+          data: { photo_capture_target: "retainedInput" } %>
+        <div class="col-sm-6 col-md-4" data-photo-capture-target="retainedItem" data-signed-id="<%= blob.signed_id %>">
           <div class="thumbnail photo-capture-retained-card">
             <%= render "shared/photo_lightbox", photo: blob, alt: blob.filename.to_s, image_style: "width: 100%; height: 180px; object-fit: cover;" %>
             <div class="caption">
-              <div style="font-weight: 600; word-break: break-word;"><%= blob.filename %></div>
+              <div class="photo-capture-card-heading">
+                <div style="font-weight: 600; word-break: break-word;"><%= blob.filename %></div>
+                <button
+                  type="button"
+                  class="btn btn-danger btn-xs photo-capture-remove-button"
+                  data-action="photo-capture#removeRetainedUpload"
+                  data-signed-id="<%= blob.signed_id %>"
+                >
+                  Remove
+                </button>
+              </div>
               <div class="text-muted small">Saved after validation error</div>
             </div>
           </div>

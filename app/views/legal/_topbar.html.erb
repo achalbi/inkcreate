@@ -13,13 +13,10 @@
       <%= link_to "Terms of Service", terms_of_service_path, class: ("is-active" if current_page?(terms_of_service_path)) %>
     </nav>
 
-    <div class="nav-actions">
-      <% if user_signed_in? %>
+    <% if user_signed_in? %>
+      <div class="nav-actions">
         <%= link_to "Open workspace", dashboard_path, class: "mini-button mini-button-primary" %>
-      <% else %>
-        <%= link_to "Sign in", browser_sign_in_path, class: "mini-button" %>
-        <%= link_to "Create account", browser_sign_up_path, class: "mini-button mini-button-primary" %>
-      <% end %>
-    </div>
+      </div>
+    <% end %>
   </div>
 </header>

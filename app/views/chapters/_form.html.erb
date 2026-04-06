@@ -28,7 +28,7 @@
         <%= form.text_area :description, rows: 5, class: "form-control", placeholder: "Optional context for what belongs in this chapter." %>
       </div>
 
-      <div class="m-t-md">
+      <div class="m-t-md workspace-form-actions">
         <%= form.submit class: "btn btn-primary btn-sm" %>
         <%= link_to "Cancel", chapter.persisted? ? notebook_chapter_path(notebook, chapter) : notebook_path(notebook), class: "btn btn-white btn-sm" %>
       </div>

@@ -41,7 +41,7 @@
             <%= render "shared/empty_state", title: "No notebooks yet", description: "Create your first notebook to start building chapters and pages." %>
           <% end %>
 
-          <div class="m-t-md">
+          <div class="m-t-md workspace-form-actions">
             <%= link_to "Open notebooks", notebooks_path, class: "btn btn-primary btn-sm" %>
             <%= link_to "Create notebook", new_notebook_path, class: "btn btn-white btn-sm" %>
           </div>
@@ -90,7 +90,7 @@
             <%= render "shared/empty_state", title: "No daily entries yet", description: "Start the notepad flow to capture notes and photos by date." %>
           <% end %>
 
-          <div class="m-t-md">
+          <div class="m-t-md workspace-form-actions">
             <%= link_to "Open notepad", notepad_entries_path, class: "btn btn-primary btn-sm" %>
             <%= link_to "New entry", new_notepad_entry_path, class: "btn btn-white btn-sm" %>
           </div>

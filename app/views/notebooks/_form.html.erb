@@ -39,7 +39,7 @@
         <%= form.text_area :description, rows: 5, class: "form-control", placeholder: "What this notebook is for, who it serves, and what will live inside it." %>
       </div>
 
-      <div class="m-t-md">
+      <div class="m-t-md workspace-form-actions">
         <%= form.submit class: "btn btn-primary btn-sm" %>
         <%= link_to "Cancel", notebook.persisted? ? notebook_path(notebook) : notebooks_path, class: "btn btn-white btn-sm" %>
       </div>
