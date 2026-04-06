@@ -51,4 +51,42 @@ class GoogleDriveFolderCreationTest < ActionDispatch::IntegrationTest
     assert_nil user.google_drive_token_expires_at
     assert_nil user.google_drive_connected_at
   end
+
+  test "create folder shows a friendly message when the google drive api is disabled" do
+    user = build_user(email: "drive-folder-api-disabled@example.com")
+    user.update!(
+      google_drive_access_token: "access-token",
+      google_drive_refresh_token: "refresh-token",
+      google_drive_token_expires_at: 1.hour.from_now,
+      google_drive_connected_at: Time.current
+    )
+
+    api_disabled_error = StandardError.new(
+      "PERMISSION_DENIED: Google Drive API has not been used in project 534102618638 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/drive.googleapis.com/overview?project=534102618638 then retry."
+    )
+    failing_creator = Object.new
+    failing_creator.define_singleton_method(:call) { raise api_disabled_error }
+
+    Drive::OauthClient.stub(:configured?, true) do
+      sign_in_browser_user(user)
+      get settings_backup_path
+
+      Drive::CreateFolder.stub(:new, failing_creator) do
+        post create_folder_settings_drive_connection_path, params: {
+          authenticity_token: authenticity_token_for(create_folder_settings_drive_connection_path)
+        }
+      end
+
+      assert_redirected_to settings_backup_path
+      follow_redirect!
+
+      assert_response :success
+      assert_select ".flash-banner.alert .flash-banner__message", text: /Google Drive API is not enabled for this deployment yet/
+    end
+
+    user.reload
+
+    assert_equal "refresh-token", user.google_drive_refresh_token
+    assert user.google_drive_connected?
+  end
 end

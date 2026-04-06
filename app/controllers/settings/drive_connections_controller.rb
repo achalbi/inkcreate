@@ -44,7 +44,7 @@ module Settings
       disconnect_google_drive_authorization!
       redirect_to settings_return_path, alert: error.message
     rescue StandardError => error
-      redirect_to settings_return_path, alert: error.message
+      redirect_to settings_return_path, alert: Drive::ErrorMessage.for(error)
     end
 
     def destroy

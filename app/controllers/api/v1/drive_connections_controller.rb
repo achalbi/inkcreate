@@ -57,7 +57,7 @@ module Api
         if return_to.present?
           if refresh_token.present?
             if folder_bootstrap_error.present?
-              session[:browser_alert] = "Google Drive connected, but Inkcreate folders could not be created yet. #{folder_bootstrap_error.message}"
+              session[:browser_alert] = "Google Drive connected, but Inkcreate folders could not be created yet. #{Drive::ErrorMessage.for(folder_bootstrap_error)}"
             else
               session[:browser_notice] = "Google Drive connected. Inkcreate folders are ready."
             end
@@ -69,7 +69,7 @@ module Api
           render json: { connected: refresh_token.present? }
         end
       rescue StandardError => error
-        return handle_browser_callback_error(return_to, error.message, popup: popup_flow) if return_to.present?
+        return handle_browser_callback_error(return_to, Drive::ErrorMessage.for(error), popup: popup_flow) if return_to.present?
 
         raise
       end
