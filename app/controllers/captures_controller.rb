@@ -15,6 +15,8 @@ class CapturesController < BrowserController
   end
 
   def extract_text
+    return redirect_to(capture_path(@capture), alert: "OCR is turned off in Privacy settings.") unless current_user.ensure_app_setting!.allow_ocr_processing?
+
     Captures::RequestOcr.new(capture: @capture, request_id: request.request_id).call
     redirect_to capture_path(@capture), notice: "Text extraction started."
   end
@@ -25,6 +27,8 @@ class CapturesController < BrowserController
   end
 
   def backup
+    return redirect_to(capture_path(@capture), alert: "Photo backups are turned off in Privacy settings.") unless current_user.ensure_app_setting!.include_photos_in_backups?
+
     Backups::ScheduleCaptureBackup.new(capture: @capture, user: current_user).call
     redirect_to capture_path(@capture), notice: "Backup scheduled."
   end

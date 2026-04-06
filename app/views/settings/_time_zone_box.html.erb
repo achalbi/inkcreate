@@ -1,0 +1,57 @@
+<section class="ibox h-100">
+  <div class="ibox-title">
+    <h5>Time zone</h5>
+  </div>
+  <div class="ibox-content">
+    <p class="text-secondary mb-4">Choose the time zone used for day-based titles, default dates, and daily grouping across Notebook and Notepad.</p>
+
+    <%
+      time_zone_options =
+        ActiveSupport::TimeZone.all
+          .map { |zone| [zone.tzinfo.name, zone] }
+          .uniq { |(canonical_name, _zone)| canonical_name }
+          .map do |canonical_name, zone|
+            offset_sign = zone.utc_offset.negative? ? "-" : "+"
+            offset_hours = zone.utc_offset.abs / 3600
+            offset_minutes = (zone.utc_offset.abs % 3600) / 60
+            offset_label = format("UTC%s%02d:%02d", offset_sign, offset_hours, offset_minutes)
+
+            ["(#{offset_label}) #{canonical_name}", canonical_name]
+          end
+    %>
+
+    <%= form_with model: @settings_user, url: settings_path, method: :patch do |form| %>
+      <% if @settings_user.errors[:time_zone].any? %>
+        <%= render "shared/inline_alert",
+          type: :danger,
+          title: "Time zone could not be saved",
+          message: @settings_user.errors.full_messages_for(:time_zone).to_sentence %>
+      <% end %>
+
+      <div class="mb-3">
+        <%= form.label :time_zone, "Time zone", class: "form-label" %>
+        <%= form.select :time_zone,
+          options_for_select(time_zone_options, @selected_time_zone),
+          {},
+          class: "form-select",
+          data: { prefer_device_time_zone: true } %>
+      </div>
+
+      <div class="vstack gap-3 mb-4">
+        <div class="border rounded-4 p-3 bg-light-subtle">
+          <div class="text-uppercase text-secondary fw-semibold small mb-1">Detected from this device</div>
+          <div class="fw-semibold"><%= @detected_time_zone_name || "Unavailable" %></div>
+          <div class="text-secondary small">The selector is prefilled from the device/browser time zone until you save a manual choice here.</div>
+        </div>
+
+        <div class="border rounded-4 p-3 bg-light-subtle">
+          <div class="text-uppercase text-secondary fw-semibold small mb-1">Saved time zone</div>
+          <div class="fw-semibold"><%= ActiveSupport::TimeZone[current_user.time_zone]&.tzinfo&.name || current_user.time_zone %></div>
+          <div class="text-secondary small">This setting drives default dates, titles, and date-based grouping after you save.</div>
+        </div>
+      </div>
+
+      <%= form.submit "Save time zone", class: "btn btn-primary" %>
+    <% end %>
+  </div>
+</section>

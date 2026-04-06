@@ -1,0 +1,32 @@
+<%
+  type = local_assigns.fetch(:type, :info).to_s
+  title = local_assigns[:title]
+  message = local_assigns[:message]
+  body_html = local_assigns[:body_html]
+  extra_classes = local_assigns[:extra_classes]
+
+  icon =
+    case type
+    when "success"
+      "✓"
+    when "danger", "warning"
+      "!"
+    else
+      "i"
+    end
+%>
+
+<div class="<%= ["workspace-inline-alert", "workspace-inline-alert--#{type}", extra_classes].compact.join(" ") %>" role="<%= type == "danger" ? "alert" : "status" %>">
+  <div class="workspace-inline-alert__icon" aria-hidden="true"><%= icon %></div>
+  <div class="workspace-inline-alert__body">
+    <% if title.present? %>
+      <div class="workspace-inline-alert__title"><%= title %></div>
+    <% end %>
+
+    <% if body_html.present? %>
+      <div class="workspace-inline-alert__message"><%= body_html %></div>
+    <% elsif message.present? %>
+      <div class="workspace-inline-alert__message"><%= message %></div>
+    <% end %>
+  </div>
+</div>

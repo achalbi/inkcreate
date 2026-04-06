@@ -1,13 +1,13 @@
 <%= form_with model: [notebook, chapter, page] do |form| %>
   <% if page.errors.any? %>
-    <div class="alert alert-danger">
-      <strong>Please fix the following:</strong>
+    <% error_body = capture do %>
       <ul class="m-b-none m-t-sm">
         <% page.errors.full_messages.each do |message| %>
           <li><%= message %></li>
         <% end %>
       </ul>
-    </div>
+    <% end %>
+    <%= render "shared/inline_alert", type: :danger, title: "Please fix the following:", body_html: error_body %>
   <% end %>
 
   <div class="row">

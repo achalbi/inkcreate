@@ -753,15 +753,32 @@
       }
 
       .flash-banner {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: start;
+        gap: 14px;
         padding: 14px 18px;
         border-radius: 18px;
         border: 1px solid rgba(20, 38, 31, 0.08);
         box-shadow: var(--shadow-soft);
+        animation:
+          flashBannerIn 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+          flashBannerOut 0.28s ease 3s forwards;
       }
 
       .flash-stack {
         display: grid;
         gap: 12px;
+      }
+
+      .flash-stack--floating {
+        position: fixed;
+        top: calc(env(safe-area-inset-top, 0px) + 16px);
+        left: 50%;
+        transform: translateX(-50%);
+        width: min(560px, calc(100vw - 24px));
+        z-index: 1085;
+        pointer-events: none;
       }
 
       .flash-banner.notice {
@@ -772,6 +789,70 @@
       .flash-banner.alert {
         background: rgba(181, 74, 24, 0.12);
         color: #6b3110;
+      }
+
+      .flash-stack--floating .flash-banner {
+        pointer-events: auto;
+        backdrop-filter: blur(14px);
+        background-clip: padding-box;
+      }
+
+      .flash-banner__icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.95rem;
+        font-weight: 700;
+        line-height: 1;
+        background: rgba(20, 38, 31, 0.08);
+      }
+
+      .flash-banner__body {
+        min-width: 0;
+      }
+
+      .flash-banner__title {
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        opacity: 0.78;
+      }
+
+      .flash-banner__message {
+        margin-top: 4px;
+        font-size: 0.92rem;
+        font-weight: 600;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+      }
+
+      @keyframes flashBannerIn {
+        from {
+          opacity: 0;
+          transform: translateY(-12px) scale(0.97);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      @keyframes flashBannerOut {
+        from {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+
+        to {
+          opacity: 0;
+          transform: translateY(-10px) scale(0.98);
+          visibility: hidden;
+        }
       }
 
       .auth-shell,
@@ -1833,16 +1914,32 @@
         .nav-actions {
           grid-template-columns: minmax(0, 1fr);
         }
+
+        .flash-stack--floating {
+          top: calc(env(safe-area-inset-top, 0px) + 12px);
+          width: calc(100vw - 16px);
+        }
+
+        .flash-banner {
+          gap: 12px;
+          padding: 13px 15px;
+        }
+
+        .flash-banner__icon {
+          width: 28px;
+          height: 28px;
+          font-size: 0.85rem;
+        }
+
+        .flash-banner__message {
+          font-size: 0.86rem;
+        }
       }
     </style>
   </head>
 
   <body>
-    <% unless workspace_layout_page? %>
-      <div class="page-shell">
-        <%= render "shared/flash_banners" %>
-      </div>
-    <% end %>
+    <%= render "shared/flash_banners" unless workspace_layout_page? %>
 
     <%= yield %>
     <script type="module" src="/scripts/app.js"></script>

@@ -22,6 +22,290 @@ body.workspace-body {
   min-height: 100vh;
 }
 
+.workspace-body .flash-stack--floating {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 0.9rem);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(34rem, calc(100vw - 1.25rem));
+  display: grid;
+  gap: 0.65rem;
+  z-index: 1085;
+  pointer-events: none;
+}
+
+.workspace-body .flash-banner {
+  pointer-events: auto;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 0.8rem;
+  padding: 0.9rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(20, 38, 31, 0.08);
+  box-shadow: 0 16px 38px rgba(15, 23, 42, 0.16);
+  backdrop-filter: blur(14px);
+  line-height: 1.45;
+  animation:
+    flashBannerIn 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    flashBannerOut 0.28s ease 3s forwards;
+}
+
+.workspace-body .flash-banner__icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1;
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.workspace-body .flash-banner__body {
+  min-width: 0;
+}
+
+.workspace-body .flash-banner__title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.86;
+}
+
+.workspace-body .flash-banner__message {
+  margin-top: 0.18rem;
+  font-size: 0.84rem;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.workspace-body .flash-banner.notice {
+  background: rgba(20, 128, 61, 0.92);
+  border-color: rgba(20, 128, 61, 0.18);
+  color: #f3fff7;
+}
+
+.workspace-body .flash-banner.alert {
+  background: rgba(185, 28, 28, 0.92);
+  border-color: rgba(185, 28, 28, 0.18);
+  color: #fff7f7;
+}
+
+.workspace-body .alert {
+  position: relative;
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem 0.9rem 3rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(20, 38, 31, 0.08);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.1);
+  backdrop-filter: blur(10px);
+  line-height: 1.5;
+  animation: flashBannerIn 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.workspace-body .alert::before {
+  position: absolute;
+  top: 0.88rem;
+  left: 0.95rem;
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.workspace-body .alert a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.14em;
+}
+
+.workspace-body .alert p:last-child,
+.workspace-body .alert ul:last-child {
+  margin-bottom: 0;
+}
+
+.workspace-body .alert-success {
+  background: rgba(20, 128, 61, 0.12);
+  border-color: rgba(20, 128, 61, 0.16);
+  color: #14532d;
+}
+
+.workspace-body .alert-success::before {
+  content: "✓";
+  background: rgba(20, 128, 61, 0.16);
+  color: #166534;
+}
+
+.workspace-body .alert-info {
+  background: rgba(8, 126, 160, 0.12);
+  border-color: rgba(8, 126, 160, 0.16);
+  color: #0f4c5c;
+}
+
+.workspace-body .alert-info::before {
+  content: "i";
+  background: rgba(8, 126, 160, 0.16);
+  color: #0b7285;
+}
+
+.workspace-body .alert-warning {
+  background: rgba(240, 177, 0, 0.14);
+  border-color: rgba(217, 119, 6, 0.18);
+  color: #7c4a03;
+}
+
+.workspace-body .alert-warning::before {
+  content: "!";
+  background: rgba(240, 177, 0, 0.2);
+  color: #b45309;
+}
+
+.workspace-body .alert-danger {
+  background: rgba(185, 28, 28, 0.1);
+  border-color: rgba(185, 28, 28, 0.16);
+  color: #7f1d1d;
+}
+
+.workspace-body .alert-danger::before {
+  content: "!";
+  background: rgba(185, 28, 28, 0.16);
+  color: #b91c1c;
+}
+
+.workspace-body .workspace-inline-alert {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(20, 38, 31, 0.08);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.1);
+  line-height: 1.5;
+  animation: flashBannerIn 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.workspace-body .workspace-inline-alert__icon {
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.workspace-body .workspace-inline-alert__body {
+  min-width: 0;
+}
+
+.workspace-body .workspace-inline-alert__title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.workspace-body .workspace-inline-alert__message {
+  margin-top: 0.18rem;
+  font-size: 0.84rem;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.workspace-body .workspace-inline-alert__message p:last-child,
+.workspace-body .workspace-inline-alert__message ul:last-child {
+  margin-bottom: 0;
+}
+
+.workspace-body .workspace-inline-alert__message ul {
+  padding-left: 1.15rem;
+}
+
+.workspace-body .workspace-inline-alert--success {
+  background: rgba(20, 128, 61, 0.12);
+  border-color: rgba(20, 128, 61, 0.16);
+  color: #14532d;
+}
+
+.workspace-body .workspace-inline-alert--success .workspace-inline-alert__icon {
+  background: rgba(20, 128, 61, 0.16);
+  color: #166534;
+}
+
+.workspace-body .workspace-inline-alert--info {
+  background: rgba(8, 126, 160, 0.12);
+  border-color: rgba(8, 126, 160, 0.16);
+  color: #0f4c5c;
+}
+
+.workspace-body .workspace-inline-alert--info .workspace-inline-alert__icon {
+  background: rgba(8, 126, 160, 0.16);
+  color: #0b7285;
+}
+
+.workspace-body .workspace-inline-alert--warning {
+  background: rgba(240, 177, 0, 0.14);
+  border-color: rgba(217, 119, 6, 0.18);
+  color: #7c4a03;
+}
+
+.workspace-body .workspace-inline-alert--warning .workspace-inline-alert__icon {
+  background: rgba(240, 177, 0, 0.2);
+  color: #b45309;
+}
+
+.workspace-body .workspace-inline-alert--danger {
+  background: rgba(185, 28, 28, 0.1);
+  border-color: rgba(185, 28, 28, 0.16);
+  color: #7f1d1d;
+}
+
+.workspace-body .workspace-inline-alert--danger .workspace-inline-alert__icon {
+  background: rgba(185, 28, 28, 0.16);
+  color: #b91c1c;
+}
+
+@keyframes flashBannerIn {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes flashBannerOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+    visibility: hidden;
+  }
+}
+
 .min-w-0 {
   min-width: 0;
 }
@@ -2454,6 +2738,64 @@ body.workspace-body {
 @media (max-width: 992px) {
   .mobile-footer-nav {
     display: flex;
+  }
+
+  .workspace-body .flash-stack--floating {
+    top: calc(env(safe-area-inset-top, 0px) + 0.7rem);
+    width: calc(100vw - 1rem);
+  }
+
+  .workspace-body .flash-banner {
+    padding: 0.8rem 0.9rem;
+    border-radius: 0.9rem;
+    gap: 0.7rem;
+  }
+
+  .workspace-body .flash-banner__icon {
+    width: 1.6rem;
+    height: 1.6rem;
+    font-size: 0.82rem;
+  }
+
+  .workspace-body .flash-banner__title {
+    font-size: 0.68rem;
+  }
+
+  .workspace-body .flash-banner__message {
+    font-size: 0.8rem;
+  }
+
+  .workspace-body .alert {
+    padding: 0.82rem 0.9rem 0.82rem 2.8rem;
+    border-radius: 0.9rem;
+  }
+
+  .workspace-body .alert::before {
+    top: 0.8rem;
+    left: 0.88rem;
+    width: 1.45rem;
+    height: 1.45rem;
+    font-size: 0.76rem;
+  }
+
+  .workspace-body .workspace-inline-alert {
+    gap: 0.72rem;
+    padding: 0.82rem 0.9rem;
+    border-radius: 0.9rem;
+  }
+
+  .workspace-body .workspace-inline-alert__icon {
+    width: 1.45rem;
+    height: 1.45rem;
+    font-size: 0.76rem;
+  }
+
+  .workspace-body .workspace-inline-alert__title {
+    font-size: 0.74rem;
+  }
+
+  .workspace-body .workspace-inline-alert__message {
+    font-size: 0.8rem;
   }
 
   .workspace-body .settings-page {

@@ -30,6 +30,10 @@ module Api
 
       def reprocess
         capture = current_user.captures.find(params[:id])
+        unless current_user.ensure_app_setting!.allow_ocr_processing?
+          return render json: { error: "OCR is turned off in Privacy settings." }, status: :forbidden
+        end
+
         ocr_job = Captures::RequestOcr.new(capture:, request_id: request.request_id).call
 
         render json: { capture_id: capture.id, ocr_job_id: ocr_job.id }, status: :accepted
@@ -37,6 +41,10 @@ module Api
 
       def export_to_drive
         capture = current_user.captures.find(params[:id])
+        unless current_user.ensure_app_setting!.include_photos_in_backups?
+          return render json: { error: "Photo backups are turned off in Privacy settings." }, status: :forbidden
+        end
+
         backup_record = Backups::ScheduleCaptureBackup.new(capture:, user: current_user).call
 
         render json: { backup_record_id: backup_record.id }, status: :accepted

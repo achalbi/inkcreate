@@ -1,0 +1,58 @@
+<%
+  privacy_options = @app_setting.merged_privacy_options
+  boolean_options = [["No", false], ["Yes", true]]
+%>
+
+<section class="ibox h-100">
+  <div class="ibox-title">
+    <h5>Privacy settings</h5>
+    <div class="ibox-tools">
+      <%= render "shared/ibox_toggle_button", target_id: "settings-privacy-content", expanded: false %>
+    </div>
+  </div>
+  <div id="settings-privacy-content" class="ibox-content collapse">
+    <p class="text-secondary mb-4">Keep sensitive flows explicit. These choices control how OCR, Drive exports, recovery, and disconnect cleanup behave from this point forward.</p>
+
+    <%= form_with url: settings_privacy_path, method: :patch, scope: :app_setting do |form| %>
+      <div class="vstack gap-3 mb-4">
+        <section class="border rounded-4 p-3 bg-light-subtle">
+          <div class="fw-semibold mb-1">Allow OCR processing</div>
+          <div class="text-secondary small mb-3">Turn text extraction on or off for captures. When off, manual OCR requests are blocked.</div>
+          <%= form.select :allow_ocr_processing,
+            options_for_select(boolean_options, privacy_options["allow_ocr_processing"]),
+            {},
+            class: "form-select" %>
+        </section>
+
+        <section class="border rounded-4 p-3 bg-light-subtle">
+          <div class="fw-semibold mb-1">Include photos in Drive backups</div>
+          <div class="text-secondary small mb-3">Notebook and Notepad Drive exports can still write notes and metadata while leaving attached photos out.</div>
+          <%= form.select :include_photos_in_backups,
+            options_for_select(boolean_options, privacy_options["include_photos_in_backups"]),
+            {},
+            class: "form-select" %>
+        </section>
+
+        <section class="border rounded-4 p-3 bg-light-subtle">
+          <div class="fw-semibold mb-1">Keep deleted chapters recoverable</div>
+          <div class="text-secondary small mb-3">When enabled, deleting a chapter with pages moves it into deleted chapters instead of permanently removing the content.</div>
+          <%= form.select :keep_deleted_chapters_recoverable,
+            options_for_select(boolean_options, privacy_options["keep_deleted_chapters_recoverable"]),
+            {},
+            class: "form-select" %>
+        </section>
+
+        <section class="border rounded-4 p-3 bg-light-subtle">
+          <div class="fw-semibold mb-1">Clear backup metadata on Drive disconnect</div>
+          <div class="text-secondary small mb-3">When enabled, disconnecting Google Drive also clears local Drive export bookkeeping and backup history tied to that connection.</div>
+          <%= form.select :clear_backup_metadata_on_disconnect,
+            options_for_select(boolean_options, privacy_options["clear_backup_metadata_on_disconnect"]),
+            {},
+            class: "form-select" %>
+        </section>
+      </div>
+
+      <%= form.submit "Save privacy settings", class: "btn btn-primary" %>
+    <% end %>
+  </div>
+</section>

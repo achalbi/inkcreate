@@ -3,22 +3,23 @@ module Settings
     before_action :require_authenticated_user!
 
     def show
-      @app_setting = current_user.ensure_app_setting!
+      redirect_to settings_path
     end
 
     def update
-      current_user.ensure_app_setting!.update!(
-        privacy_options: parsed_json(params.require(:app_setting).fetch(:privacy_options, "{}"))
-      )
-      redirect_to settings_privacy_path, notice: "Privacy settings updated."
+      current_user.ensure_app_setting!.update!(privacy_options: privacy_params.to_h)
+      redirect_to settings_path, notice: "Privacy settings updated."
     end
 
     private
 
-    def parsed_json(value)
-      JSON.parse(value.presence || "{}")
-    rescue JSON::ParserError
-      raise ArgumentError, "Privacy options must be valid JSON"
+    def privacy_params
+      params.require(:app_setting).permit(
+        :allow_ocr_processing,
+        :include_photos_in_backups,
+        :keep_deleted_chapters_recoverable,
+        :clear_backup_metadata_on_disconnect
+      )
     end
   end
 end

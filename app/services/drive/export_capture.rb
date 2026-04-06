@@ -7,6 +7,8 @@ module Drive
     end
 
     def call
+      raise ArgumentError, "Photo backups are turned off in Privacy settings" unless user.ensure_app_setting!.include_photos_in_backups?
+
       drive_sync.update!(status: :running, last_attempted_at: Time.current)
       linked_backup_record&.update!(status: :running, last_attempt_at: Time.current)
 

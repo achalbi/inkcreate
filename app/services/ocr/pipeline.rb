@@ -45,7 +45,10 @@ module Ocr
         payload: { capture_id: capture.id, ocr_job_id: ocr_job.id, provider: ocr_job.provider }
       )
 
-      if capture.drive_sync_mode_automatic? && capture.user.google_drive_connected? && capture.user.google_drive_folder_id.present?
+      if capture.drive_sync_mode_automatic? &&
+         capture.user.google_drive_connected? &&
+         capture.user.google_drive_folder_id.present? &&
+         capture.user.ensure_app_setting!.include_photos_in_backups?
         drive_sync = capture.drive_syncs.create!(
           user: capture.user,
           drive_folder_id: capture.user.google_drive_folder_id,

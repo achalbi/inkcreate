@@ -1,9 +1,23 @@
 <% if notice.present? || alert.present? %>
-  <% if notice.present? %>
-    <div class="alert alert-success"><%= notice %></div>
-  <% end %>
+  <div class="flash-stack flash-stack--floating" aria-live="polite" aria-atomic="true">
+    <% if notice.present? %>
+      <div class="flash-banner notice" role="status">
+        <div class="flash-banner__icon" aria-hidden="true">✓</div>
+        <div class="flash-banner__body">
+          <div class="flash-banner__title">Success</div>
+          <div class="flash-banner__message"><%= notice %></div>
+        </div>
+      </div>
+    <% end %>
 
-  <% if alert.present? %>
-    <div class="alert alert-danger"><%= alert %></div>
-  <% end %>
+    <% if alert.present? %>
+      <div class="flash-banner alert" role="alert">
+        <div class="flash-banner__icon" aria-hidden="true">!</div>
+        <div class="flash-banner__body">
+          <div class="flash-banner__title">Attention</div>
+          <div class="flash-banner__message"><%= alert %></div>
+        </div>
+      </div>
+    <% end %>
+  </div>
 <% end %>

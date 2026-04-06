@@ -99,7 +99,7 @@ module Api
 
       def handle_browser_callback_error(return_to, message, popup: false)
         session[:browser_alert] = message
-        target = return_to.presence || settings_backup_path
+        target = return_to.presence || settings_path
         popup ? render_popup_callback(target) : redirect_to(target)
       end
 

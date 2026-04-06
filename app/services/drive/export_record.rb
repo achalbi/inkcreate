@@ -196,6 +196,8 @@ module Drive
         "title" => record_title,
         "notes" => record.notes.to_s,
         "photo_count" => record.photos.attachments.size,
+        "exported_photo_count" => exported_photo_count,
+        "photos_exported" => photos_allowed_in_backups?,
         "updated_at" => record.updated_at.iso8601
       }
 
@@ -220,6 +222,12 @@ module Drive
     def sync_photos(folder_id)
       current_attachments = record.photos.attachments.index_by { |attachment| attachment.id.to_s }
       stored_mapping = google_drive_export.remote_photo_file_ids.to_h.stringify_keys
+
+      unless photos_allowed_in_backups?
+        stored_mapping.each_value { |file_id| delete_remote_file(file_id) }
+        return {}
+      end
+
       next_mapping = stored_mapping.slice(*current_attachments.keys)
 
       (stored_mapping.keys - current_attachments.keys).each do |removed_attachment_id|
@@ -236,6 +244,14 @@ module Drive
       end
 
       next_mapping
+    end
+
+    def photos_allowed_in_backups?
+      user.ensure_app_setting!.include_photos_in_backups?
+    end
+
+    def exported_photo_count
+      photos_allowed_in_backups? ? record.photos.attachments.size : 0
     end
 
     def upsert_text_file(file_id:, folder_id:, file_name:, content:, content_type:)

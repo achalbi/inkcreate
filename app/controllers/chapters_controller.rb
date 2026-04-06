@@ -32,9 +32,12 @@ class ChaptersController < BrowserController
   end
 
   def destroy
-    if @chapter.pages.exists?
+    if @chapter.pages.exists? && current_user.ensure_app_setting!.keep_deleted_chapters_recoverable?
       @chapter.soft_delete!
       redirect_to notebook_path(@notebook), notice: "Chapter moved to deleted chapters because it still contains pages."
+    elsif @chapter.pages.exists?
+      @chapter.destroy!
+      redirect_to notebook_path(@notebook), notice: "Chapter deleted with its pages."
     else
       @chapter.destroy!
       redirect_to notebook_path(@notebook), notice: "Chapter deleted."

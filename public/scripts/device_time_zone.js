@@ -9,6 +9,15 @@
       const deviceTimeZone = TIME_ZONE_ALIASES[resolvedTimeZone] || resolvedTimeZone;
       if (!deviceTimeZone) return;
 
+      const timeZoneSelect = document.getElementById("user_time_zone");
+      if (
+        timeZoneSelect &&
+        timeZoneSelect.dataset.preferDeviceTimeZone === "true" &&
+        Array.from(timeZoneSelect.options).some((option) => option.value === deviceTimeZone)
+      ) {
+        timeZoneSelect.value = deviceTimeZone;
+      }
+
       const currentTimeZone = document.documentElement.dataset.timeZone || "";
       const cookieMatch = document.cookie.match(/(?:^|; )browser_time_zone=([^;]+)/);
       const cookieTimeZone = cookieMatch ? decodeURIComponent(cookieMatch[1]) : "";

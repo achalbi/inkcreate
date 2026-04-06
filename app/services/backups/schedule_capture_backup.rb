@@ -7,6 +7,7 @@ module Backups
 
     def call
       raise ArgumentError, "Google Drive backup is not configured" unless user.google_drive_connected? && user.google_drive_folder_id.present?
+      raise ArgumentError, "Photo backups are turned off in Privacy settings" unless user.ensure_app_setting!.include_photos_in_backups?
 
       backup_record = capture.backup_records.create!(
         user: user,

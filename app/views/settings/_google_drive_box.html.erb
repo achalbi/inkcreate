@@ -1,6 +1,5 @@
 <%
   detailed = local_assigns.fetch(:detailed, false)
-  show_backup_link = local_assigns.fetch(:show_backup_link, false)
   google_drive_available = Drive::OauthClient.configured?
   connected = current_user.google_drive_connected?
   ready = current_user.google_drive_ready?
@@ -24,6 +23,7 @@
     else
       "text-bg-light"
     end
+  disconnect_modal_id = detailed ? "google-drive-disconnect-modal-detailed" : "google-drive-disconnect-modal"
 %>
 
 <section class="ibox h-100 settings-drive-box">
@@ -38,13 +38,16 @@
     </p>
 
     <% unless google_drive_available %>
-      <div class="alert alert-warning mb-0">
-        Google Drive OAuth is not configured for this deployment yet. Add the Google client ID, secret, and redirect URI to enable it.
-      </div>
+      <%= render "shared/inline_alert",
+        type: :warning,
+        title: "Google Drive is not available yet",
+        message: "Google Drive OAuth is not configured for this deployment yet. Add the Google client ID, secret, and redirect URI to enable it.",
+        extra_classes: "mb-0" %>
     <% else %>
-      <div class="alert alert-info">
-        Each user connects their own Google Drive account. When Drive backup is enabled, Notebook pages and Notepad pages export their notes plus attached photos into that user's selected Drive folder.
-      </div>
+      <%= render "shared/inline_alert",
+        type: :info,
+        title: "Each user connects their own Drive",
+        message: "When Drive backup is enabled, Notebook pages and Notepad pages export their notes plus attached photos into that user's selected Drive folder." %>
 
       <div class="vstack gap-3 mb-4">
         <div class="border rounded-4 p-3 bg-light-subtle">
@@ -62,8 +65,14 @@
         <div class="border rounded-4 p-3 bg-light-subtle">
           <div class="text-uppercase text-secondary fw-semibold small mb-1">Backup folder</div>
           <% if current_user.google_drive_folder_id.present? %>
-            <div class="fw-semibold break-anywhere"><%= current_user.google_drive_folder_id %></div>
-            <div class="text-secondary small">This folder ID is used for Drive backup exports.</div>
+            <div class="fw-semibold">Inkcreate folder selected</div>
+            <div class="text-secondary small break-anywhere"><%= current_user.google_drive_folder_id %></div>
+            <div class="text-secondary small mt-1">This folder is used for Drive backup exports.</div>
+            <% if current_user.google_drive_folder_url.present? %>
+              <div class="mt-2">
+                <%= link_to "Open selected folder in Drive", current_user.google_drive_folder_url, class: "btn btn-outline-secondary btn-sm", target: "_blank", rel: "noreferrer" %>
+              </div>
+            <% end %>
           <% else %>
             <div class="fw-semibold">Not selected yet</div>
             <div class="text-secondary small">Create a dedicated folder automatically or paste a folder link or ID after connecting.</div>
@@ -91,14 +100,10 @@
         <% if connected %>
           <% if detailed %>
             <%= button_to "Create Inkcreate folder", create_folder_settings_drive_connection_path, method: :post, class: "btn btn-outline-primary", form_class: "d-inline-flex" %>
-            <% if current_user.google_drive_folder_url.present? %>
-              <%= link_to "Open Drive folder", current_user.google_drive_folder_url, class: "btn btn-outline-secondary", target: "_blank", rel: "noreferrer" %>
-            <% end %>
           <% end %>
-          <% if show_backup_link %>
-            <%= link_to "Backup settings", settings_backup_path, class: "btn btn-outline-secondary" %>
-          <% end %>
-          <%= button_to "Remove connection from Google Drive", settings_drive_connection_path, method: :delete, class: "btn btn-outline-danger", form_class: "d-inline-flex" %>
+          <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#<%= disconnect_modal_id %>">
+            Remove connection from Google Drive
+          </button>
         <% else %>
           <%= button_to "Connect Google Drive",
             settings_drive_connection_path(popup: true),
@@ -109,14 +114,41 @@
               data: {
                 controller: "drive-oauth",
                 action: "submit->drive-oauth#open",
-                drive_oauth_return_to_value: settings_backup_path
+                drive_oauth_return_to_value: settings_path
               }
             } %>
-          <% if show_backup_link %>
-            <%= link_to "Backup settings", settings_backup_path, class: "btn btn-outline-secondary" %>
-          <% end %>
         <% end %>
       </div>
+
+      <% if connected %>
+        <div class="modal fade" id="<%= disconnect_modal_id %>" tabindex="-1" aria-labelledby="<%= "#{disconnect_modal_id}-label" %>" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="<%= "#{disconnect_modal_id}-label" %>">Remove Google Drive connection?</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <p class="mb-2 text-secondary">Inkcreate will stop exporting backups to Google Drive for this account.</p>
+                <% if current_user.ensure_app_setting!.google_drive_backup? %>
+                  <p class="mb-0 text-secondary">Drive backup is currently enabled, so removing the connection will turn it off too.</p>
+                <% end %>
+                <% if current_user.ensure_app_setting!.clear_backup_metadata_on_disconnect? %>
+                  <p class="mb-0 text-secondary mt-2">Drive export history and backup bookkeeping will also be cleared from Inkcreate.</p>
+                <% end %>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <%= button_to "Remove connection",
+                  settings_drive_connection_path,
+                  method: :delete,
+                  class: "btn btn-danger btn-sm",
+                  form_class: "d-inline-flex" %>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% end %>
     <% end %>
   </div>
 </section>
