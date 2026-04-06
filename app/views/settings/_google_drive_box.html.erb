@@ -26,7 +26,7 @@
     end
 %>
 
-<section class="ibox h-100">
+<section class="ibox h-100 settings-drive-box">
   <div class="ibox-title">
     <h5>Google Drive</h5>
     <span class="badge rounded-pill <%= badge_class %>"><%= badge_label %></span>
@@ -87,7 +87,7 @@
         <% end %>
       <% end %>
 
-      <div class="d-flex flex-wrap gap-2">
+      <div class="settings-drive-actions d-flex flex-wrap gap-2">
         <% if connected %>
           <% if detailed %>
             <%= button_to "Create Inkcreate folder", create_folder_settings_drive_connection_path, method: :post, class: "btn btn-outline-primary", form_class: "d-inline-flex" %>

@@ -1922,6 +1922,32 @@ body.workspace-body {
   padding: 0;
 }
 
+.workspace-body .settings-page .btn {
+  --bs-btn-font-size: 0.82rem;
+}
+
+.workspace-body .settings-page .form-control,
+.workspace-body .settings-page .form-select {
+  font-size: 0.86rem;
+}
+
+.workspace-body .settings-page .small,
+.workspace-body .settings-page .text-secondary.small,
+.workspace-body .settings-page .form-text {
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.workspace-body .settings-page .alert,
+.workspace-body .settings-page .ibox-content > p.text-secondary,
+.workspace-body .settings-page .border .text-secondary {
+  line-height: 1.5;
+}
+
+.workspace-body .settings-drive-actions .button_to {
+  margin: 0;
+}
+
 .workspace-body .animated {
   animation-duration: 0.24s;
 }
@@ -2430,6 +2456,14 @@ body.workspace-body {
     display: flex;
   }
 
+  .workspace-body .settings-page {
+    gap: 0.9rem;
+  }
+
+  .workspace-body .settings-page .row.g-3 {
+    --bs-gutter-y: 0.95rem;
+  }
+
   .workspace-body .workspace-header {
     padding: 0.8rem 0.95rem 0.6rem;
   }
@@ -2451,6 +2485,56 @@ body.workspace-body {
     width: auto;
     justify-content: flex-end;
     flex-wrap: wrap;
+  }
+
+  .workspace-body .settings-page .ibox-title {
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .workspace-body .settings-page .ibox-title h5 {
+    font-size: 1rem;
+    line-height: 1.3;
+  }
+
+  .workspace-body .settings-page .ibox-content {
+    padding: 1rem;
+  }
+
+  .workspace-body .settings-page .ibox-content > p.text-secondary,
+  .workspace-body .settings-page .alert,
+  .workspace-body .settings-page .border .text-secondary,
+  .workspace-body .settings-page .small,
+  .workspace-body .settings-page .text-secondary.small,
+  .workspace-body .settings-page .form-text {
+    font-size: 0.82rem !important;
+    line-height: 1.52;
+  }
+
+  .workspace-body .settings-page .form-control,
+  .workspace-body .settings-page .form-select {
+    font-size: 16px;
+    min-height: 2.75rem;
+  }
+
+  .workspace-body .settings-page .btn {
+    --bs-btn-font-size: 0.84rem;
+  }
+
+  .workspace-body .settings-page .badge {
+    font-size: 0.72rem;
+  }
+
+  .workspace-body .settings-drive-actions {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .workspace-body .settings-drive-actions .btn,
+  .workspace-body .settings-drive-actions .button_to,
+  .workspace-body .settings-drive-actions .button_to .btn {
+    width: 100%;
   }
 
   .content {
