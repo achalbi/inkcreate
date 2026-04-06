@@ -27,9 +27,11 @@ Cloud Build trigger substitutions:
 Behavior in this mode:
 
 - Cloud Tasks callbacks go back to the same public service URL
+- internal task endpoints stay protected by the shared `INTERNAL_TASK_TOKEN`
 - you do **not** need a separate worker Cloud Run service
 - you do **not** need to grant `Cloud Run Invoker` on a separate worker service
 - the runtime service account and Secret Manager setup are still required
+- the deploy pipeline creates the configured Cloud Tasks queues if they do not exist yet
 
 Tradeoff:
 
@@ -45,6 +47,13 @@ Typical substitutions:
 - `_API_SERVICE=inkcreate-api`
 - `_WORKER_SERVICE=inkcreate-worker`
 - `_CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL=inkcreate-tasks-invoker@thoughtbasics.iam.gserviceaccount.com`
+
+Behavior in this mode:
+
+- Cloud Tasks callbacks go to the private worker service URL
+- the worker accepts Cloud Tasks platform-authenticated callbacks
+- the public API service keeps header-based Cloud Tasks auth disabled
+- the deploy pipeline creates the configured queues and can grant the worker invoker binding automatically
 
 ## 1. Enable required APIs
 
@@ -157,6 +166,8 @@ gcloud run services add-iam-policy-binding inkcreate-worker \
 ```
 
 Set `_CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL` in the Cloud Build trigger to this same service account email.
+
+The caller that creates tasks must also have `iam.serviceAccounts.actAs` on that service account. The current pipeline can grant `roles/iam.serviceAccountUser` from `_RUNTIME_SERVICE_ACCOUNT` to `_CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL` during deploy, as long as the Cloud Build service account has permission to update service-account IAM policies.
 
 ## 5. Create Secret Manager secrets
 
@@ -286,6 +297,12 @@ Then choose one of these service layouts:
 - `_API_SERVICE=inkcreate-api`
 - `_WORKER_SERVICE=inkcreate-worker`
 - `_CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL=inkcreate-tasks-invoker@thoughtbasics.iam.gserviceaccount.com`
+
+The deploy pipeline will also:
+
+- create the Cloud Tasks queues named by `_CLOUD_TASKS_OCR_QUEUE` and `_CLOUD_TASKS_DRIVE_QUEUE` if they are missing
+- grant `roles/iam.serviceAccountUser` from `_RUNTIME_SERVICE_ACCOUNT` to `_CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL`
+- grant `roles/run.invoker` on `_WORKER_SERVICE` to `_CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL`
 
 The secret-name substitutions should usually stay at their defaults unless you rename the secrets:
 

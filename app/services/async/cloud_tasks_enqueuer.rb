@@ -1,5 +1,17 @@
 module Async
   class CloudTasksEnqueuer
+    class << self
+      def client_class
+        require "google/cloud/tasks/v2"
+        Google::Cloud::Tasks::V2::CloudTasks::Client
+      end
+
+      def post_http_method
+        require "google/cloud/tasks/v2"
+        Google::Cloud::Tasks::V2::HttpMethod::POST
+      end
+    end
+
     def enqueue(queue:, path:)
       client.create_task(
         parent: queue_path(queue),
@@ -12,7 +24,7 @@ module Async
     private
 
     def client
-      @client ||= Google::Cloud::Tasks::V2::CloudTasks::Client.new
+      @client ||= self.class.client_class.new
     end
 
     def queue_path(queue)
@@ -25,7 +37,7 @@ module Async
 
     def http_request(path)
       request = {
-        http_method: Google::Cloud::Tasks::V2::HttpMethod::POST,
+        http_method: self.class.post_http_method,
         url: "#{ENV.fetch('WORKER_BASE_URL')}#{path}",
         headers: {
           "Content-Type" => "application/json"

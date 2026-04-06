@@ -26,7 +26,20 @@ module Async
 
     def self.dispatch(queue:, path:, job_fallback:)
       if backend == "cloud_tasks"
-        CloudTasksEnqueuer.new.enqueue(queue: queue, path: path)
+        begin
+          CloudTasksEnqueuer.new.enqueue(queue: queue, path: path)
+        rescue StandardError => error
+          Observability::EventLogger.info(
+            event: "async.cloud_tasks_fallback",
+            payload: {
+              queue: queue,
+              path: path,
+              error_class: error.class.name,
+              error_message: error.message
+            }
+          )
+          job_fallback.call
+        end
       else
         job_fallback.call
       end
