@@ -167,7 +167,7 @@ gcloud run services add-iam-policy-binding inkcreate-worker \
 
 Set `_CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL` in the Cloud Build trigger to this same service account email.
 
-The caller that creates tasks must also have `iam.serviceAccounts.actAs` on that service account. The current pipeline can grant `roles/iam.serviceAccountUser` from `_RUNTIME_SERVICE_ACCOUNT` to `_CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL` during deploy, as long as the Cloud Build service account has permission to update service-account IAM policies.
+The caller that creates tasks must also have `iam.serviceAccounts.actAs` on that service account. The current pipeline will try to grant `roles/iam.serviceAccountUser` from `_RUNTIME_SERVICE_ACCOUNT` to `_CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL` during deploy. If the Cloud Build service account does not have permission to update service-account IAM policies, the deploy now logs a warning instead of failing, and you must grant that binding manually.
 
 ## 5. Create Secret Manager secrets
 
@@ -301,8 +301,10 @@ Then choose one of these service layouts:
 The deploy pipeline will also:
 
 - create the Cloud Tasks queues named by `_CLOUD_TASKS_OCR_QUEUE` and `_CLOUD_TASKS_DRIVE_QUEUE` if they are missing
-- grant `roles/iam.serviceAccountUser` from `_RUNTIME_SERVICE_ACCOUNT` to `_CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL`
-- grant `roles/run.invoker` on `_WORKER_SERVICE` to `_CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL`
+- try to grant `roles/iam.serviceAccountUser` from `_RUNTIME_SERVICE_ACCOUNT` to `_CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL`
+- try to grant `roles/run.invoker` on `_WORKER_SERVICE` to `_CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL`
+
+If the Cloud Build service account cannot update IAM policies, those deploy-time grant steps log warnings and continue. In that case, apply the IAM bindings manually before expecting Cloud Tasks OIDC calls to work.
 
 The secret-name substitutions should usually stay at their defaults unless you rename the secrets:
 

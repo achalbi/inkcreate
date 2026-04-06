@@ -159,11 +159,28 @@ steps:
       - |
         set -euo pipefail
 
+        grant_output="$(mktemp)"
+        cleanup() {
+          rm -f "$${grant_output}"
+        }
+        trap cleanup EXIT
+
         if [ -n "${_CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL}" ] && [ -n "${_RUNTIME_SERVICE_ACCOUNT}" ]; then
-          gcloud iam service-accounts add-iam-policy-binding "${_CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL}" \
+          if ! gcloud iam service-accounts add-iam-policy-binding "${_CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL}" \
             --member="serviceAccount:${_RUNTIME_SERVICE_ACCOUNT}" \
             --role="roles/iam.serviceAccountUser" \
-            --quiet
+            --quiet >"$${grant_output}" 2>&1; then
+            cat "$${grant_output}" >&2
+
+            if grep -Eq "PERMISSION_DENIED|IAM_PERMISSION_DENIED" "$${grant_output}"; then
+              echo "WARNING: Skipping automatic roles/iam.serviceAccountUser grant because the Cloud Build caller cannot update service-account IAM policies." >&2
+              echo "WARNING: Grant serviceAccount:${_RUNTIME_SERVICE_ACCOUNT} access to actAs ${_CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL} manually, or rerun with a build service account that has iam.serviceAccounts.setIamPolicy." >&2
+            else
+              exit 1
+            fi
+          else
+            cat "$${grant_output}"
+          fi
         fi
 
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
@@ -227,13 +244,30 @@ steps:
       - |
         set -euo pipefail
 
+        grant_output="$(mktemp)"
+        cleanup() {
+          rm -f "$${grant_output}"
+        }
+        trap cleanup EXIT
+
         if [ -n "${_CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL}" ] && [ "${_WORKER_SERVICE}" != "${_API_SERVICE}" ]; then
-          gcloud run services add-iam-policy-binding "${_WORKER_SERVICE}" \
+          if ! gcloud run services add-iam-policy-binding "${_WORKER_SERVICE}" \
             --project="$PROJECT_ID" \
             --region="${_DEPLOY_REGION}" \
             --member="serviceAccount:${_CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL}" \
             --role="roles/run.invoker" \
-            --quiet
+            --quiet >"$${grant_output}" 2>&1; then
+            cat "$${grant_output}" >&2
+
+            if grep -Eq "PERMISSION_DENIED|IAM_PERMISSION_DENIED" "$${grant_output}"; then
+              echo "WARNING: Skipping automatic roles/run.invoker grant because the Cloud Build caller cannot update Cloud Run IAM policies." >&2
+              echo "WARNING: Grant serviceAccount:${_CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL} roles/run.invoker on ${_WORKER_SERVICE} manually, or rerun with a build service account that can update service IAM." >&2
+            else
+              exit 1
+            fi
+          else
+            cat "$${grant_output}"
+          fi
         fi
 
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
