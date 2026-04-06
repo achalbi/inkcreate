@@ -1,0 +1,179 @@
+<% content_for :page_title, "Privacy Policy | Inkcreate" %>
+<% content_for :page_description, "Inkcreate privacy policy covering account data, notebook content, uploaded photos, OCR processing, and Google Drive exports." %>
+
+<div class="page-shell">
+  <%= render "legal/topbar" %>
+
+  <main class="legal-shell">
+    <aside class="legal-sidebar">
+      <section class="section-card legal-summary">
+        <div class="eyebrow">Legal</div>
+        <h1 class="legal-page-title">Privacy Policy</h1>
+        <p class="legal-lead">
+          This Privacy Policy explains how Inkcreate collects, uses, stores, and shares
+          information when you use the website, workspace, OCR features, and Google Drive integration.
+        </p>
+
+        <dl class="legal-meta">
+          <div>
+            <dt>Effective date</dt>
+            <dd><%= legal_effective_date %></dd>
+          </div>
+          <div>
+            <dt>Applies to</dt>
+            <dd>Web app, mobile browser use, uploads, OCR, and Drive exports</dd>
+          </div>
+          <div>
+            <dt>Key categories</dt>
+            <dd>Account data, notebook content, photos, usage data, and integration settings</dd>
+          </div>
+        </dl>
+      </section>
+
+      <nav class="section-card legal-nav" aria-label="Privacy policy sections">
+        <a href="#scope">Scope</a>
+        <a href="#information-we-collect">Information we collect</a>
+        <a href="#how-we-use-information">How we use information</a>
+        <a href="#ocr-storage-drive">OCR, storage, and Drive</a>
+        <a href="#sharing">Sharing and disclosures</a>
+        <a href="#retention">Retention and deletion</a>
+        <a href="#security">Security</a>
+        <a href="#choices">Your choices</a>
+        <a href="#changes">Changes to this policy</a>
+      </nav>
+    </aside>
+
+    <article class="section-card legal-article">
+      <section class="legal-section" id="scope">
+        <h2>Scope</h2>
+        <p>
+          Inkcreate is a notebook capture and organization product that lets users create notebooks,
+          chapters, pages, and date-based notepad pages, upload photos, store notes, run OCR-related
+          workflows, and optionally connect a personal Google Drive account for exports or backups.
+        </p>
+        <p>
+          This Privacy Policy applies to the public website, the signed-in workspace, the mobile-friendly
+          web experience, and services that support uploads, background jobs, OCR, search, and Drive export.
+          If a company, school, or other organization operates a hosted Inkcreate deployment for you,
+          that operator may provide additional privacy disclosures that apply alongside this policy.
+        </p>
+      </section>
+
+      <section class="legal-section" id="information-we-collect">
+        <h2>Information we collect</h2>
+        <ul class="legal-list">
+          <li>
+            <strong>Account and profile data.</strong> When you create an account, we collect information such as
+            your email address, encrypted password credentials, role, locale, and time zone.
+          </li>
+          <li>
+            <strong>Notebook and page content.</strong> We collect the titles, notes, descriptions, dates,
+            ordering metadata, and other content you create in notebooks, chapters, pages, and notepad pages.
+          </li>
+          <li>
+            <strong>Photos and attachments.</strong> We collect images and files you upload or capture through the app,
+            including notebook page photos and any related metadata needed to store and display them.
+          </li>
+          <li>
+            <strong>Operational and usage data.</strong> We collect request identifiers, timestamps, IP-derived
+            request data, browser and device context, session cookies, and time-zone data needed to keep the app
+            secure, signed in, and correctly localized.
+          </li>
+          <li>
+            <strong>Google Drive connection data.</strong> If you connect Google Drive, we store the connection state,
+            selected folder identifiers, and encrypted OAuth tokens needed to export or sync your content to your Drive account.
+          </li>
+          <li>
+            <strong>Generated and processed data.</strong> We may create OCR results, search indexes, export manifests,
+            and background job records that help us process, search, and deliver your content.
+          </li>
+        </ul>
+      </section>
+
+      <section class="legal-section" id="how-we-use-information">
+        <h2>How we use information</h2>
+        <p>We use the information we collect to operate and improve Inkcreate, including to:</p>
+        <ul class="legal-list">
+          <li>authenticate users, maintain sessions, and secure accounts;</li>
+          <li>store, organize, and display notebooks, pages, notes, and uploaded photos;</li>
+          <li>run OCR, indexing, summaries, exports, and background processing workflows you request;</li>
+          <li>apply your selected time zone, locale, and workspace settings;</li>
+          <li>troubleshoot, monitor reliability, prevent abuse, and investigate security issues; and</li>
+          <li>support backups and exports, including delivery to your connected Google Drive folder when enabled.</li>
+        </ul>
+      </section>
+
+      <section class="legal-section" id="ocr-storage-drive">
+        <h2>OCR, storage, and Google Drive</h2>
+        <p>
+          Inkcreate is designed around image capture and structured storage. Photos and files may be stored in the
+          storage system configured for the deployment, including direct browser uploads to object storage. Notes,
+          notebook structure, metadata, and related records are stored in the application database.
+        </p>
+        <p>
+          When you trigger OCR, reprocessing, or other content workflows, your uploaded content may be processed by
+          background workers and OCR-related services configured for the deployment. When you connect Google Drive,
+          Inkcreate can copy your notes, manifests, and attached images into the Google Drive folder you choose.
+          Content exported to your own Drive account is then also subject to Google’s terms, policies, sharing settings,
+          and retention controls.
+        </p>
+      </section>
+
+      <section class="legal-section" id="sharing">
+        <h2>Sharing and disclosures</h2>
+        <p>We do not sell your notebook content. We may disclose information in these situations:</p>
+        <ul class="legal-list">
+          <li>to service providers that host or process the app, storage, OCR jobs, background work, or email delivery;</li>
+          <li>to Google when you authorize a Google Drive connection and request exports or backups;</li>
+          <li>if required to comply with law, regulation, court order, or valid legal process;</li>
+          <li>to investigate fraud, abuse, security incidents, or violations of our terms; or</li>
+          <li>as part of a business transfer, merger, or asset sale, subject to applicable law.</li>
+        </ul>
+      </section>
+
+      <section class="legal-section" id="retention">
+        <h2>Retention and deletion</h2>
+        <p>
+          We retain account records and workspace content for as long as needed to provide the service, comply with legal
+          obligations, resolve disputes, and protect the service. You can edit or delete content inside the app, and you can
+          disconnect Google Drive at any time from Settings.
+        </p>
+        <p>
+          Exported files that already exist in your Google Drive account are controlled by you and by Google Drive after export.
+          Deleting content inside Inkcreate does not automatically remove copies already exported to your Drive unless the product
+          explicitly says it will do so.
+        </p>
+      </section>
+
+      <section class="legal-section" id="security">
+        <h2>Security</h2>
+        <p>
+          We use administrative, technical, and organizational measures intended to protect your information, including access
+          controls, authenticated sessions, request forgery protection, and encrypted storage for sensitive Google OAuth tokens.
+          No method of transmission or storage is perfectly secure, so we cannot guarantee absolute security.
+        </p>
+      </section>
+
+      <section class="legal-section" id="choices">
+        <h2>Your choices</h2>
+        <ul class="legal-list">
+          <li>update your notebooks, pages, notes, profile, and time-zone settings inside the product;</li>
+          <li>disconnect Google Drive or change the selected export folder in Settings;</li>
+          <li>delete content you no longer want stored in the app; and</li>
+          <li>use the operator contact details published for your Inkcreate deployment if you need help with account or privacy requests.</li>
+        </ul>
+      </section>
+
+      <section class="legal-section" id="changes">
+        <h2>Changes to this policy</h2>
+        <p>
+          We may update this Privacy Policy from time to time to reflect product changes, legal requirements, or operational needs.
+          When we make material changes, we may update the effective date, publish the revised policy here, and provide additional
+          notice where appropriate.
+        </p>
+      </section>
+    </article>
+  </main>
+
+  <%= render "shared/public_footer" %>
+</div>

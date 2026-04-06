@@ -1,0 +1,154 @@
+<% content_for :page_title, "Terms of Service | Inkcreate" %>
+<% content_for :page_description, "Inkcreate terms of service covering accounts, user content, uploads, OCR workflows, and Google Drive exports." %>
+
+<div class="page-shell">
+  <%= render "legal/topbar" %>
+
+  <main class="legal-shell">
+    <aside class="legal-sidebar">
+      <section class="section-card legal-summary">
+        <div class="eyebrow">Legal</div>
+        <h1 class="legal-page-title">Terms of Service</h1>
+        <p class="legal-lead">
+          These Terms govern your use of Inkcreate, including the public site, signed-in workspace,
+          image capture features, OCR workflows, and optional Google Drive connection.
+        </p>
+
+        <dl class="legal-meta">
+          <div>
+            <dt>Effective date</dt>
+            <dd><%= legal_effective_date %></dd>
+          </div>
+          <div>
+            <dt>Applies to</dt>
+            <dd>Accounts, content uploads, OCR flows, exports, and web access</dd>
+          </div>
+          <div>
+            <dt>Important note</dt>
+            <dd>You keep ownership of your content, but you must use the service lawfully and responsibly</dd>
+          </div>
+        </dl>
+      </section>
+
+      <nav class="section-card legal-nav" aria-label="Terms sections">
+        <a href="#acceptance">Acceptance and eligibility</a>
+        <a href="#accounts">Accounts and credentials</a>
+        <a href="#content">Your content and permissions</a>
+        <a href="#acceptable-use">Acceptable use</a>
+        <a href="#third-party-services">Third-party services</a>
+        <a href="#availability">Availability and changes</a>
+        <a href="#ownership">Ownership</a>
+        <a href="#disclaimers">Disclaimers and liability</a>
+        <a href="#termination">Termination</a>
+        <a href="#updates">Updates to these terms</a>
+      </nav>
+    </aside>
+
+    <article class="section-card legal-article">
+      <section class="legal-section" id="acceptance">
+        <h2>Acceptance and eligibility</h2>
+        <p>
+          By accessing or using Inkcreate, you agree to these Terms of Service. If you use Inkcreate on behalf of a company,
+          school, or other organization, you represent that you have authority to bind that organization to these Terms.
+          If you do not agree, do not use the service.
+        </p>
+      </section>
+
+      <section class="legal-section" id="accounts">
+        <h2>Accounts and credentials</h2>
+        <ul class="legal-list">
+          <li>You are responsible for maintaining the confidentiality of your account credentials.</li>
+          <li>You must provide accurate account information and keep your email address and settings reasonably current.</li>
+          <li>You are responsible for activity that occurs under your account unless prohibited by law.</li>
+          <li>You must notify the service operator promptly if you believe your account has been accessed without authorization.</li>
+        </ul>
+      </section>
+
+      <section class="legal-section" id="content">
+        <h2>Your content and permissions</h2>
+        <p>
+          You retain ownership of the notes, images, files, and other content you upload or create in Inkcreate.
+          To operate the service, you grant us a limited license to host, store, reproduce, process, index, transmit,
+          back up, and display your content solely as needed to provide, secure, improve, and support Inkcreate.
+        </p>
+        <p>
+          This includes actions such as generating previews, storing photos, organizing pages, running OCR, creating search
+          indexes, and exporting content to your connected Google Drive account when you request that behavior.
+        </p>
+      </section>
+
+      <section class="legal-section" id="acceptable-use">
+        <h2>Acceptable use</h2>
+        <p>You agree not to misuse Inkcreate. For example, you may not:</p>
+        <ul class="legal-list">
+          <li>upload unlawful, infringing, abusive, or malicious content;</li>
+          <li>attempt to interfere with the service, bypass security, or access accounts or data that are not yours;</li>
+          <li>use the service to distribute malware, spam, or harmful automated traffic;</li>
+          <li>reverse engineer or exploit the service except to the extent allowed by applicable law; or</li>
+          <li>use Inkcreate in a way that violates law, third-party rights, or these Terms.</li>
+        </ul>
+      </section>
+
+      <section class="legal-section" id="third-party-services">
+        <h2>Third-party services</h2>
+        <p>
+          Inkcreate may rely on third-party infrastructure and integrations, including storage providers, OCR services,
+          email services, and Google Drive. Your use of Google Drive through Inkcreate is also subject to Google’s terms
+          and privacy practices. We are not responsible for outages, policy changes, or actions of third-party services
+          outside our reasonable control.
+        </p>
+      </section>
+
+      <section class="legal-section" id="availability">
+        <h2>Availability and changes</h2>
+        <p>
+          We may add, modify, suspend, or remove features from Inkcreate at any time. We try to keep the service available
+          and reliable, but we do not promise uninterrupted access, error-free operation, or permanent availability of every
+          feature, integration, or workflow.
+        </p>
+      </section>
+
+      <section class="legal-section" id="ownership">
+        <h2>Ownership</h2>
+        <p>
+          The service, software, design, branding, and non-user content associated with Inkcreate are owned by us or our licensors
+          and are protected by applicable intellectual property laws. Except for the limited rights expressly granted in these Terms,
+          no rights are transferred to you.
+        </p>
+      </section>
+
+      <section class="legal-section" id="disclaimers">
+        <h2>Disclaimers and limitation of liability</h2>
+        <p>
+          Inkcreate is provided on an “as is” and “as available” basis to the maximum extent permitted by law. OCR output,
+          search results, AI-assisted processing, exports, and sync workflows may be incomplete, delayed, or inaccurate and should
+          be reviewed before you rely on them.
+        </p>
+        <p>
+          To the maximum extent permitted by law, we will not be liable for indirect, incidental, special, consequential, or punitive
+          damages, or for loss of profits, revenue, goodwill, data, or business interruption arising from or related to your use of Inkcreate.
+        </p>
+      </section>
+
+      <section class="legal-section" id="termination">
+        <h2>Termination</h2>
+        <p>
+          We may suspend or terminate access to Inkcreate if we reasonably believe you violated these Terms, created security risk,
+          exposed the service to legal liability, or used the service in a way that could harm users, operators, or infrastructure.
+          You may stop using the service at any time.
+        </p>
+      </section>
+
+      <section class="legal-section" id="updates">
+        <h2>Updates to these terms</h2>
+        <p>
+          We may update these Terms from time to time. If we make material changes, we may update the effective date and provide
+          notice through the website, product, or other reasonable channel. Your continued use of Inkcreate after updated Terms
+          become effective means you accept the revised Terms.
+        </p>
+      </section>
+    </article>
+  </main>
+
+  <%= render "shared/public_footer" %>
+</div>

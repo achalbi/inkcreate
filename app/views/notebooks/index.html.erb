@@ -6,20 +6,22 @@
 <div class="wrapper wrapper-content animated fadeInRight">
   <div class="workspace-index-actions">
     <div class="workspace-index-actions__left">
-      <div class="btn-group workspace-view-toggle" role="group" aria-label="Notebook scope">
-        <%= link_to notebooks_path(scope: "current"),
-          class: ["btn btn-sm workspace-view-toggle__button", ("active" if @notebook_scope == "current")].compact.join(" "),
-          aria: { current: ("page" if @notebook_scope == "current") },
-          title: "Current notebooks" do %>
-          <i class="ti ti-notebook" aria-hidden="true"></i>
-        <% end %>
+      <div class="workspace-index-controls">
+        <div class="btn-group workspace-view-toggle" role="group" aria-label="Notebook scope">
+          <%= link_to notebooks_path(scope: "current"),
+            class: ["btn btn-sm workspace-view-toggle__button", ("active" if @notebook_scope == "current")].compact.join(" "),
+            aria: { current: ("page" if @notebook_scope == "current") },
+            title: "Current notebooks" do %>
+            <i class="ti ti-notebook" aria-hidden="true"></i>
+          <% end %>
 
-        <%= link_to notebooks_path(scope: "archived"),
-          class: ["btn btn-sm workspace-view-toggle__button", ("active" if @notebook_scope == "archived")].compact.join(" "),
-          aria: { current: ("page" if @notebook_scope == "archived") },
-          title: "Archived notebooks" do %>
-          <i class="ti ti-archive" aria-hidden="true"></i>
-        <% end %>
+          <%= link_to notebooks_path(scope: "archived"),
+            class: ["btn btn-sm workspace-view-toggle__button", ("active" if @notebook_scope == "archived")].compact.join(" "),
+            aria: { current: ("page" if @notebook_scope == "archived") },
+            title: "Archived notebooks" do %>
+            <i class="ti ti-archive" aria-hidden="true"></i>
+          <% end %>
+        </div>
       </div>
     </div>
 

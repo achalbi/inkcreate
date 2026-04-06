@@ -1,0 +1,25 @@
+<header class="topbar">
+  <a class="brand" href="<%= root_path %>">
+    <img class="brand-mark" src="/icons/app-icon.svg" alt="Inkcreate icon">
+    <span class="brand-copy">
+      <strong>Inkcreate</strong>
+      <span>Notebook OCR Companion</span>
+    </span>
+  </a>
+
+  <div class="topbar-right">
+    <nav aria-label="Legal pages">
+      <%= link_to "Privacy Policy", privacy_policy_path, class: ("is-active" if current_page?(privacy_policy_path)) %>
+      <%= link_to "Terms of Service", terms_of_service_path, class: ("is-active" if current_page?(terms_of_service_path)) %>
+    </nav>
+
+    <div class="nav-actions">
+      <% if user_signed_in? %>
+        <%= link_to "Open workspace", dashboard_path, class: "mini-button mini-button-primary" %>
+      <% else %>
+        <%= link_to "Sign in", browser_sign_in_path, class: "mini-button" %>
+        <%= link_to "Create account", browser_sign_up_path, class: "mini-button mini-button-primary" %>
+      <% end %>
+    </div>
+  </div>
+</header>

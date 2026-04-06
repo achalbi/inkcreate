@@ -72,7 +72,9 @@ App will be reachable on `http://localhost:8080`.
 
 ## Cloud Run note
 
-For Cloud Run, continue using the single image in [Dockerfile](/Users/achalindiresh/workspace/inkcreate/Dockerfile) and the workflow in [.github/workflows/deploy.yml](/Users/achalindiresh/workspace/inkcreate/.github/workflows/deploy.yml). `docker-compose.yml` is for local/staging or VM-style deployments where you run all services together.
+For Cloud Run, continue using the single image in [Dockerfile](/Users/achalindiresh/workspace/inkcreate/Dockerfile). You can deploy either with the GitHub workflow in [.github/workflows/deploy.yml](/Users/achalindiresh/workspace/inkcreate/.github/workflows/deploy.yml) or with the Cloud Build pipeline in [cloudbuild.yaml](/Users/achalindiresh/workspace/inkcreate/cloudbuild.yaml). `docker-compose.yml` is for local/staging or VM-style deployments where you run all services together.
+
+For the production IAM, Secret Manager, Cloud Tasks, and trigger-substitution setup, see [docs/cloud-run-setup.md](/Users/achalindiresh/workspace/inkcreate/docs/cloud-run-setup.md).
 
 ## Repository shape
 
