@@ -70,7 +70,7 @@ steps:
         fi
 
         gcloud run jobs deploy "${_MIGRATE_JOB}" \
-          --image="${IMAGE_URI}" \
+          --image="$${IMAGE_URI}" \
           --region="${_DEPLOY_REGION}" \
           --command=bundle \
           --args=exec,rails,db:migrate \
@@ -80,7 +80,7 @@ steps:
           --task-timeout=900s \
           --set-env-vars="RAILS_ENV=production,JOB_BACKEND=cloud_tasks,RAILS_LOG_LEVEL=${_RAILS_LOG_LEVEL},FORCE_SSL=${_FORCE_SSL},RAILS_SERVE_STATIC_FILES=${_RAILS_SERVE_STATIC_FILES},ACTIVE_STORAGE_SERVICE=${_ACTIVE_STORAGE_SERVICE},GCP_PROJECT_ID=$PROJECT_ID,GCP_REGION=${_DEPLOY_REGION},GCS_UPLOAD_BUCKET=${_GCS_UPLOAD_BUCKET},OCR_PROVIDER=${_OCR_PROVIDER},OCR_LANGUAGE=${_OCR_LANGUAGE},DEVISE_MAILER_SENDER=${_DEVISE_MAILER_SENDER},GOOGLE_DRIVE_REDIRECT_URI=${_GOOGLE_DRIVE_REDIRECT_URI},RELEASE_SHA=$COMMIT_SHA" \
           --set-secrets="REDIS_URL=${_REDIS_URL_SECRET}:latest,DATABASE_URL=${_DATABASE_URL_SECRET}:latest,SECRET_KEY_BASE=${_SECRET_KEY_BASE_SECRET}:latest,GOOGLE_OAUTH_CLIENT_ID=${_GOOGLE_OAUTH_CLIENT_ID_SECRET}:latest,GOOGLE_OAUTH_CLIENT_SECRET=${_GOOGLE_OAUTH_CLIENT_SECRET_SECRET}:latest" \
-          "${SERVICE_ACCOUNT_ARGS[@]}" \
+          "$${SERVICE_ACCOUNT_ARGS[@]}" \
           --quiet
 
         gcloud run jobs execute "${_MIGRATE_JOB}" \
@@ -109,7 +109,7 @@ steps:
         fi
 
         gcloud run deploy "${_WORKER_SERVICE}" \
-          --image="${IMAGE_URI}" \
+          --image="$${IMAGE_URI}" \
           --region="${_DEPLOY_REGION}" \
           --platform=managed \
           --no-allow-unauthenticated \
@@ -120,9 +120,9 @@ steps:
           --min-instances="${_WORKER_MIN_INSTANCES}" \
           --max-instances="${_WORKER_MAX_INSTANCES}" \
           --set-env-vars="RAILS_ENV=production,JOB_BACKEND=cloud_tasks,RAILS_LOG_LEVEL=${_RAILS_LOG_LEVEL},FORCE_SSL=${_FORCE_SSL},RAILS_SERVE_STATIC_FILES=${_RAILS_SERVE_STATIC_FILES},ACTIVE_STORAGE_SERVICE=${_ACTIVE_STORAGE_SERVICE},GCP_PROJECT_ID=$PROJECT_ID,GCP_REGION=${_DEPLOY_REGION},GCS_UPLOAD_BUCKET=${_GCS_UPLOAD_BUCKET},OCR_PROVIDER=${_OCR_PROVIDER},OCR_LANGUAGE=${_OCR_LANGUAGE},DEVISE_MAILER_SENDER=${_DEVISE_MAILER_SENDER},GOOGLE_DRIVE_REDIRECT_URI=${_GOOGLE_DRIVE_REDIRECT_URI},CLOUD_TASKS_OCR_QUEUE=${_CLOUD_TASKS_OCR_QUEUE},CLOUD_TASKS_DRIVE_QUEUE=${_CLOUD_TASKS_DRIVE_QUEUE},CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL=${_CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL},WORKER_BASE_URL=https://placeholder.invalid,RELEASE_SHA=$COMMIT_SHA" \
-          "${SECRET_ARGS[@]}" \
-          --update-labels="${LABELS}" \
-          "${SERVICE_ACCOUNT_ARGS[@]}" \
+          "$${SECRET_ARGS[@]}" \
+          --update-labels="$${LABELS}" \
+          "$${SERVICE_ACCOUNT_ARGS[@]}" \
           --quiet
 
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
@@ -133,8 +133,8 @@ steps:
       - |
         set -euo pipefail
         WORKER_URL="$(gcloud run services describe "${_WORKER_SERVICE}" --region="${_DEPLOY_REGION}" --format='value(status.url)')"
-        printf '%s' "${WORKER_URL}" > /workspace/worker_url.txt
-        echo "Resolved worker URL: ${WORKER_URL}"
+        printf '%s' "$${WORKER_URL}" > /workspace/worker_url.txt
+        echo "Resolved worker URL: $${WORKER_URL}"
 
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     id: Deploy Worker
@@ -158,7 +158,7 @@ steps:
         fi
 
         gcloud run services update "${_WORKER_SERVICE}" \
-          --image="${IMAGE_URI}" \
+          --image="$${IMAGE_URI}" \
           --region="${_DEPLOY_REGION}" \
           --platform=managed \
           --concurrency="${_WORKER_CONCURRENCY}" \
@@ -167,10 +167,10 @@ steps:
           --timeout="${_WORKER_TIMEOUT}" \
           --min-instances="${_WORKER_MIN_INSTANCES}" \
           --max-instances="${_WORKER_MAX_INSTANCES}" \
-          --set-env-vars="RAILS_ENV=production,JOB_BACKEND=cloud_tasks,RAILS_LOG_LEVEL=${_RAILS_LOG_LEVEL},FORCE_SSL=${_FORCE_SSL},RAILS_SERVE_STATIC_FILES=${_RAILS_SERVE_STATIC_FILES},ACTIVE_STORAGE_SERVICE=${_ACTIVE_STORAGE_SERVICE},GCP_PROJECT_ID=$PROJECT_ID,GCP_REGION=${_DEPLOY_REGION},GCS_UPLOAD_BUCKET=${_GCS_UPLOAD_BUCKET},OCR_PROVIDER=${_OCR_PROVIDER},OCR_LANGUAGE=${_OCR_LANGUAGE},DEVISE_MAILER_SENDER=${_DEVISE_MAILER_SENDER},GOOGLE_DRIVE_REDIRECT_URI=${_GOOGLE_DRIVE_REDIRECT_URI},CLOUD_TASKS_OCR_QUEUE=${_CLOUD_TASKS_OCR_QUEUE},CLOUD_TASKS_DRIVE_QUEUE=${_CLOUD_TASKS_DRIVE_QUEUE},CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL=${_CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL},WORKER_BASE_URL=${WORKER_URL},RELEASE_SHA=$COMMIT_SHA" \
-          "${SECRET_ARGS[@]}" \
-          --update-labels="${LABELS}" \
-          "${SERVICE_ACCOUNT_ARGS[@]}" \
+          --set-env-vars="RAILS_ENV=production,JOB_BACKEND=cloud_tasks,RAILS_LOG_LEVEL=${_RAILS_LOG_LEVEL},FORCE_SSL=${_FORCE_SSL},RAILS_SERVE_STATIC_FILES=${_RAILS_SERVE_STATIC_FILES},ACTIVE_STORAGE_SERVICE=${_ACTIVE_STORAGE_SERVICE},GCP_PROJECT_ID=$PROJECT_ID,GCP_REGION=${_DEPLOY_REGION},GCS_UPLOAD_BUCKET=${_GCS_UPLOAD_BUCKET},OCR_PROVIDER=${_OCR_PROVIDER},OCR_LANGUAGE=${_OCR_LANGUAGE},DEVISE_MAILER_SENDER=${_DEVISE_MAILER_SENDER},GOOGLE_DRIVE_REDIRECT_URI=${_GOOGLE_DRIVE_REDIRECT_URI},CLOUD_TASKS_OCR_QUEUE=${_CLOUD_TASKS_OCR_QUEUE},CLOUD_TASKS_DRIVE_QUEUE=${_CLOUD_TASKS_DRIVE_QUEUE},CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL=${_CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL},WORKER_BASE_URL=$${WORKER_URL},RELEASE_SHA=$COMMIT_SHA" \
+          "$${SECRET_ARGS[@]}" \
+          --update-labels="$${LABELS}" \
+          "$${SERVICE_ACCOUNT_ARGS[@]}" \
           --quiet
 
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
@@ -195,7 +195,7 @@ steps:
         fi
 
         gcloud run deploy "${_API_SERVICE}" \
-          --image="${IMAGE_URI}" \
+          --image="$${IMAGE_URI}" \
           --region="${_DEPLOY_REGION}" \
           --platform=managed \
           --allow-unauthenticated \
@@ -204,10 +204,10 @@ steps:
           --memory="${_API_MEMORY}" \
           --min-instances="${_API_MIN_INSTANCES}" \
           --max-instances="${_API_MAX_INSTANCES}" \
-          --set-env-vars="RAILS_ENV=production,JOB_BACKEND=cloud_tasks,RAILS_LOG_LEVEL=${_RAILS_LOG_LEVEL},FORCE_SSL=${_FORCE_SSL},RAILS_SERVE_STATIC_FILES=${_RAILS_SERVE_STATIC_FILES},ACTIVE_STORAGE_SERVICE=${_ACTIVE_STORAGE_SERVICE},GCP_PROJECT_ID=$PROJECT_ID,GCP_REGION=${_DEPLOY_REGION},GCS_UPLOAD_BUCKET=${_GCS_UPLOAD_BUCKET},OCR_PROVIDER=${_OCR_PROVIDER},OCR_LANGUAGE=${_OCR_LANGUAGE},DEVISE_MAILER_SENDER=${_DEVISE_MAILER_SENDER},GOOGLE_DRIVE_REDIRECT_URI=${_GOOGLE_DRIVE_REDIRECT_URI},CLOUD_TASKS_OCR_QUEUE=${_CLOUD_TASKS_OCR_QUEUE},CLOUD_TASKS_DRIVE_QUEUE=${_CLOUD_TASKS_DRIVE_QUEUE},CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL=${_CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL},WORKER_BASE_URL=${WORKER_URL},RELEASE_SHA=$COMMIT_SHA" \
-          "${SECRET_ARGS[@]}" \
-          --update-labels="${LABELS}" \
-          "${SERVICE_ACCOUNT_ARGS[@]}" \
+          --set-env-vars="RAILS_ENV=production,JOB_BACKEND=cloud_tasks,RAILS_LOG_LEVEL=${_RAILS_LOG_LEVEL},FORCE_SSL=${_FORCE_SSL},RAILS_SERVE_STATIC_FILES=${_RAILS_SERVE_STATIC_FILES},ACTIVE_STORAGE_SERVICE=${_ACTIVE_STORAGE_SERVICE},GCP_PROJECT_ID=$PROJECT_ID,GCP_REGION=${_DEPLOY_REGION},GCS_UPLOAD_BUCKET=${_GCS_UPLOAD_BUCKET},OCR_PROVIDER=${_OCR_PROVIDER},OCR_LANGUAGE=${_OCR_LANGUAGE},DEVISE_MAILER_SENDER=${_DEVISE_MAILER_SENDER},GOOGLE_DRIVE_REDIRECT_URI=${_GOOGLE_DRIVE_REDIRECT_URI},CLOUD_TASKS_OCR_QUEUE=${_CLOUD_TASKS_OCR_QUEUE},CLOUD_TASKS_DRIVE_QUEUE=${_CLOUD_TASKS_DRIVE_QUEUE},CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL=${_CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL},WORKER_BASE_URL=$${WORKER_URL},RELEASE_SHA=$COMMIT_SHA" \
+          "$${SECRET_ARGS[@]}" \
+          --update-labels="$${LABELS}" \
+          "$${SERVICE_ACCOUNT_ARGS[@]}" \
           --quiet
 
 images:
@@ -240,13 +240,12 @@ substitutions:
   _OCR_PROVIDER: tesseract
   _OCR_LANGUAGE: eng
   _GCS_UPLOAD_BUCKET: inkcreate-uploads
-  REPO_NAME: achalbi-inkcreate
   _APP_URL: 'https://inkcreate.thoughtbasics.com'
   _DEVISE_MAILER_SENDER: noreply@inkcreate.thoughtbasics.com
   _GOOGLE_DRIVE_REDIRECT_URI: 'https://www.inkcreate.thoughtbasics.com/api/v1/drive_connection/callback'
   _CLOUD_TASKS_OCR_QUEUE: ocr-jobs
   _CLOUD_TASKS_DRIVE_QUEUE: drive-sync-jobs
-  _CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL: ''#inkcreate-tasks-invoker@thoughtbasics.iam.gserviceaccount.com'
+  _CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL: ''
   _DATABASE_URL_SECRET: inkcreate-database-url
   _SECRET_KEY_BASE_SECRET: inkcreate-secret-key-base
   _GOOGLE_OAUTH_CLIENT_ID_SECRET: inkcreate-google-oauth-client-id
@@ -254,17 +253,17 @@ substitutions:
   _REDIS_URL_SECRET: inkcreate-redis-url
   _INTERNAL_TASK_TOKEN_SECRET: inkcreate-internal-task-token
   _SENTRY_DSN_SECRET: ''
-  # _API_CPU: '1'
-  # _API_MEMORY: 1Gi
-  # _API_CONCURRENCY: '40'
-  # _API_MIN_INSTANCES: '1'
-  # _API_MAX_INSTANCES: '20'
-  # _WORKER_CPU: '2'
-  # _WORKER_MEMORY: 2Gi
-  # _WORKER_TIMEOUT: '900'
-  # _WORKER_CONCURRENCY: '1'
-  # _WORKER_MIN_INSTANCES: '0'
-  # _WORKER_MAX_INSTANCES: '10'
+  _API_CPU: '1'
+  _API_MEMORY: 1Gi
+  _API_CONCURRENCY: '40'
+  _API_MIN_INSTANCES: '1'
+  _API_MAX_INSTANCES: '20'
+  _WORKER_CPU: '2'
+  _WORKER_MEMORY: 2Gi
+  _WORKER_TIMEOUT: '900'
+  _WORKER_CONCURRENCY: '1'
+  _WORKER_MIN_INSTANCES: '0'
+  _WORKER_MAX_INSTANCES: '10'
 
 tags:
   - gcp-cloud-build-deploy-cloud-run
