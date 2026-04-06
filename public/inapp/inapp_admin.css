@@ -18,6 +18,12 @@ body.admin-body {
   min-height: 100vh;
 }
 
+.admin-body h6,
+.admin-body .h6,
+.admin-body .fs-6 {
+  font-size: 0.78rem;
+}
+
 .min-w-0 {
   min-width: 0;
 }

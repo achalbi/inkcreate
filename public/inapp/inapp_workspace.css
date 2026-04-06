@@ -46,9 +46,7 @@ body.workspace-body {
   box-shadow: 0 16px 38px rgba(15, 23, 42, 0.16);
   backdrop-filter: blur(14px);
   line-height: 1.45;
-  animation:
-    flashBannerIn 0.32s cubic-bezier(0.22, 1, 0.36, 1),
-    flashBannerOut 0.28s ease 3s forwards;
+  animation: flashBannerIn 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .workspace-body .flash-banner__icon {
@@ -803,6 +801,12 @@ body.workspace-body {
 .workspace-body h5,
 .workspace-body .h5 {
   font-size: 0.78rem;
+}
+
+.workspace-body h6,
+.workspace-body .h6,
+.workspace-body .fs-6 {
+  font-size: 0.72rem;
 }
 
 .workspace-body .ibox-content h2.no-margins {
@@ -2212,7 +2216,10 @@ body.workspace-body {
 
 .workspace-body .settings-page .form-control,
 .workspace-body .settings-page .form-select {
-  font-size: 0.86rem;
+  font-size: 0.78rem;
+  padding-top: 0.36rem;
+  padding-bottom: 0.36rem;
+  min-height: 2.2rem;
 }
 
 .workspace-body .settings-page .small,
@@ -2856,7 +2863,9 @@ body.workspace-body {
   .workspace-body .settings-page .form-control,
   .workspace-body .settings-page .form-select {
     font-size: 16px;
-    min-height: 2.75rem;
+    padding-top: 0.38rem;
+    padding-bottom: 0.38rem;
+    min-height: 2.3rem;
   }
 
   .workspace-body .settings-page .btn {

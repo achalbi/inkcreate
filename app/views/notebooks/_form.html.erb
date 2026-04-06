@@ -18,23 +18,23 @@
       <%= render "shared/inline_alert", type: :danger, title: "Please fix the following:", body_html: error_body %>
     <% end %>
 
-      <div class="row">
+      <div class="row g-3">
         <div class="col-lg-8">
-          <div class="form-group">
+          <div class="form-group mb-3">
             <%= form.label :title, class: "control-label" %>
             <%= form.text_field :title, class: "form-control", placeholder: "Q2 Product Research" %>
           </div>
         </div>
 
         <div class="col-lg-4">
-          <div class="form-group">
+          <div class="form-group mb-3">
             <%= form.label :status, class: "control-label" %>
             <%= form.select :status, Notebook.statuses.keys.map { |value| [value.humanize, value] }, {}, class: "form-control" %>
           </div>
         </div>
       </div>
 
-      <div class="form-group">
+      <div class="form-group mb-3">
         <%= form.label :description, class: "control-label" %>
         <%= form.text_area :description, rows: 5, class: "form-control", placeholder: "What this notebook is for, who it serves, and what will live inside it." %>
       </div>

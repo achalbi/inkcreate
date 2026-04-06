@@ -1,7 +1,7 @@
 <% if notice.present? || alert.present? %>
   <div class="flash-stack flash-stack--floating" aria-live="polite" aria-atomic="true">
     <% if notice.present? %>
-      <div class="flash-banner notice" role="status">
+      <div class="flash-banner notice" role="status" data-auto-dismiss="5000">
         <div class="flash-banner__icon" aria-hidden="true">✓</div>
         <div class="flash-banner__body">
           <div class="flash-banner__title">Success</div>
@@ -11,7 +11,7 @@
     <% end %>
 
     <% if alert.present? %>
-      <div class="flash-banner alert" role="alert">
+      <div class="flash-banner alert" role="alert" data-auto-dismiss="5000">
         <div class="flash-banner__icon" aria-hidden="true">!</div>
         <div class="flash-banner__body">
           <div class="flash-banner__title">Attention</div>

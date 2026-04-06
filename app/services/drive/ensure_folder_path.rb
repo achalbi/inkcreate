@@ -22,6 +22,8 @@ module Drive
       end
 
       last_folder
+    rescue Google::Apis::AuthorizationError, Google::Auth::AuthorizationError, Signet::AuthorizationError
+      raise Drive::ClientFactory::AuthorizationRequiredError, "Google Drive authorization expired. Reconnect Google Drive and try again."
     end
 
     private

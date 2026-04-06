@@ -1,3 +1,33 @@
+const scheduleTimedMessages = () => {
+  document.querySelectorAll("[data-auto-dismiss]").forEach((element) => {
+    if (element.dataset.autoDismissBound === "true") {
+      return;
+    }
+
+    element.dataset.autoDismissBound = "true";
+
+    const delay = Number.parseInt(element.dataset.autoDismiss || "", 10);
+    const timeout = Number.isFinite(delay) ? delay : 5000;
+
+    window.setTimeout(() => {
+      if (!element.isConnected || element.dataset.autoDismissState === "dismissing") {
+        return;
+      }
+
+      element.dataset.autoDismissState = "dismissing";
+      element.style.transition = "opacity 0.28s ease, transform 0.28s ease";
+      element.style.opacity = "0";
+      element.style.transform = "translateY(-8px) scale(0.98)";
+
+      window.setTimeout(() => {
+        if (element.isConnected) {
+          element.remove();
+        }
+      }, 280);
+    }, timeout);
+  });
+};
+
 document.addEventListener("DOMContentLoaded", () => {
   const sidebar = document.getElementById("sidebar");
   const content = document.getElementById("content");
@@ -27,4 +57,6 @@ document.addEventListener("DOMContentLoaded", () => {
       overlay.classList.remove("show");
     });
   }
+
+  scheduleTimedMessages();
 });

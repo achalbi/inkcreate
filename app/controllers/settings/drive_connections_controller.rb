@@ -7,7 +7,7 @@ module Settings
 
       state = SecureRandom.hex(24)
       session[:drive_oauth_state] = state
-      session[:drive_oauth_return_to] = settings_path
+      session[:drive_oauth_return_to] = settings_return_path
       session[:drive_oauth_popup] = ActiveModel::Type::Boolean.new.cast(params[:popup])
 
       redirect_to Drive::OauthClient.new.authorization_url(state: state), allow_other_host: true
@@ -21,7 +21,7 @@ module Settings
 
       current_user.update!(google_drive_folder_id: folder_id)
       Drive::BackfillRecordExports.new(user: current_user).call
-      redirect_to settings_path, notice: "Google Drive folder updated."
+      redirect_to settings_return_path, notice: "Google Drive folder updated."
     end
 
     def create_folder
@@ -39,9 +39,12 @@ module Settings
           "\"#{folder.name}\" is ready for backups."
         end
 
-      redirect_to settings_path, notice: notice
+      redirect_to settings_return_path, notice: notice
+    rescue Drive::ClientFactory::AuthorizationRequiredError => error
+      disconnect_google_drive_authorization!
+      redirect_to settings_return_path, alert: error.message
     rescue StandardError => error
-      redirect_to settings_path, alert: error.message
+      redirect_to settings_return_path, alert: error.message
     end
 
     def destroy
@@ -92,10 +95,26 @@ module Settings
           "Google Drive disconnected."
         end
 
-      redirect_to settings_path, notice: notice
+      redirect_to settings_return_path, notice: notice
     end
 
     private
+
+    def disconnect_google_drive_authorization!
+      current_user.update!(
+        google_drive_access_token: nil,
+        google_drive_refresh_token: nil,
+        google_drive_token_expires_at: nil,
+        google_drive_connected_at: nil
+      )
+    end
+
+    def settings_return_path
+      referer_path = URI.parse(request.referer.to_s).path if request.referer.present?
+      [settings_path, settings_backup_path, settings_privacy_path].find { |path| path == referer_path } || settings_path
+    rescue URI::InvalidURIError
+      settings_path
+    end
 
     def drive_connection_params
       params.require(:drive_connection).permit(:folder_reference)
