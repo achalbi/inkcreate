@@ -28,9 +28,9 @@
     </div>
     <div id="<%= dom_id(@notepad_entry, :overview_content) %>" class="ibox-content collapse show">
       <div class="row">
-        <div class="col-sm-8">
+        <div class="col-sm-8 detail-overview-stack">
           <h2 class="m-t-none"><%= @notepad_entry.display_title %></h2>
-          <p class="m-b-none">
+          <p class="m-b-none detail-overview-meta">
             <span class="label label-info"><%= @notepad_entry.entry_date.strftime("%b %-d, %Y") %></span>
             <span class="label label-default"><%= pluralize(@notepad_entry.photos.count, "photo") %></span>
           </p>
@@ -50,7 +50,7 @@
         </div>
         <div id="<%= dom_id(@notepad_entry, :notes_content) %>" class="ibox-content collapse show">
           <% if @notepad_entry.notes.present? %>
-            <div><%= simple_format(@notepad_entry.notes) %></div>
+            <div class="detail-notes-copy"><%= simple_format(@notepad_entry.notes) %></div>
           <% else %>
             <p class="text-muted m-b-none">No notes added yet.</p>
           <% end %>
@@ -70,7 +70,7 @@
         <div id="<%= dom_id(@notepad_entry, :gallery_content) %>" class="ibox-content collapse show">
 
           <% if @notepad_entry.photos.attached? %>
-            <div class="row">
+            <div class="row detail-photo-grid">
               <% @notepad_entry.photos.each do |photo| %>
                 <div class="col-sm-6">
                   <div class="thumbnail">

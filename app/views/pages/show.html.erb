@@ -21,9 +21,9 @@
     </div>
     <div id="<%= dom_id(@page, :overview_content) %>" class="ibox-content collapse show">
       <div class="row">
-        <div class="col-sm-12">
+        <div class="col-sm-12 detail-overview-stack">
           <h2 class="m-t-none"><%= @page.display_title %></h2>
-          <p class="m-b-none">
+          <p class="m-b-none detail-overview-meta">
             <span class="label label-default">Order: <%= @page.position %></span>
             <% if @page.captured_on.present? %>
               <span class="label label-info">Captured <%= @page.captured_on.strftime("%b %-d, %Y") %></span>
@@ -48,7 +48,7 @@
         </div>
         <div id="<%= dom_id(@page, :notes_content) %>" class="ibox-content collapse show">
           <% if @page.notes.present? %>
-            <div><%= simple_format(@page.notes) %></div>
+            <div class="detail-notes-copy"><%= simple_format(@page.notes) %></div>
           <% else %>
             <p class="text-muted m-b-none">No notes added yet.</p>
           <% end %>
@@ -68,7 +68,7 @@
         <div id="<%= dom_id(@page, :gallery_content) %>" class="ibox-content collapse show">
 
           <% if @page.photos.attached? %>
-            <div class="row">
+            <div class="row detail-photo-grid">
               <% @page.photos.each do |photo| %>
                 <div class="col-sm-6">
                   <div class="thumbnail">

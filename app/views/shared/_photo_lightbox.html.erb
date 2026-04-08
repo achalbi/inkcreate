@@ -1,13 +1,28 @@
-<% image_class_names = ["img-responsive", local_assigns[:image_class]].compact.join(" ") %>
-<% lightbox_group = local_assigns[:group].presence || "workspace-gallery" %>
+<%
+  image_class_names = ["img-responsive", local_assigns[:image_class]].compact.join(" ")
+  lightbox_group = local_assigns[:group].presence || "workspace-gallery"
+  lightbox_blob = photo.respond_to?(:blob) ? photo.blob : photo
+  lightbox_metadata = lightbox_blob.respond_to?(:metadata) ? lightbox_blob.metadata.to_h : {}
+  lightbox_width = (lightbox_metadata["width"] || lightbox_metadata[:width]).to_i
+  lightbox_height = (lightbox_metadata["height"] || lightbox_metadata[:height]).to_i
+  lightbox_width = 1600 if lightbox_width <= 0
+  lightbox_height = 1200 if lightbox_height <= 0
+  lightbox_src = url_for(photo)
+%>
 
-<button
-  type="button"
+<a
+  href="<%= lightbox_src %>"
   class="<%= ["photo-lightbox-trigger", local_assigns[:button_class]].compact.join(" ") %>"
-  data-photo-lightbox-src="<%= url_for(photo) %>"
+  data-photoswipe-item="true"
   data-photo-lightbox-alt="<%= alt %>"
   data-photo-lightbox-group="<%= lightbox_group %>"
+  data-pswp-src="<%= lightbox_src %>"
+  data-pswp-width="<%= lightbox_width %>"
+  data-pswp-height="<%= lightbox_height %>"
+  data-cropped="true"
+  target="_blank"
+  rel="noreferrer"
   aria-label="Open <%= alt %> in full screen"
 >
   <%= image_tag photo, class: image_class_names, style: local_assigns[:image_style], alt: alt, loading: "lazy" %>
-</button>
+</a>

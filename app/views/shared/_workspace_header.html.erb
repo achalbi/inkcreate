@@ -1,4 +1,9 @@
-<section class="workspace-header mb-4">
+<%
+  header_spacing_class = local_assigns[:spacing_class].presence || "mb-4"
+  header_classes = ["workspace-header", header_spacing_class, local_assigns[:class_name]].compact.join(" ")
+%>
+
+<section class="<%= header_classes %>">
   <div class="d-flex flex-column flex-lg-row align-items-lg-start justify-content-between gap-3">
     <div class="min-w-0">
       <% if eyebrow.present? %>

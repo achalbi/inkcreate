@@ -7,6 +7,9 @@ export default class extends Controller {
     this.stream = null;
     this.video = null;
     this.errorModalInstance = null;
+    this.errorModalElement = this.hasErrorModalTarget ? this.errorModalTarget : null;
+    this.errorTitleElement = this.hasErrorTitleTarget ? this.errorTitleTarget : null;
+    this.errorMessageElement = this.hasErrorMessageTarget ? this.errorMessageTarget : null;
     this.pendingFiles = Array.from(this.inputTarget.files || []);
     this.resetPreviewState();
     this.renderPendingPreviews();
@@ -18,17 +21,17 @@ export default class extends Controller {
   }
 
   showError({ title, message }) {
-    if (this.hasErrorTitleTarget) {
-      this.errorTitleTarget.textContent = title;
+    if (this.errorTitleElement) {
+      this.errorTitleElement.textContent = title;
     }
 
-    if (this.hasErrorMessageTarget) {
-      this.errorMessageTarget.textContent = message;
+    if (this.errorMessageElement) {
+      this.errorMessageElement.textContent = message;
     }
 
     const ModalClass = window.bootstrap?.Modal;
-    if (ModalClass && this.hasErrorModalTarget) {
-      this.errorModalInstance = ModalClass.getOrCreateInstance(this.errorModalTarget);
+    if (ModalClass && this.errorModalElement) {
+      this.errorModalInstance = ModalClass.getOrCreateInstance(this.errorModalElement);
       this.errorModalInstance.show();
       return;
     }

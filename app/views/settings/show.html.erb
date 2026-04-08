@@ -1,9 +1,4 @@
 <div class="workspace-page settings-page settings-page--overview">
-  <%= render "shared/workspace_header",
-    eyebrow: "Settings",
-    title: "Privacy, storage, OCR mode, AI, and backup controls.",
-    description: "The app stays local-first, explicit, and editable by making operational controls visible." %>
-
   <div class="row g-3">
     <div class="col-lg-6">
       <%= render "settings/time_zone_box" %>
@@ -143,4 +138,10 @@
       </section>
     </div>
   </div>
+
+  <%= render "shared/workspace_header",
+    eyebrow: "Settings",
+    title: "Privacy, storage, OCR mode, AI, and backup controls.",
+    description: "The app stays local-first, explicit, and editable by making operational controls visible.",
+    spacing_class: "mb-0" %>
 </div>

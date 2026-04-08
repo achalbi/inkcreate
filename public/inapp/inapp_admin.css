@@ -1,21 +1,68 @@
 :root {
   --inapp-primary: #e66239;
   --inapp-primary-soft: rgba(230, 98, 57, 0.12);
-  --inapp-success-soft: rgba(0, 201, 81, 0.12);
-  --inapp-info-soft: rgba(0, 184, 219, 0.12);
-  --inapp-warning-soft: rgba(240, 177, 0, 0.14);
-  --inapp-danger-soft: rgba(251, 44, 54, 0.12);
-  --inapp-muted: #6c757d;
-  --inapp-border: #e9ecef;
-  --inapp-bg: #f8f9fa;
-  --inapp-card-shadow: 0 18px 48px rgba(15, 23, 42, 0.05);
+  --inapp-success-soft: rgba(92, 138, 78, 0.14);
+  --inapp-info-soft: rgba(77, 120, 139, 0.14);
+  --inapp-warning-soft: rgba(201, 144, 64, 0.16);
+  --inapp-danger-soft: rgba(182, 80, 71, 0.13);
+  --inapp-ink: #241d17;
+  --inapp-ink-soft: #5f5245;
+  --inapp-muted: #7a6d5d;
+  --inapp-border: rgba(80, 62, 45, 0.12);
+  --inapp-bg: #f5eee3;
+  --inapp-paper: #fbf7f0;
+  --inapp-card-shadow: 0 12px 30px rgba(54, 43, 32, 0.06);
+  --inapp-card-shadow-soft: 0 8px 18px rgba(54, 43, 32, 0.05);
+  --inapp-font-body: "Manrope", "Segoe UI", sans-serif;
+  --inapp-font-heading: "Newsreader", Georgia, serif;
+  --inapp-sidebar-width: 272px;
+  --inapp-sidebar-collapsed: 72px;
+  --inapp-topbar-height: 72px;
+  --inapp-radius-xs: 0.5rem;
+  --inapp-radius-sm: 0.72rem;
+  --inapp-radius-md: 0.9rem;
+  --inapp-radius-lg: 1.08rem;
+  --inapp-radius-xl: 1.22rem;
+  --inapp-radius-pill: 999px;
 }
 
 body.admin-body {
-  background: var(--inapp-bg);
-  color: #212529;
-  font-family: "Poppins", sans-serif;
+  background-color: var(--inapp-bg);
+  background-image:
+    radial-gradient(circle at 12% 14%, rgba(230, 98, 57, 0.13), transparent 22%),
+    radial-gradient(circle at 84% 6%, rgba(95, 82, 69, 0.08), transparent 22%),
+    radial-gradient(circle, rgba(95, 82, 69, 0.1) 1px, transparent 1.2px),
+    linear-gradient(180deg, #fbf7ef 0%, #f5eee3 52%, #efe4d4 100%);
+  background-size: auto, auto, 24px 24px, auto;
+  background-attachment: fixed;
+  color: var(--inapp-ink);
+  font-family: var(--inapp-font-body);
   min-height: 100vh;
+}
+
+.admin-body .modal-backdrop {
+  --bs-backdrop-zindex: 2080;
+  z-index: 2080;
+}
+
+.admin-body .modal {
+  --bs-modal-zindex: 2090;
+  z-index: 2090;
+}
+
+.admin-body h1,
+.admin-body .h1,
+.admin-body .fs-1,
+.admin-body .fs-2,
+.admin-body .fs-3,
+.admin-body h2,
+.admin-body .h2,
+.admin-body h3,
+.admin-body .h3 {
+  font-family: var(--inapp-font-heading);
+  color: var(--inapp-ink);
+  font-weight: 500;
+  letter-spacing: -0.04em;
 }
 
 .admin-body h6,
@@ -36,8 +83,8 @@ body.admin-body {
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(1px);
+  background: rgba(36, 29, 23, 0.18);
+  backdrop-filter: blur(2px);
   display: none;
   z-index: 1030;
 }
@@ -47,17 +94,19 @@ body.admin-body {
 }
 
 .sidebar {
-  width: 240px;
+  width: var(--inapp-sidebar-width);
   height: 100vh;
   position: fixed;
   top: 0;
   left: 0;
   z-index: 1030;
-  padding-top: 60px;
+  padding-top: var(--inapp-topbar-height);
   padding-bottom: 112px;
   overflow-y: auto;
-  background: #fff;
+  background: linear-gradient(180deg, rgba(251, 247, 240, 0.92), rgba(246, 239, 230, 0.84));
   border-right: 1px solid var(--inapp-border);
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(18px);
   transition: width 0.3s ease, left 0.3s ease;
 }
 
@@ -66,30 +115,36 @@ body.admin-body {
   top: 0;
   left: 0;
   width: 100%;
-  height: 60px;
+  height: var(--inapp-topbar-height);
   display: flex;
   align-items: center;
-  padding-left: 17px;
+  padding: 0 1.25rem;
   border-bottom: 1px solid var(--inapp-border);
-  background: #fff;
+  background: rgba(248, 242, 233, 0.92);
+  backdrop-filter: blur(18px);
 }
 
 .sidebar .nav-link {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: 1px 12px;
-  padding: 8px 10px;
-  color: #262626;
-  font-size: 14px;
-  border-radius: 8px;
+  margin: 2px 14px;
+  padding: 0.8rem 0.9rem;
+  color: var(--inapp-ink-soft);
+  font-size: 0.92rem;
+  font-weight: 600;
+  border-radius: 1rem;
   white-space: nowrap;
 }
 
 .sidebar .nav-link:hover,
 .sidebar .nav-link.active {
+  color: var(--inapp-ink);
+  background: rgba(230, 98, 57, 0.1);
+}
+
+.sidebar .nav-link i {
   color: var(--inapp-primary);
-  background: var(--inapp-primary-soft);
 }
 
 .sidebar .nav-text {
@@ -97,12 +152,12 @@ body.admin-body {
 }
 
 .sidebar.collapsed {
-  width: 60px;
+  width: var(--inapp-sidebar-collapsed);
 }
 
 .sidebar.collapsed .nav-link {
-  margin: 0;
-  padding: 8px 18px;
+  margin: 2px 0.45rem;
+  padding: 0.8rem 1rem;
   background: transparent;
 }
 
@@ -114,23 +169,41 @@ body.admin-body {
 }
 
 .topbar {
-  height: 60px;
-  margin-left: 240px;
+  height: var(--inapp-topbar-height);
+  margin-left: var(--inapp-sidebar-width);
+  background: rgba(248, 242, 233, 0.88) !important;
+  border-bottom: 1px solid var(--inapp-border) !important;
+  box-shadow: 0 12px 28px rgba(54, 43, 32, 0.05);
+  backdrop-filter: blur(18px);
   transition: margin-left 0.3s ease;
 }
 
 .topbar.full {
-  margin-left: 60px;
+  margin-left: var(--inapp-sidebar-collapsed);
 }
 
 .content {
-  margin-left: 240px;
-  padding-top: 80px;
+  margin-left: var(--inapp-sidebar-width);
+  padding-top: calc(var(--inapp-topbar-height) + 1.2rem);
   transition: margin-left 0.3s ease;
 }
 
 .content.full {
-  margin-left: 60px;
+  margin-left: var(--inapp-sidebar-collapsed);
+}
+
+.topbar .text-uppercase.small {
+  font-size: 0.66rem !important;
+  letter-spacing: 0.16em;
+  color: var(--inapp-muted) !important;
+}
+
+.topbar .fw-semibold.text-truncate {
+  font-family: var(--inapp-font-heading);
+  font-size: 1.55rem;
+  font-weight: 500 !important;
+  letter-spacing: -0.04em;
+  color: var(--inapp-ink);
 }
 
 .sidebar-brand-copy {
@@ -140,8 +213,16 @@ body.admin-body {
   line-height: 1.1;
 }
 
+.sidebar-brand-copy span:first-child {
+  font-family: var(--inapp-font-heading);
+  font-size: 1.4rem;
+  letter-spacing: -0.04em;
+}
+
 .sidebar-brand-copy span:last-child {
-  font-size: 11px;
+  font-size: 0.67rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--inapp-muted);
 }
 
@@ -152,15 +233,17 @@ body.admin-body {
 
 .admin-topbar-status strong {
   display: block;
-  color: #212529;
+  color: var(--inapp-ink);
   font-size: 13px;
   font-weight: 600;
 }
 
 .admin-topbar-actions .btn {
-  --bs-btn-font-size: 0.8125rem;
-  --bs-btn-padding-y: 0.45rem;
-  --bs-btn-padding-x: 0.75rem;
+  --bs-btn-font-size: 0.86rem;
+  --bs-btn-padding-y: 0.55rem;
+  --bs-btn-padding-x: 0.95rem;
+  border-radius: 999px;
+  box-shadow: 0 10px 22px rgba(54, 43, 32, 0.06);
 }
 
 .admin-page-lead {
@@ -169,7 +252,10 @@ body.admin-body {
 
 .surface-card {
   border: 1px solid var(--inapp-border);
+  border-radius: 1.5rem;
+  background: linear-gradient(180deg, rgba(255, 252, 246, 0.92), rgba(250, 245, 237, 0.86));
   box-shadow: var(--inapp-card-shadow);
+  backdrop-filter: blur(14px);
 }
 
 .metric-card {
@@ -295,8 +381,9 @@ body.admin-body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--inapp-primary-soft);
+  background: rgba(230, 98, 57, 0.12);
   color: var(--inapp-primary);
+  border: 1px solid rgba(230, 98, 57, 0.14);
   font-weight: 700;
   flex: 0 0 auto;
 }
@@ -327,8 +414,8 @@ body.admin-body {
 
 .admin-sidebar-metric {
   border: 1px solid var(--inapp-border);
-  border-radius: 0.75rem;
-  background: #fff;
+  border-radius: 1rem;
+  background: rgba(255, 251, 245, 0.84);
 }
 
 .admin-sidebar-metric strong {
@@ -347,8 +434,8 @@ body.admin-body {
   margin: 0 12px 12px;
   padding: 12px;
   border: 1px solid var(--inapp-border);
-  border-radius: 0.75rem;
-  background: #fff7f4;
+  border-radius: 1rem;
+  background: rgba(255, 249, 241, 0.9);
   position: absolute;
   left: 0;
   right: 0;
@@ -380,15 +467,15 @@ body.admin-body {
 }
 
 .admin-soft-panel {
-  background: #fff;
+  background: rgba(255, 251, 245, 0.9);
   border: 1px solid var(--inapp-border);
-  border-radius: 1rem;
+  border-radius: 1.25rem;
 }
 
 .admin-note {
   border: 1px solid var(--inapp-border);
-  border-radius: 0.9rem;
-  background: #fff;
+  border-radius: 1rem;
+  background: rgba(255, 251, 245, 0.88);
   padding: 1rem;
 }
 
@@ -407,9 +494,47 @@ body.admin-body {
   padding: 0;
 }
 
+.admin-body .btn-primary {
+  --bs-btn-color: #fbf7ef;
+  --bs-btn-bg: #1f1a15;
+  --bs-btn-border-color: #1f1a15;
+  --bs-btn-hover-color: #fbf7ef;
+  --bs-btn-hover-bg: #2a231d;
+  --bs-btn-hover-border-color: #2a231d;
+}
+
+.admin-body .btn-outline-secondary,
+.admin-body .btn-light {
+  --bs-btn-color: var(--inapp-ink-soft);
+  --bs-btn-bg: rgba(255, 251, 245, 0.88);
+  --bs-btn-border-color: var(--inapp-border);
+  --bs-btn-hover-color: var(--inapp-ink);
+  --bs-btn-hover-bg: rgba(230, 98, 57, 0.08);
+  --bs-btn-hover-border-color: rgba(230, 98, 57, 0.18);
+}
+
+.admin-body .dropdown-menu {
+  border: 1px solid var(--inapp-border);
+  border-radius: 1rem;
+  background: rgba(251, 247, 240, 0.96);
+  box-shadow: 0 18px 44px rgba(54, 43, 32, 0.12);
+  backdrop-filter: blur(18px);
+}
+
+.admin-body .dropdown-item {
+  color: var(--inapp-ink-soft);
+  border-radius: 0.8rem;
+}
+
+.admin-body .dropdown-item:hover,
+.admin-body .dropdown-item:focus {
+  background: rgba(230, 98, 57, 0.08);
+  color: var(--inapp-ink);
+}
+
 @media (max-width: 992px) {
   .sidebar {
-    left: -240px;
+    left: calc(-1 * var(--inapp-sidebar-width));
   }
 
   .sidebar.mobile-show {
@@ -419,5 +544,148 @@ body.admin-body {
   .topbar,
   .content {
     margin-left: 0 !important;
+  }
+
+  .topbar .fw-semibold.text-truncate {
+    font-size: 1.2rem;
+  }
+}
+
+.admin-body #content {
+  font-size: 0.9rem;
+}
+
+.admin-body #content .btn {
+  --bs-btn-font-size: 0.8rem;
+}
+
+.admin-body #content .form-control,
+.admin-body #content .form-select,
+.admin-body #content .dropdown-menu,
+.admin-body #content .dropdown-item,
+.admin-body #content .table {
+  font-size: 0.84rem;
+}
+
+.admin-body #content small,
+.admin-body #content .small {
+  font-size: 0.72rem;
+}
+
+.admin-body #content h1,
+.admin-body #content .h1,
+.admin-body #content .fs-1,
+.admin-body #content .fs-2,
+.admin-body #content .fs-3 {
+  font-size: clamp(1.9rem, 3.3vw, 2.45rem);
+}
+
+.admin-body #content h1,
+.admin-body #content .h1 {
+  margin-top: 0.35rem;
+}
+
+.admin-body #content h2,
+.admin-body #content .h2 {
+  font-size: clamp(1.16rem, 1.6vw, 1.46rem);
+}
+
+.admin-body #content h3,
+.admin-body #content .h3 {
+  font-size: 1.08rem;
+}
+
+.admin-body #content h5,
+.admin-body #content .h5 {
+  font-size: 1.08rem;
+}
+
+.admin-body #content .status-pill {
+  font-size: 0.66rem;
+}
+
+.admin-body #content .metric-card .metric-trend,
+.admin-body #content .admin-sidebar-metric span,
+.admin-body #content .admin-empty {
+  font-size: 0.76rem;
+}
+
+.sidebar .nav-link {
+  padding: 0.72rem 0.82rem;
+  border-radius: var(--inapp-radius-md);
+}
+
+.topbar {
+  box-shadow: 0 8px 20px rgba(54, 43, 32, 0.05);
+}
+
+.admin-topbar-actions .btn,
+.admin-body .btn-icon,
+.admin-body #content .btn {
+  border-radius: var(--inapp-radius-md);
+  box-shadow: 0 6px 14px rgba(54, 43, 32, 0.05);
+}
+
+.admin-body #content .form-control,
+.admin-body #content .form-select {
+  min-height: 2.68rem;
+  border-radius: var(--inapp-radius-md);
+}
+
+.surface-card {
+  border-radius: var(--inapp-radius-xl);
+  box-shadow: var(--inapp-card-shadow);
+}
+
+.metric-card .card-body {
+  padding: 0.5rem;
+}
+
+.metric-icon {
+  border-radius: var(--inapp-radius-sm);
+}
+
+.admin-sidebar-metric,
+.admin-sidebar-footer,
+.admin-note {
+  border-radius: var(--inapp-radius-md);
+}
+
+.admin-soft-panel {
+  border-radius: var(--inapp-radius-lg);
+}
+
+.admin-note {
+  padding: 0.9rem;
+}
+
+.admin-body .surface-card > .card-body {
+  padding: 0.5rem !important;
+}
+
+.admin-empty {
+  padding: 1.65rem;
+}
+
+.admin-body .dropdown-menu {
+  border-radius: var(--inapp-radius-lg);
+  box-shadow: 0 12px 28px rgba(54, 43, 32, 0.1);
+}
+
+.admin-body .dropdown-item {
+  border-radius: var(--inapp-radius-sm);
+}
+
+@media (max-width: 992px) {
+  .admin-body #content .btn {
+    --bs-btn-font-size: 0.78rem;
+  }
+
+  .admin-body #content h1,
+  .admin-body #content .h1,
+  .admin-body #content .fs-1,
+  .admin-body #content .fs-2,
+  .admin-body #content .fs-3 {
+    font-size: clamp(1.68rem, 6.8vw, 2rem);
   }
 }

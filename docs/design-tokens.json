@@ -1,0 +1,251 @@
+{
+  "meta": {
+    "name": "Inkcreate Design Tokens",
+    "version": "2026-04-09",
+    "format": "custom-json",
+    "sources": [
+      "/Users/achalindiresh/workspace/inkcreate/public/inapp/inapp_workspace.css",
+      "/Users/achalindiresh/workspace/inkcreate/public/inapp/inapp_admin.css"
+    ],
+    "notes": [
+      "This file mirrors the current live CSS theme.",
+      "Workspace and admin share the same core palette and typography, with a few workspace-only surface tokens."
+    ]
+  },
+  "themes": {
+    "workspace": {
+      "cssCustomProperties": {
+        "--inapp-primary": "#e66239",
+        "--inapp-primary-soft": "rgba(230, 98, 57, 0.12)",
+        "--inapp-success-soft": "rgba(92, 138, 78, 0.14)",
+        "--inapp-info-soft": "rgba(77, 120, 139, 0.14)",
+        "--inapp-warning-soft": "rgba(201, 144, 64, 0.16)",
+        "--inapp-danger-soft": "rgba(182, 80, 71, 0.13)",
+        "--inapp-ink": "#241d17",
+        "--inapp-ink-soft": "#5f5245",
+        "--inapp-muted": "#7a6d5d",
+        "--inapp-border": "rgba(80, 62, 45, 0.12)",
+        "--inapp-border-strong": "rgba(80, 62, 45, 0.18)",
+        "--inapp-bg": "#f5eee3",
+        "--inapp-paper": "#fbf7f0",
+        "--inapp-paper-soft": "rgba(251, 247, 240, 0.84)",
+        "--inapp-card-shadow": "0 12px 30px rgba(54, 43, 32, 0.06)",
+        "--inapp-card-shadow-soft": "0 8px 18px rgba(54, 43, 32, 0.05)",
+        "--inapp-font-body": "\"Manrope\", \"Segoe UI\", sans-serif",
+        "--inapp-font-heading": "\"Newsreader\", Georgia, serif",
+        "--inapp-sidebar-width": "272px",
+        "--inapp-sidebar-collapsed": "72px",
+        "--inapp-topbar-height": "72px",
+        "--inapp-radius-xs": "0.5rem",
+        "--inapp-radius-sm": "0.72rem",
+        "--inapp-radius-md": "0.9rem",
+        "--inapp-radius-lg": "1.08rem",
+        "--inapp-radius-xl": "1.22rem",
+        "--inapp-radius-pill": "999px",
+        "--bs-body-font-size": "0.93rem",
+        "--bs-body-line-height": "1.55",
+        "--bs-backdrop-zindex": "2080",
+        "--bs-modal-zindex": "2090"
+      },
+      "semantic": {
+        "color": {
+          "brand": {
+            "primary": "#e66239",
+            "primarySoft": "rgba(230, 98, 57, 0.12)"
+          },
+          "feedback": {
+            "successSurface": "rgba(92, 138, 78, 0.14)",
+            "infoSurface": "rgba(77, 120, 139, 0.14)",
+            "warningSurface": "rgba(201, 144, 64, 0.16)",
+            "dangerSurface": "rgba(182, 80, 71, 0.13)"
+          },
+          "text": {
+            "primary": "#241d17",
+            "secondary": "#5f5245",
+            "muted": "#7a6d5d",
+            "inverse": "#fbf7ef"
+          },
+          "border": {
+            "subtle": "rgba(80, 62, 45, 0.12)",
+            "strong": "rgba(80, 62, 45, 0.18)"
+          },
+          "surface": {
+            "canvas": "#f5eee3",
+            "paper": "#fbf7f0",
+            "paperSoft": "rgba(251, 247, 240, 0.84)"
+          }
+        },
+        "typography": {
+          "fontFamily": {
+            "body": "\"Manrope\", \"Segoe UI\", sans-serif",
+            "heading": "\"Newsreader\", Georgia, serif"
+          },
+          "body": {
+            "fontSize": "0.93rem",
+            "lineHeight": "1.55",
+            "letterSpacing": "-0.01em"
+          }
+        },
+        "layout": {
+          "sidebarWidth": "272px",
+          "sidebarCollapsedWidth": "72px",
+          "topbarHeight": "72px"
+        },
+        "elevation": {
+          "card": "0 12px 30px rgba(54, 43, 32, 0.06)",
+          "cardSoft": "0 8px 18px rgba(54, 43, 32, 0.05)"
+        },
+        "radius": {
+          "xs": "0.5rem",
+          "sm": "0.72rem",
+          "md": "0.9rem",
+          "lg": "1.08rem",
+          "xl": "1.22rem",
+          "pill": "999px"
+        },
+        "background": {
+          "canvasColor": "#f5eee3",
+          "dotMatrixSize": "24px 24px",
+          "layers": [
+            "radial-gradient(circle at 12% 14%, rgba(230, 98, 57, 0.13), transparent 22%)",
+            "radial-gradient(circle at 84% 6%, rgba(95, 82, 69, 0.08), transparent 22%)",
+            "radial-gradient(circle, rgba(95, 82, 69, 0.1) 1px, transparent 1.2px)",
+            "linear-gradient(180deg, #fbf7ef 0%, #f5eee3 52%, #efe4d4 100%)"
+          ]
+        },
+        "button": {
+          "base": {
+            "fontSize": "0.86rem",
+            "fontWeight": 600,
+            "radius": "0.9rem"
+          },
+          "primary": {
+            "text": "#fbf7ef",
+            "background": "#1f1a15",
+            "border": "#1f1a15",
+            "hoverBackground": "#2a231d",
+            "hoverBorder": "#2a231d",
+            "activeBackground": "#17120e",
+            "activeBorder": "#17120e"
+          },
+          "secondary": {
+            "text": "#5f5245",
+            "background": "rgba(255, 251, 245, 0.88)",
+            "border": "rgba(80, 62, 45, 0.12)",
+            "hoverText": "#241d17",
+            "hoverBackground": "rgba(230, 98, 57, 0.08)",
+            "hoverBorder": "rgba(230, 98, 57, 0.18)",
+            "activeBackground": "rgba(230, 98, 57, 0.12)",
+            "activeBorder": "rgba(230, 98, 57, 0.22)"
+          }
+        },
+        "modal": {
+          "backdropZIndex": 2080,
+          "modalZIndex": 2090
+        }
+      }
+    },
+    "admin": {
+      "cssCustomProperties": {
+        "--inapp-primary": "#e66239",
+        "--inapp-primary-soft": "rgba(230, 98, 57, 0.12)",
+        "--inapp-success-soft": "rgba(92, 138, 78, 0.14)",
+        "--inapp-info-soft": "rgba(77, 120, 139, 0.14)",
+        "--inapp-warning-soft": "rgba(201, 144, 64, 0.16)",
+        "--inapp-danger-soft": "rgba(182, 80, 71, 0.13)",
+        "--inapp-ink": "#241d17",
+        "--inapp-ink-soft": "#5f5245",
+        "--inapp-muted": "#7a6d5d",
+        "--inapp-border": "rgba(80, 62, 45, 0.12)",
+        "--inapp-bg": "#f5eee3",
+        "--inapp-paper": "#fbf7f0",
+        "--inapp-card-shadow": "0 12px 30px rgba(54, 43, 32, 0.06)",
+        "--inapp-card-shadow-soft": "0 8px 18px rgba(54, 43, 32, 0.05)",
+        "--inapp-font-body": "\"Manrope\", \"Segoe UI\", sans-serif",
+        "--inapp-font-heading": "\"Newsreader\", Georgia, serif",
+        "--inapp-sidebar-width": "272px",
+        "--inapp-sidebar-collapsed": "72px",
+        "--inapp-topbar-height": "72px",
+        "--inapp-radius-xs": "0.5rem",
+        "--inapp-radius-sm": "0.72rem",
+        "--inapp-radius-md": "0.9rem",
+        "--inapp-radius-lg": "1.08rem",
+        "--inapp-radius-xl": "1.22rem",
+        "--inapp-radius-pill": "999px",
+        "--bs-backdrop-zindex": "2080",
+        "--bs-modal-zindex": "2090"
+      },
+      "semantic": {
+        "color": {
+          "brand": {
+            "primary": "#e66239",
+            "primarySoft": "rgba(230, 98, 57, 0.12)"
+          },
+          "text": {
+            "primary": "#241d17",
+            "secondary": "#5f5245",
+            "muted": "#7a6d5d",
+            "inverse": "#fbf7ef"
+          },
+          "border": {
+            "subtle": "rgba(80, 62, 45, 0.12)"
+          },
+          "surface": {
+            "canvas": "#f5eee3",
+            "paper": "#fbf7f0"
+          }
+        },
+        "typography": {
+          "fontFamily": {
+            "body": "\"Manrope\", \"Segoe UI\", sans-serif",
+            "heading": "\"Newsreader\", Georgia, serif"
+          }
+        },
+        "layout": {
+          "sidebarWidth": "272px",
+          "sidebarCollapsedWidth": "72px",
+          "topbarHeight": "72px"
+        },
+        "elevation": {
+          "card": "0 12px 30px rgba(54, 43, 32, 0.06)",
+          "cardSoft": "0 8px 18px rgba(54, 43, 32, 0.05)"
+        },
+        "radius": {
+          "xs": "0.5rem",
+          "sm": "0.72rem",
+          "md": "0.9rem",
+          "lg": "1.08rem",
+          "xl": "1.22rem",
+          "pill": "999px"
+        },
+        "button": {
+          "topbar": {
+            "fontSize": "0.86rem",
+            "paddingY": "0.55rem",
+            "paddingX": "0.95rem",
+            "radius": "0.9rem"
+          },
+          "primary": {
+            "text": "#fbf7ef",
+            "background": "#1f1a15",
+            "border": "#1f1a15",
+            "hoverBackground": "#2a231d",
+            "hoverBorder": "#2a231d"
+          },
+          "secondary": {
+            "text": "#5f5245",
+            "background": "rgba(255, 251, 245, 0.88)",
+            "border": "rgba(80, 62, 45, 0.12)",
+            "hoverText": "#241d17",
+            "hoverBackground": "rgba(230, 98, 57, 0.08)",
+            "hoverBorder": "rgba(230, 98, 57, 0.18)"
+          }
+        },
+        "modal": {
+          "backdropZIndex": 2080,
+          "modalZIndex": 2090
+        }
+      }
+    }
+  }
+}

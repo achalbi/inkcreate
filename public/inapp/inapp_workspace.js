@@ -1,3 +1,59 @@
+const syncShellOverlay = (overlay) => {
+  if (!(overlay instanceof HTMLElement)) {
+    return;
+  }
+
+  const sidebarActive = overlay.dataset.sidebarActive === "true";
+  const dropdownActive = overlay.dataset.dropdownActive === "true";
+
+  overlay.classList.toggle("show", sidebarActive || dropdownActive);
+};
+
+const setShellOverlayFlag = (overlay, key, active) => {
+  if (!(overlay instanceof HTMLElement)) {
+    return;
+  }
+
+  overlay.dataset[key] = active ? "true" : "false";
+  syncShellOverlay(overlay);
+};
+
+const findBackdropDropdownToggle = (source) => {
+  if (!(source instanceof HTMLElement)) {
+    return null;
+  }
+
+  if (source.matches("[data-shell-dropdown-backdrop]")) {
+    return source;
+  }
+
+  return source.querySelector("[data-shell-dropdown-backdrop]");
+};
+
+const hasBackdropDropdownOpen = () =>
+  document.querySelector("[data-shell-dropdown-backdrop][aria-expanded='true']") instanceof HTMLElement;
+
+const closeBackdropDropdowns = () => {
+  const toggles = new Set();
+
+  document.querySelectorAll(".dropdown-menu.show").forEach((menu) => {
+    const toggle = menu.closest(".dropdown")?.querySelector("[data-shell-dropdown-backdrop]");
+    if (toggle instanceof HTMLElement) {
+      toggles.add(toggle);
+    }
+  });
+
+  document.querySelectorAll("[data-shell-dropdown-backdrop][aria-expanded='true']").forEach((toggle) => {
+    if (toggle instanceof HTMLElement) {
+      toggles.add(toggle);
+    }
+  });
+
+  toggles.forEach((toggle) => {
+    window.bootstrap?.Dropdown.getOrCreateInstance(toggle).hide();
+  });
+};
+
 const bindWorkspaceShell = () => {
   if (document.body.dataset.workspaceShellBound === "true") {
     return;
@@ -10,6 +66,12 @@ const bindWorkspaceShell = () => {
   const mobileBtn = document.getElementById("mobileBtn");
   const overlay = document.getElementById("overlay");
 
+  if (overlay) {
+    overlay.dataset.sidebarActive = overlay.dataset.sidebarActive || "false";
+    overlay.dataset.dropdownActive = overlay.dataset.dropdownActive || "false";
+    syncShellOverlay(overlay);
+  }
+
   if (toggleBtn) {
     toggleBtn.addEventListener("click", () => {
       if (sidebar) sidebar.classList.toggle("collapsed");
@@ -21,14 +83,15 @@ const bindWorkspaceShell = () => {
   if (mobileBtn) {
     mobileBtn.addEventListener("click", () => {
       if (sidebar) sidebar.classList.add("mobile-show");
-      if (overlay) overlay.classList.add("show");
+      setShellOverlayFlag(overlay, "sidebarActive", true);
     });
   }
 
   if (overlay) {
     overlay.addEventListener("click", () => {
       if (sidebar) sidebar.classList.remove("mobile-show");
-      overlay.classList.remove("show");
+      setShellOverlayFlag(overlay, "sidebarActive", false);
+      closeBackdropDropdowns();
     });
   }
 
@@ -71,101 +134,109 @@ const bindCardLinks = () => {
   document.body.dataset.workspaceCardLinksBound = "true";
 };
 
+let workspacePhotoLightboxBound = false;
+let workspacePhotoLightboxPromise = null;
+let workspaceModalPortalsBound = false;
+let workspaceDropdownBackdropsBound = false;
+
 const bindPhotoLightbox = () => {
-  if (document.body.dataset.workspacePhotoLightboxBound === "true") {
+  if (workspacePhotoLightboxBound) {
     return;
   }
-
-  const modalElement = document.getElementById("photoLightboxModal");
-  const modalImage = document.getElementById("photoLightboxImage");
-  const modalCounter = document.getElementById("photoLightboxCounter");
-  const modalCaption = document.getElementById("photoLightboxCaption");
-  const previousButton = document.getElementById("photoLightboxPrev");
-  const nextButton = document.getElementById("photoLightboxNext");
-
-  if (!modalElement || !modalImage || !modalCounter || !modalCaption || !previousButton || !nextButton || typeof bootstrap === "undefined") {
-    return;
-  }
-
-  const lightbox = bootstrap.Modal.getOrCreateInstance(modalElement);
-  let galleryItems = [];
-  let activeIndex = 0;
 
   const collectGalleryItems = (trigger) => {
     const galleryGroup = trigger.dataset.photoLightboxGroup || "workspace-gallery";
+    return Array.from(document.querySelectorAll("[data-photoswipe-item]"))
+      .filter((item) => (item.dataset.photoLightboxGroup || "workspace-gallery") === galleryGroup)
+      .map((item) => {
+        const previewImage = item.querySelector("img");
+        const fallbackWidth = Number.parseInt(item.dataset.pswpWidth || "", 10);
+        const fallbackHeight = Number.parseInt(item.dataset.pswpHeight || "", 10);
+        const width = previewImage?.naturalWidth || previewImage?.width || fallbackWidth || 1600;
+        const height = previewImage?.naturalHeight || previewImage?.height || fallbackHeight || 1200;
 
-    return Array.from(document.querySelectorAll(`[data-photo-lightbox-group="${galleryGroup}"][data-photo-lightbox-src]`));
+        return {
+          src: item.dataset.pswpSrc || item.getAttribute("href") || "",
+          msrc: previewImage?.currentSrc || previewImage?.src || item.dataset.pswpSrc || item.getAttribute("href") || "",
+          alt: item.dataset.photoLightboxAlt || previewImage?.alt || "Photo preview",
+          width,
+          height,
+          thumbEl: previewImage || item,
+          element: item
+        };
+      });
   };
 
-  const renderLightboxImage = (index) => {
-    const currentTrigger = galleryItems[index];
-    if (!currentTrigger) return;
+  const setupPhotoLightbox = async () => {
+    if (workspacePhotoLightboxPromise) {
+      return workspacePhotoLightboxPromise;
+    }
 
-    activeIndex = index;
-    modalImage.src = currentTrigger.dataset.photoLightboxSrc || "";
-    modalImage.alt = currentTrigger.dataset.photoLightboxAlt || "Photo preview";
-    modalCounter.textContent = `${index + 1} / ${galleryItems.length}`;
-    modalCaption.textContent = currentTrigger.dataset.photoLightboxAlt || "Photo preview";
+    workspacePhotoLightboxPromise = import("/vendor/photoswipe/photoswipe-lightbox.esm.js")
+      .then(({ default: PhotoSwipeLightbox }) => {
+        const lightbox = new PhotoSwipeLightbox({
+          bgOpacity: 0.92,
+          pswpModule: () => import("/vendor/photoswipe/photoswipe.esm.js")
+        });
 
-    const singleImage = galleryItems.length <= 1;
-    previousButton.disabled = singleImage;
-    nextButton.disabled = singleImage;
-    previousButton.hidden = singleImage;
-    nextButton.hidden = singleImage;
+        lightbox.addFilter("thumbEl", (thumbEl, data) => data.thumbEl || data.element || thumbEl);
+        lightbox.addFilter("placeholderSrc", (placeholderSrc, slide) => slide.data.msrc || placeholderSrc);
+
+        lightbox.on("uiRegister", () => {
+          lightbox.pswp.ui.registerElement({
+            name: "custom-caption",
+            className: "pswp__custom-caption",
+            appendTo: "root",
+            onInit: (element, pswp) => {
+              const updateCaption = () => {
+                const caption = pswp.currSlide?.data?.alt?.trim() || "";
+                element.textContent = caption;
+                element.hidden = caption.length === 0;
+              };
+
+              pswp.on("change", updateCaption);
+              updateCaption();
+            }
+          });
+        });
+
+        lightbox.init();
+        return lightbox;
+      })
+      .catch((error) => {
+        workspacePhotoLightboxPromise = null;
+        throw error;
+      });
+
+    return workspacePhotoLightboxPromise;
   };
 
-  const moveLightbox = (direction) => {
-    if (galleryItems.length <= 1) return;
-
-    const nextIndex = (activeIndex + direction + galleryItems.length) % galleryItems.length;
-    renderLightboxImage(nextIndex);
-  };
-
-  document.addEventListener("click", (event) => {
-    const trigger = event.target.closest("[data-photo-lightbox-src]");
-    if (!trigger) return;
+  document.addEventListener("click", async (event) => {
+    const trigger = event.target.closest("[data-photoswipe-item]");
+    if (!trigger) {
+      return;
+    }
 
     event.preventDefault();
 
-    galleryItems = collectGalleryItems(trigger);
-    const triggerIndex = galleryItems.indexOf(trigger);
-    renderLightboxImage(triggerIndex >= 0 ? triggerIndex : 0);
-    lightbox.show();
-  });
+    const galleryItems = collectGalleryItems(trigger);
+    const triggerIndex = galleryItems.findIndex((item) => item.element === trigger);
 
-  previousButton.addEventListener("click", () => moveLightbox(-1));
-  nextButton.addEventListener("click", () => moveLightbox(1));
-
-  document.addEventListener("keydown", (event) => {
-    if (!modalElement.classList.contains("show")) return;
-
-    if (event.key === "ArrowLeft") {
-      event.preventDefault();
-      moveLightbox(-1);
+    if (galleryItems.length === 0) {
+      window.open(trigger.getAttribute("href"), "_blank", "noopener,noreferrer");
+      return;
     }
 
-    if (event.key === "ArrowRight") {
-      event.preventDefault();
-      moveLightbox(1);
+    try {
+      const lightbox = await setupPhotoLightbox();
+      lightbox.loadAndOpen(triggerIndex >= 0 ? triggerIndex : 0, galleryItems);
+    } catch (_error) {
+      window.open(trigger.getAttribute("href"), "_blank", "noopener,noreferrer");
     }
   });
 
-  modalElement.addEventListener("shown.bs.modal", () => {
-    const backdrops = document.querySelectorAll(".modal-backdrop");
-    const latestBackdrop = backdrops[backdrops.length - 1];
-    if (latestBackdrop) latestBackdrop.classList.add("photo-lightbox-backdrop");
-  });
-
-  modalElement.addEventListener("hidden.bs.modal", () => {
-    modalImage.removeAttribute("src");
-    modalImage.removeAttribute("alt");
-    modalCounter.textContent = "";
-    modalCaption.textContent = "";
-    galleryItems = [];
-    activeIndex = 0;
-  });
-
-  document.body.dataset.workspacePhotoLightboxBound = "true";
+  workspacePhotoLightboxBound = true;
+  void setupPhotoLightbox().catch(() => {});
 };
 
 const bindDatePickerButtons = () => {
@@ -204,11 +275,65 @@ const bindDatePickerButtons = () => {
   document.body.dataset.workspaceDatePickerBound = "true";
 };
 
+const bindModalPortals = () => {
+  if (workspaceModalPortalsBound) {
+    return;
+  }
+
+  const hoistModal = (modal) => {
+    if (!(modal instanceof HTMLElement)) return;
+    if (modal.parentElement === document.body) return;
+
+    document.body.appendChild(modal);
+  };
+
+  document.addEventListener("show.bs.modal", (event) => {
+    const modal = event.target;
+    if (!(modal instanceof HTMLElement) || !modal.classList.contains("modal")) {
+      return;
+    }
+
+    hoistModal(modal);
+  });
+
+  workspaceModalPortalsBound = true;
+};
+
+const bindDropdownBackdrops = () => {
+  if (workspaceDropdownBackdropsBound) {
+    return;
+  }
+
+  document.addEventListener("shown.bs.dropdown", (event) => {
+    const toggle = findBackdropDropdownToggle(event.relatedTarget) || findBackdropDropdownToggle(event.target);
+    if (!(toggle instanceof HTMLElement)) {
+      return;
+    }
+
+    const overlay = document.getElementById("overlay");
+    setShellOverlayFlag(overlay, "dropdownActive", true);
+  });
+
+  document.addEventListener("hidden.bs.dropdown", (event) => {
+    const toggle = findBackdropDropdownToggle(event.relatedTarget) || findBackdropDropdownToggle(event.target);
+    if (!(toggle instanceof HTMLElement)) {
+      return;
+    }
+
+    const overlay = document.getElementById("overlay");
+    setShellOverlayFlag(overlay, "dropdownActive", hasBackdropDropdownOpen());
+  });
+
+  workspaceDropdownBackdropsBound = true;
+};
+
 const initializeWorkspace = () => {
   bindWorkspaceShell();
   bindCardLinks();
   bindPhotoLightbox();
   bindDatePickerButtons();
+  bindModalPortals();
+  bindDropdownBackdrops();
 };
 
 document.addEventListener("DOMContentLoaded", initializeWorkspace);

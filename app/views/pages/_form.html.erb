@@ -10,7 +10,7 @@
     <%= render "shared/inline_alert", type: :danger, title: "Please fix the following:", body_html: error_body %>
   <% end %>
 
-  <div class="row">
+  <div class="row entry-photos-form-row">
     <div class="col-lg-7">
       <div class="ibox">
         <div class="ibox-title">
@@ -20,8 +20,8 @@
           </div>
         </div>
         <div id="page-form-details-content" class="ibox-content collapse show">
-          <div class="row">
-            <div class="col-lg-8">
+          <div class="row entry-details-fields-row">
+            <div class="col-lg-8 entry-details-title-column">
               <div class="form-group">
                 <%= form.label :title, class: "control-label" %>
                 <%= form.text_field :title, class: "form-control", placeholder: "Interview notes - stakeholder round 1 - Page 1" %>
@@ -79,7 +79,7 @@
             <hr>
             <h5 class="m-t-none m-b-md">Current photos</h5>
             <div>
-              <div class="row">
+              <div class="row detail-photo-grid">
                 <% page.photos.each do |photo| %>
                   <div class="col-sm-6">
                     <div class="thumbnail">
