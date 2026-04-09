@@ -1,28 +1,59 @@
-<article class="notebook-list-card">
-  <%= link_to notepad_entry_path(entry), class: "notebook-list-card__body", aria: { label: "Open #{entry.display_title}" } do %>
+<article
+  class="notebook-list-card notebook-list-card--entry"
+  data-card-link="<%= notepad_entry_path(entry) %>"
+  tabindex="0"
+  role="link"
+  aria-label="Open <%= entry.display_title %>"
+>
+  <div class="notebook-list-card__body">
     <div class="notebook-list-card__content">
+      <div class="notebook-list-card__symbol" aria-hidden="true">
+        <i class="ti ti-calendar-event"></i>
+      </div>
+
       <div class="notebook-list-card__main">
         <div class="notebook-list-card__header">
-          <h6 class="notebook-list-card__title"><%= entry.display_title %></h6>
-
-          <div class="notebook-list-card__header-tools">
-            <span class="label label-info notebook-list-card__status"><%= pluralize(entry.photos.count, "photo") %></span>
+          <div class="notebook-list-card__header-copy">
+            <h6 class="notebook-list-card__title"><%= entry.display_title %></h6>
+            <p class="notebook-list-card__description"><%= entry.plain_notes.truncate(140).presence || "No notes yet." %></p>
           </div>
         </div>
 
-        <p class="notebook-list-card__description"><%= entry.notes.to_s.truncate(140).presence || "No notes yet." %></p>
-
         <div class="notebook-list-card__meta">
-          <span class="notebook-list-card__meta-item">Stored <strong><%= entry.entry_date.strftime("%b %-d, %Y") %></strong></span>
-          <span class="notebook-list-card__meta-item">Updated <%= time_ago_in_words(entry.updated_at) %> ago</span>
+          <span class="notebook-list-card__meta-item">
+            <i class="ti ti-calendar-event" aria-hidden="true"></i>
+            <strong><%= entry.entry_date.strftime("%b %-d, %Y") %></strong>
+          </span>
+          <span class="notebook-list-card__meta-dot" aria-hidden="true">&middot;</span>
+          <span class="notebook-list-card__meta-item">
+            <i class="ti ti-clock-hour-4" aria-hidden="true"></i>
+            Updated <%= time_ago_in_words(entry.updated_at) %> ago
+          </span>
         </div>
       </div>
 
       <% if entry.photos.attached? %>
-        <div class="notebook-list-card__preview">
-          <%= image_tag entry.photos.first, class: "notebook-list-card__preview-image", alt: entry.display_title %>
-        </div>
+        <% lightbox_group = dom_id(entry, :photo_gallery) %>
+        <% entry.photos.each_with_index do |photo, index| %>
+          <% if index.zero? %>
+            <div class="notebook-list-card__preview-shell">
+              <%= render "shared/photo_lightbox",
+                photo:,
+                alt: "#{entry.display_title} photo #{index + 1}",
+                group: lightbox_group,
+                button_class: "notebook-list-card__preview",
+                image_class: "notebook-list-card__preview-image" %>
+              <span class="notebook-list-card__preview-counter" aria-hidden="true"><%= entry.photos.count %></span>
+            </div>
+          <% else %>
+            <%= render "shared/photo_lightbox",
+              photo:,
+              alt: "#{entry.display_title} photo #{index + 1}",
+              group: lightbox_group,
+              button_class: "d-none" %>
+          <% end %>
+        <% end %>
       <% end %>
     </div>
-  <% end %>
+  </div>
 </article>

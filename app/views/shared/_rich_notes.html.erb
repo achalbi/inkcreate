@@ -1,0 +1,10 @@
+<% notes_html = notes.to_s %>
+<% if notes_html.match?(%r{</?[a-z][^>]*>}i) %>
+  <%= sanitize(
+    notes_html,
+    tags: %w[a blockquote br del div em h1 li ol p pre strong ul],
+    attributes: %w[href rel target]
+  ) %>
+<% else %>
+  <%= simple_format(h(notes_html), {}, sanitize: false) %>
+<% end %>

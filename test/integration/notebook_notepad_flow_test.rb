@@ -16,7 +16,7 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
 
     get new_notebook_path
     post notebooks_path, params: {
-      authenticity_token: authenticity_token_for(new_notebook_path),
+      authenticity_token: authenticity_token_for(notebooks_path),
       notebook: {
         title: "Research notebook",
         description: "User interview synthesis",
@@ -29,7 +29,7 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
 
     get new_notebook_chapter_path(notebook)
     post notebook_chapters_path(notebook), params: {
-      authenticity_token: authenticity_token_for(new_notebook_chapter_path(notebook)),
+      authenticity_token: authenticity_token_for(notebook_chapters_path(notebook)),
       chapter: {
         title: "Insights",
         description: "Top findings"
@@ -41,7 +41,7 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
 
     get new_notebook_chapter_page_path(notebook, chapter)
     post notebook_chapter_pages_path(notebook, chapter), params: {
-      authenticity_token: authenticity_token_for(new_notebook_chapter_page_path(notebook, chapter)),
+      authenticity_token: authenticity_token_for(notebook_chapter_pages_path(notebook, chapter)),
       page: {
         title: "Interview batch 1",
         notes: "Patterns across first six calls.",
@@ -49,12 +49,12 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
       }
     }
 
-    page = chapter.pages.find_by!(title: "Interview batch 1")
+    page = chapter.pages.find_by!(title: "Interview batch 1 - Page 1")
     assert_redirected_to notebook_chapter_page_path(notebook, chapter, page)
 
     get new_notepad_entry_path
     post notepad_entries_path, params: {
-      authenticity_token: authenticity_token_for(new_notepad_entry_path),
+      authenticity_token: authenticity_token_for(notepad_entries_path),
       notepad_entry: {
         title: "Daily wrap-up",
         notes: "Three follow-ups for tomorrow.",

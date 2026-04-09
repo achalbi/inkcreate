@@ -7,6 +7,8 @@ import QueueController from "/scripts/controllers/queue_controller.js";
 import SearchFiltersController from "/scripts/controllers/search_filters_controller.js";
 import ListModalController from "/scripts/controllers/list_modal_controller.js";
 import DriveOauthController from "/scripts/controllers/drive_oauth_controller.js";
+import RichTextController from "/scripts/controllers/rich_text_controller.js";
+import QuickCaptureController from "/scripts/controllers/quick_capture_controller.js";
 
 const AUTO_DISMISS_DELAY_MS = 5000;
 const AUTO_DISMISS_EXIT_MS = 280;
@@ -58,6 +60,8 @@ application.register("queue", QueueController);
 application.register("search-filters", SearchFiltersController);
 application.register("list-modal", ListModalController);
 application.register("drive-oauth", DriveOauthController);
+application.register("rich-text", RichTextController);
+application.register("quick-capture", QuickCaptureController);
 
 document.addEventListener("DOMContentLoaded", () => scheduleTimedMessages());
 document.addEventListener("turbo:load", () => scheduleTimedMessages());

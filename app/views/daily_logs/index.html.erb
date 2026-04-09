@@ -1,5 +1,6 @@
 <div class="workspace-page">
     <%= render "shared/workspace_header",
+      breadcrumbs: [["Home", dashboard_path], "Daily timeline"],
       eyebrow: "Daily timeline",
       title: "Each day gets its own recall bucket.",
       description: "Daily logs keep time-based retrieval simple even when the physical notebook page has already been wiped and reused." %>

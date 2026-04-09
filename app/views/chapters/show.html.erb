@@ -1,12 +1,6 @@
 <div class="wrapper wrapper-content animated fadeInRight">
-  <nav aria-label="breadcrumb" class="m-b-md">
-    <ol class="breadcrumb">
-      <li><%= link_to "Home", dashboard_path %></li>
-      <li><%= link_to "Notebook", notebooks_path %></li>
-      <li><%= link_to @notebook.title, notebook_path(@notebook) %></li>
-      <li class="active"><%= @chapter.title %></li>
-    </ol>
-  </nav>
+  <%= render "shared/workspace_breadcrumbs",
+    items: [["Home", dashboard_path], ["Notebook", notebooks_path], [@notebook.title, notebook_path(@notebook)], @chapter.title] %>
 
   <section class="ibox float-e-margins">
     <div class="ibox-title">
@@ -36,14 +30,18 @@
     <div class="ibox-title">
       <h5>Pages</h5>
       <div class="ibox-tools">
-        <%= link_to "Add page", new_notebook_chapter_page_path(@notebook, @chapter), class: "btn btn-primary btn-sm" %>
+        <%= link_to new_notebook_chapter_page_path(@notebook, @chapter),
+          class: "ibox-toggle-button notebook-detail-section__add",
+          title: "Add page",
+          aria: { label: "Add page" } do %>
+          <i class="ti ti-plus" aria-hidden="true"></i>
+        <% end %>
         <%= render "shared/ibox_toggle_button", target_id: dom_id(@chapter, :pages_content) %>
       </div>
     </div>
-    <div id="<%= dom_id(@chapter, :pages_content) %>" class="ibox-content collapse show">
-      <p class="text-muted m-b-md">Pages store the notes, photos, and capture dates inside this chapter.</p>
+    <div id="<%= dom_id(@chapter, :pages_content) %>" class="ibox-content collapse show <%= "notebook-detail-page-list-content" if @pages.any? %>">
       <% if @pages.any? %>
-        <div class="notebook-list-stack">
+        <div class="notebook-list-stack notebook-list-stack--separated">
           <% @pages.each do |page| %>
             <%= render "pages/page_card", notebook: @notebook, chapter: @chapter, page: page %>
           <% end %>

@@ -1,7 +1,9 @@
 <%
-  header_spacing_class = local_assigns[:spacing_class].presence || "mb-4"
+  header_spacing_class = local_assigns[:spacing_class].presence || "mb-3 mb-lg-4"
   header_classes = ["workspace-header", header_spacing_class, local_assigns[:class_name]].compact.join(" ")
 %>
+
+<%= render "shared/workspace_breadcrumbs", items: local_assigns[:breadcrumbs], class_name: local_assigns[:breadcrumb_class_name] if local_assigns[:breadcrumbs].present? %>
 
 <section class="<%= header_classes %>">
   <div class="d-flex flex-column flex-lg-row align-items-lg-start justify-content-between gap-3">
@@ -9,7 +11,7 @@
       <% if eyebrow.present? %>
         <div class="text-uppercase text-secondary fw-semibold"><%= eyebrow.to_s %></div>
       <% end %>
-      <h1 class="fs-3 mb-1"><%= title %></h1>
+      <h1 class="fs-1 mb-2"><%= title %></h1>
       <p class="text-secondary mb-0 workspace-page-lead"><%= description %></p>
     </div>
 

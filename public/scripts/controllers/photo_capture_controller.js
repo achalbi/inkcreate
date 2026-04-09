@@ -1,11 +1,13 @@
 import { Controller } from "/scripts/vendor/stimulus.js";
 
 export default class extends Controller {
-  static targets = ["input", "cameraFrame", "cameraPanel", "defaultActions", "previewActions", "previewGrid", "retainedGrid", "retainedInput", "retainedItem", "emptyState", "cameraToggle", "errorModal", "errorTitle", "errorMessage"];
+  static targets = ["input", "cameraInput", "cameraFrame", "cameraPanel", "defaultActions", "previewActions", "previewGrid", "retainedGrid", "retainedInput", "retainedItem", "emptyState", "cameraToggle", "errorModal", "errorTitle", "errorMessage"];
 
   connect() {
     this.stream = null;
     this.video = null;
+    this.autoSubmitting = false;
+    this.pendingInputSource = null;
     this.errorModalInstance = null;
     this.errorModalElement = this.hasErrorModalTarget ? this.errorModalTarget : null;
     this.errorTitleElement = this.hasErrorTitleTarget ? this.errorTitleTarget : null;
@@ -21,6 +23,8 @@ export default class extends Controller {
   }
 
   showError({ title, message }) {
+    this.autoSubmitting = false;
+
     if (this.errorTitleElement) {
       this.errorTitleElement.textContent = title;
     }
@@ -193,9 +197,62 @@ export default class extends Controller {
     }
   }
 
+  openCameraApp(event) {
+    event?.preventDefault();
+
+    if (!this.hasCameraInputTarget) {
+      this.showError({
+        title: "Camera unavailable",
+        message: "This browser could not open the device camera here. You can still use live preview or upload from the gallery."
+      });
+      return;
+    }
+
+    this.pendingInputSource = "camera";
+    this.cameraInputTarget.value = "";
+
+    if (typeof this.cameraInputTarget.showPicker === "function") {
+      try {
+        this.cameraInputTarget.showPicker();
+        return;
+      } catch (_error) {
+        // Fall back to click for browsers that block showPicker here.
+      }
+    }
+
+    this.cameraInputTarget.click();
+  }
+
+  acceptCameraCapture(event) {
+    const files = Array.from(event?.target?.files || []);
+    if (files.length === 0) {
+      return;
+    }
+
+    this.addFiles(files);
+    event.target.value = "";
+
+    if (this.shouldAutoSaveAfterCameraCapture()) {
+      this.submitFormAfterCameraCapture();
+    }
+  }
+
   syncFromInput() {
-    this.pendingFiles = Array.from(this.inputTarget.files || []);
-    this.renderPendingPreviews();
+    const files = Array.from(this.inputTarget.files || []);
+    const source = this.pendingInputSource;
+
+    this.pendingInputSource = null;
+    this.inputTarget.value = "";
+
+    if (files.length === 0) {
+      return;
+    }
+
+    this.addFiles(files);
+
+    if (source === "gallery" && this.shouldAutoSaveAfterCameraCapture()) {
+      this.submitFormAfterCameraCapture();
+    }
   }
 
   chooseFromGallery(event) {
@@ -203,6 +260,8 @@ export default class extends Controller {
 
     if (!this.hasInputTarget) return;
 
+    this.pendingInputSource = "gallery";
+    this.inputTarget.value = "";
     this.inputTarget.click();
   }
 
@@ -212,6 +271,34 @@ export default class extends Controller {
     this.syncInputFiles();
 
     this.renderPendingPreviews();
+  }
+
+  shouldAutoSaveAfterCameraCapture() {
+    const form = this.element.closest("form");
+    return form instanceof HTMLFormElement && form.dataset.photoCaptureAutoSave === "true";
+  }
+
+  submitFormAfterCameraCapture() {
+    if (this.autoSubmitting) {
+      return;
+    }
+
+    const form = this.element.closest("form");
+    if (!(form instanceof HTMLFormElement)) {
+      return;
+    }
+
+    if (typeof form.reportValidity === "function" && !form.reportValidity()) {
+      return;
+    }
+
+    this.autoSubmitting = true;
+
+    if (typeof form.requestSubmit === "function") {
+      form.requestSubmit();
+    } else {
+      form.submit();
+    }
   }
 
   removePendingUpload(event) {

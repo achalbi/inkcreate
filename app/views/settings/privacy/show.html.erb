@@ -1,5 +1,6 @@
 <div class="workspace-page">
     <%= render "shared/workspace_header",
+      breadcrumbs: [["Home", dashboard_path], ["Settings", settings_path], "Privacy"],
       eyebrow: "Privacy",
       title: "Keep privacy choices explicit and export-friendly.",
       description: "Privacy options are stored as structured settings so data export and local-data clearing can evolve cleanly." %>

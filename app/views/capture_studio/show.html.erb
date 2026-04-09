@@ -1,104 +1,67 @@
-<div class="workspace-page">
-    <%= render "shared/workspace_header",
-      eyebrow: "Fast capture",
-      title: "Capture a reusable notebook page.",
-      description: "The PWA stores metadata locally first, lets you frame and preview the page, and only runs OCR when you explicitly ask for it later." %>
+<%= render "shared/workspace_header",
+  breadcrumbs: [["Home", dashboard_path], "Capture"],
+  eyebrow: "Fast capture",
+  title: "Capture a new daily page",
+  description: "Take a photo or choose one from the gallery. We'll create today's page, apply the same title logic automatically, and open it in edit mode." %>
 
-    <section class="workspace-grid">
-      <article class="dashboard-card workspace-panel" data-controller="camera queue">
-        <div class="section-header">
-          <div class="eyebrow">Camera</div>
-          <h2>Capture flow</h2>
-          <p>Use camera capture on supported devices, or fall back to the photo library when needed.</p>
-        </div>
+<div class="wrapper wrapper-content animated fadeInRight">
+  <section class="ibox quick-capture-card" data-controller="quick-capture">
+    <div class="ibox-title">
+      <h5>Quick capture</h5>
+    </div>
+    <div class="ibox-content collapse show">
+      <div class="quick-capture-body">
+        <p class="quick-capture-intro">
+          Capture a page and continue editing right away. The first photo creates a new daily page dated
+          <strong><%= @entry_date.strftime("%b %-d, %Y") %></strong>.
+        </p>
 
-        <div class="capture-camera-frame" data-camera-target="preview">
-          <p>Camera preview initializes here when browser permissions are available.</p>
-        </div>
+        <%= form_with url: notepad_entries_path, scope: :notepad_entry, html: { multipart: true }, data: { quick_capture_target: "form" } do |form| %>
+          <%= hidden_field_tag :after_create, "edit" %>
+          <%= form.hidden_field :entry_date, value: @entry_date %>
 
-        <div class="dashboard-actions">
-          <button class="button button-primary" type="button" data-action="camera#start">Start camera</button>
-          <button class="button button-secondary" type="button" data-action="camera#capture">Capture frame</button>
-        </div>
+          <%= form.file_field :photos,
+            multiple: true,
+            id: "quick-capture-camera-input",
+            accept: "image/*",
+            capture: "environment",
+            class: "quick-capture-input",
+            data: { quick_capture_target: "cameraInput", action: "change->quick-capture#submitFromSelection" } %>
 
-        <form class="capture-form" data-queue-target="form">
-          <div class="field">
-            <label for="capture-title">Title</label>
-            <input id="capture-title" name="title" type="text" placeholder="Sprint planning notes">
+          <%= form.file_field :photos,
+            multiple: true,
+            id: "quick-capture-gallery-input",
+            accept: "image/*",
+            class: "quick-capture-input",
+            data: { quick_capture_target: "galleryInput", action: "change->quick-capture#submitFromSelection" } %>
+
+          <div class="quick-capture-actions">
+            <button
+              type="button"
+              class="quick-capture-action quick-capture-action--camera"
+              data-action="quick-capture#openCamera"
+              data-quick-capture-target="cameraButton"
+            >
+              <i class="ti ti-camera" aria-hidden="true"></i>
+              <strong>Take photo</strong>
+              <span>Open the device camera and save directly into a new daily page.</span>
+            </button>
+
+            <button
+              type="button"
+              class="quick-capture-action quick-capture-action--gallery"
+              data-action="quick-capture#openGallery"
+              data-quick-capture-target="galleryButton"
+            >
+              <i class="ti ti-photo-plus" aria-hidden="true"></i>
+              <strong>Choose from gallery</strong>
+              <span>Pick an existing image and continue editing the page after it is created.</span>
+            </button>
           </div>
+        <% end %>
 
-          <div class="auth-form-row">
-            <div class="field">
-              <label for="capture-page-type">Page type</label>
-              <select id="capture-page-type" name="page_type">
-                <% @page_templates.each do |page_template| %>
-                  <option value="<%= page_template.key %>"><%= page_template.name %></option>
-                <% end %>
-              </select>
-            </div>
-
-            <div class="field">
-              <label for="capture-project">Project</label>
-              <select id="capture-project" name="project_id">
-                <option value="">Save without project</option>
-                <% @projects.each do |project| %>
-                  <option value="<%= project.id %>"><%= project.title %></option>
-                <% end %>
-              </select>
-            </div>
-          </div>
-
-          <div class="auth-form-row">
-            <div class="field">
-              <label for="capture-destination">Save destination</label>
-              <select id="capture-destination" name="save_destination">
-                <option value="">Save only</option>
-                <option value="today">Add to Today</option>
-              </select>
-            </div>
-
-            <div class="field">
-              <label for="capture-physical-page">Physical page</label>
-              <select id="capture-physical-page" name="physical_page_id">
-                <option value="">Untracked page</option>
-                <% @physical_pages.each do |physical_page| %>
-                  <option value="<%= physical_page.id %>">Page <%= physical_page.page_number %> · <%= physical_page.template_type.humanize %></option>
-                <% end %>
-              </select>
-            </div>
-          </div>
-
-          <div class="dashboard-actions">
-            <button class="button button-primary" type="button" data-action="queue#saveDraft">Save offline draft</button>
-            <label class="button button-secondary">
-              Upload from gallery
-              <input type="file" accept="image/*" capture="environment" hidden data-action="queue#attachFile">
-            </label>
-          </div>
-        </form>
-      </article>
-
-      <aside class="dashboard-card workspace-panel">
-        <div class="section-header">
-          <div class="eyebrow">Offline queue</div>
-          <h2>Local-first behavior</h2>
-          <p>Draft metadata, thumbnails, and pending uploads stay in IndexedDB until a network path is available.</p>
-        </div>
-        <div class="admin-note-list" data-controller="offline-status install-prompt">
-          <div class="stack-note">
-            <strong>Today’s bucket</strong>
-            <p><%= link_to @today_log.display_title, daily_log_path(@today_log) %> is ready for quick-save routing.</p>
-          </div>
-          <div class="stack-note">
-            <strong>Sync awareness</strong>
-            <p data-offline-status-target="label">Connection status is tracked here for progressive sync UX.</p>
-          </div>
-          <div class="stack-note">
-            <strong>Install</strong>
-            <p>Prompt the user only when the browser signals install support and the workflow has shown value.</p>
-            <button class="mini-button" type="button" data-action="install-prompt#prompt">Show install help</button>
-          </div>
-        </div>
-      </aside>
-    </section>
+        <p class="quick-capture-status text-muted" data-quick-capture-target="status" hidden></p>
+      </div>
+    </div>
+  </section>
 </div>

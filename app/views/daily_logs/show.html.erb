@@ -1,5 +1,6 @@
 <div class="workspace-page">
     <%= render "shared/workspace_header",
+      breadcrumbs: [["Home", dashboard_path], ["Daily timeline", daily_logs_path], @daily_log.display_title],
       eyebrow: "Daily log",
       title: @daily_log.display_title,
       description: @daily_log.summary.presence || "This day groups captures, media, and tasks that happened together.",

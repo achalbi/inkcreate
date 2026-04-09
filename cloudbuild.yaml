@@ -330,7 +330,7 @@ substitutions:
   _WORKER_SERVICE: inkcreate-git
   _MIGRATE_JOB: inkcreate-migrate
   _RUNTIME_SERVICE_ACCOUNT: 'inkcreate-runtime@thoughtbasics.iam.gserviceaccount.com'
-  _ACTIVE_STORAGE_SERVICE: local
+  _ACTIVE_STORAGE_SERVICE: gcs
   _RAILS_LOG_LEVEL: info
   _FORCE_SSL: 'true'
   _RAILS_SERVE_STATIC_FILES: 'true'

@@ -1,5 +1,6 @@
 <div class="workspace-page">
     <%= render "shared/workspace_header",
+      breadcrumbs: [["Home", dashboard_path], "Search"],
       eyebrow: "Retrieve",
       title: "Search titles, tags, OCR, projects, and dates.",
       description: "Search stays useful even when OCR is missing because titles, manual notes, tags, projects, and dates all contribute." %>

@@ -105,11 +105,11 @@
         },
         "background": {
           "canvasColor": "#f5eee3",
-          "dotMatrixSize": "24px 24px",
+          "dotMatrixSize": "18px 18px",
           "layers": [
             "radial-gradient(circle at 12% 14%, rgba(230, 98, 57, 0.13), transparent 22%)",
             "radial-gradient(circle at 84% 6%, rgba(95, 82, 69, 0.08), transparent 22%)",
-            "radial-gradient(circle, rgba(95, 82, 69, 0.1) 1px, transparent 1.2px)",
+            "radial-gradient(circle, rgba(95, 82, 69, 0.18) 1px, transparent 1.2px)",
             "linear-gradient(180deg, #fbf7ef 0%, #f5eee3 52%, #efe4d4 100%)"
           ]
         },

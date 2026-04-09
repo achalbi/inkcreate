@@ -1,8 +1,14 @@
 <div class="form-group">
   <% retained_photo_blobs = form.object.respond_to?(:pending_photo_blobs) ? form.object.pending_photo_blobs : [] %>
+  <% retained_photo_blobs.each do |blob| %>
+    <%= form.hidden_field :retained_photo_signed_ids,
+      multiple: true,
+      value: blob.signed_id,
+      data: { photo_capture_target: "retainedInput" } %>
+  <% end %>
 
   <div class="photo-capture-meta m-b-sm">
-    <div class="text-muted small">Use live preview for quick captures, or upload an image directly from the gallery.</div>
+    <div class="text-muted small">Use the header icons to capture a photo or upload one from the gallery.</div>
   </div>
 
   <% if local_assigns[:tips_target_id].present? %>
@@ -11,65 +17,14 @@
         <ul class="small m-b-none photo-capture-tips-list">
           <li>Keep the book flat with the whole page visible inside the guide.</li>
           <li>Use even lighting and avoid hard shadows from your hand or phone.</li>
-          <li>Hold the camera directly above the notes for a cleaner save.</li>
+          <li>Use the camera icon for a quick capture, or the gallery icon to upload an existing photo.</li>
         </ul>
       <% end %>
       <%= render "shared/inline_alert", type: :info, title: "Capture tips", body_html: tips_body, extra_classes: "m-b-none" %>
     </div>
   <% end %>
 
-  <div class="photo-capture-actions m-b-sm" data-photo-capture-target="defaultActions">
-    <button type="button" class="btn btn-primary btn-sm" data-action="photo-capture#start">Live preview</button>
-    <button type="button" class="btn btn-white btn-sm" data-action="photo-capture#chooseFromGallery">Upload from gallery</button>
-    <%= form.file_field field_name, multiple: true, style: "display:none;", accept: "image/*", data: { photo_capture_target: "input", action: "change->photo-capture#syncFromInput" } %>
-  </div>
-
-  <div class="photo-capture-camera-panel m-b-sm" data-photo-capture-target="cameraPanel" hidden>
-    <div class="well well-sm text-center photo-capture-frame" data-photo-capture-target="cameraFrame"></div>
-    <div class="photo-capture-actions m-t-sm" data-photo-capture-target="previewActions" hidden>
-      <button type="button" class="btn btn-primary btn-sm" data-action="photo-capture#capture">Capture</button>
-      <button type="button" class="btn btn-white btn-sm" data-action="photo-capture#cancel">Cancel</button>
-    </div>
-  </div>
-
-  <div class="m-t-md">
-    <p class="text-navy m-b-xs"><strong>Pending uploads</strong></p>
-    <div class="row photo-capture-retained-grid" data-photo-capture-target="retainedGrid">
-      <% retained_photo_blobs.each do |blob| %>
-        <%= form.hidden_field :retained_photo_signed_ids,
-          multiple: true,
-          value: blob.signed_id,
-          data: { photo_capture_target: "retainedInput" } %>
-        <div class="col-sm-6 col-md-4" data-photo-capture-target="retainedItem" data-signed-id="<%= blob.signed_id %>">
-          <div class="thumbnail photo-capture-retained-card">
-            <%= render "shared/photo_lightbox", photo: blob, alt: blob.filename.to_s, image_style: "width: 100%; height: 180px; object-fit: cover;" %>
-            <div class="caption">
-              <div class="photo-capture-card-heading">
-                <div style="font-weight: 600; word-break: break-word;"><%= blob.filename %></div>
-                <button
-                  type="button"
-                  class="btn btn-danger btn-xs photo-capture-remove-button"
-                  data-action="photo-capture#removeRetainedUpload"
-                  data-signed-id="<%= blob.signed_id %>"
-                >
-                  Remove
-                </button>
-              </div>
-              <div class="text-muted small">Saved after validation error</div>
-            </div>
-          </div>
-        </div>
-      <% end %>
-    </div>
-    <div class="row" data-photo-capture-target="previewGrid"></div>
-    <div class="workspace-inline-alert workspace-inline-alert--info m-b-none" data-photo-capture-target="emptyState" role="status">
-      <div class="workspace-inline-alert__icon" aria-hidden="true">i</div>
-      <div class="workspace-inline-alert__body">
-        <div class="workspace-inline-alert__title">No new photos selected yet</div>
-        <div class="workspace-inline-alert__message">Start live preview or upload from the gallery to attach note images before saving.</div>
-      </div>
-    </div>
-  </div>
+  <%= form.file_field field_name, multiple: true, style: "display:none;", accept: "image/*", data: { photo_capture_target: "input", action: "change->photo-capture#syncFromInput" } %>
 
   <div class="modal fade photo-capture-error-modal" tabindex="-1" aria-hidden="true" data-photo-capture-target="errorModal">
     <div class="modal-dialog modal-dialog-centered modal-sm">

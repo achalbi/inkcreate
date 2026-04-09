@@ -1,3 +1,9 @@
+<!-- <%= render "shared/workspace_header",
+  breadcrumbs: [["Home", dashboard_path], "Notepad"],
+  eyebrow: "Notepad",
+  title: "Daily notepad",
+  description: "Capture notes and images directly by date, with the latest entries first." %> -->
+
 <div class="wrapper wrapper-content animated fadeInRight">
   <div class="workspace-index-actions">
     <div class="workspace-index-actions__left">
@@ -111,13 +117,12 @@
         <div class="ibox-title">
           <h5><%= entry_date.strftime("%A, %b %-d, %Y") %></h5>
           <div class="ibox-tools">
-            <span class="label label-info"><%= pluralize(entries.sum { |entry| entry.photos.count }, "photo") %></span>
+            <span class="label label-info"><%= pluralize(entries.size, "page") %></span>
             <%= render "shared/ibox_toggle_button", target_id: "notepad-date-#{entry_date.strftime("%Y%m%d")}-content", expanded: expanded %>
           </div>
         </div>
-        <div id="notepad-date-<%= entry_date.strftime("%Y%m%d") %>-content" class="ibox-content collapse <%= "show" if expanded %>">
-          <p class="text-muted m-b-md"><%= pluralize(entries.size, "entry") %> stored for this day.</p>
-          <div class="notebook-list-stack">
+        <div id="notepad-date-<%= entry_date.strftime("%Y%m%d") %>-content" class="ibox-content collapse notepad-date-list-content <%= "show" if expanded %>">
+          <div class="notebook-list-stack notebook-list-stack--separated">
             <% entries.each do |entry| %>
               <%= render "entry_card", entry: entry %>
             <% end %>
@@ -137,9 +142,3 @@
 
   <%= render "shared/workspace_fab", path: new_notepad_entry_path, title: "Create new page" %>
 </div>
-
-<%= render "shared/workspace_header",
-  eyebrow: "Notepad",
-  title: "Daily notepad",
-  description: "Capture notes and images directly by date, with the latest entries first.",
-  spacing_class: "mb-0" %>

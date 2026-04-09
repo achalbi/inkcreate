@@ -1,4 +1,4 @@
-<%= form_with model: notepad_entry do |form| %>
+<%= form_with model: notepad_entry, data: { photo_capture_auto_save: notepad_entry.persisted? } do |form| %>
   <% if notepad_entry.errors.any? %>
     <% error_body = capture do %>
       <ul class="m-b-none m-t-sm">
@@ -10,12 +10,31 @@
     <%= render "shared/inline_alert", type: :danger, title: "Please fix the following:", body_html: error_body %>
   <% end %>
 
-  <div class="row entry-photos-form-row">
+  <div class="row entry-photos-form-row" data-controller="photo-capture">
+    <input
+      type="file"
+      accept="image/*"
+      capture="environment"
+      tabindex="-1"
+      aria-hidden="true"
+      class="photo-section-camera-input"
+      data-photo-capture-target="cameraInput"
+      data-action="change->photo-capture#acceptCameraCapture"
+    >
+
     <div class="col-lg-7">
       <div class="ibox">
         <div class="ibox-title">
           <h5>Page details</h5>
           <div class="ibox-tools">
+            <button
+              type="submit"
+              class="btn btn-sm btn-icon notebook-overview-edit-button page-details-save-button"
+              title="Save"
+              aria-label="Save"
+            >
+              <i class="ti ti-device-floppy" aria-hidden="true"></i>
+            </button>
             <%= render "shared/ibox_toggle_button", target_id: "notepad-entry-form-content" %>
           </div>
         </div>
@@ -36,27 +55,49 @@
           </div>
 
           <div class="form-group">
+            <% notes_input_id = dom_id(notepad_entry, :notes_input) %>
             <%= form.label :notes, class: "control-label" %>
-            <%= form.text_area :notes, rows: 5, class: "form-control", placeholder: "Write the day's notes, observations, reminders, or quick captures." %>
+            <%= form.hidden_field :notes, id: notes_input_id %>
+            <trix-editor
+              input="<%= notes_input_id %>"
+              class="workspace-rich-text-editor notepad-entry-notes-field"
+              placeholder="Write the day's notes, observations, reminders, or quick captures."
+              data-controller="rich-text"
+              data-action="trix-file-accept->rich-text#preventFileAccept"
+            ></trix-editor>
           </div>
+
+          <% if notepad_entry.persisted? %>
+            <div class="m-t-md workspace-form-actions">
+              <%= form.submit "Save", class: "btn btn-primary btn-sm" %>
+            </div>
+          <% end %>
         </div>
       </div>
     </div>
 
     <div class="col-lg-5">
-      <div class="ibox" data-controller="photo-capture">
+      <div class="ibox">
         <div class="ibox-title">
           <h5>Photos</h5>
           <div class="ibox-tools">
             <button
               type="button"
               class="btn btn-white btn-sm btn-icon photo-section-camera-button"
-              data-action="photo-capture#start"
+              data-action="photo-capture#openCameraApp"
               data-photo-capture-target="cameraToggle"
               aria-pressed="false"
-              title="Open live preview"
+              title="Open camera"
             >
               <i class="ti ti-camera" aria-hidden="true"></i>
+            </button>
+            <button
+              type="button"
+              class="btn btn-white btn-sm btn-icon photo-section-upload-button"
+              data-action="photo-capture#chooseFromGallery"
+              title="Upload from gallery"
+            >
+              <i class="ti ti-photo-plus" aria-hidden="true"></i>
             </button>
             <button
               type="button"
@@ -79,17 +120,18 @@
             <hr>
             <h5 class="m-t-none m-b-md">Current photos</h5>
             <div>
-              <div class="row detail-photo-grid">
-                <% notepad_entry.photos.each do |photo| %>
-                  <div class="col-sm-6">
+              <div class="detail-photo-grid detail-photo-grid--gallery">
+                <% notepad_entry.photos.attachments.sort_by(&:created_at).reverse_each do |attachment| %>
+                  <% photo = attachment.blob %>
+                  <div class="detail-photo-grid__item">
                     <div class="thumbnail">
-                      <%= render "shared/photo_lightbox", photo:, alt: notepad_entry.display_title, image_style: "width: 100%; height: 220px; object-fit: cover;" %>
-                      <div class="caption photo-card-actions">
-                        <%= button_to "Remove", photo_notepad_entry_path(notepad_entry, photo),
-                          method: :delete,
-                          form: { style: "margin: 0;", onsubmit: "return confirm('Remove this photo?');" },
-                          class: "btn btn-danger btn-sm" %>
-                      </div>
+                      <%= render "shared/photo_lightbox",
+                        photo:,
+                        alt: notepad_entry.display_title,
+                        group: dom_id(notepad_entry, :edit_gallery),
+                        image_style: "width: 100%; height: 220px; object-fit: cover;",
+                        removal_path: photo_notepad_entry_path(notepad_entry, attachment),
+                        removal_message: "This photo will be removed from the daily page." %>
                     </div>
                   </div>
                 <% end %>
@@ -99,10 +141,18 @@
         </div>
       </div>
     </div>
+
+    <button
+      type="button"
+      class="workspace-fab photo-capture-fab"
+      data-action="photo-capture#openCameraApp"
+      data-photo-capture-target="cameraToggle"
+      aria-pressed="false"
+      aria-label="Open camera"
+      title="Open camera"
+    >
+      <i class="ti ti-camera" aria-hidden="true"></i>
+    </button>
   </div>
 
-  <div class="m-t-md workspace-form-actions">
-    <%= form.submit class: "btn btn-primary btn-sm" %>
-    <%= link_to "Cancel", notepad_entry.persisted? ? notepad_entry_path(notepad_entry) : notepad_entries_path, class: "btn btn-white btn-sm" %>
-  </div>
 <% end %>

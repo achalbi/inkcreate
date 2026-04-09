@@ -27,7 +27,7 @@ class NotepadEntriesController < BrowserController
     if @notepad_entry.save
       attach_pending_photos(@notepad_entry)
       schedule_drive_export(@notepad_entry)
-      redirect_to notepad_entry_path(@notepad_entry), notice: "Notepad entry created."
+      redirect_to create_redirect_path(@notepad_entry), notice: create_notice_message
     else
       render :new, status: :unprocessable_entity
     end
@@ -56,7 +56,7 @@ class NotepadEntriesController < BrowserController
     attachment = @notepad_entry.photos.attachments.find(params[:attachment_id])
     attachment.purge
     schedule_drive_export(@notepad_entry)
-    redirect_to notepad_entry_path(@notepad_entry), notice: "Photo removed."
+    redirect_back fallback_location: notepad_entry_path(@notepad_entry), notice: "Photo removed."
   end
 
   private
@@ -103,6 +103,22 @@ class NotepadEntriesController < BrowserController
 
   def schedule_drive_export(entry)
     Drive::ScheduleRecordExport.new(record: entry).call
+  end
+
+  def create_redirect_path(entry)
+    return edit_notepad_entry_path(entry) if redirect_to_edit_after_create?
+
+    notepad_entry_path(entry)
+  end
+
+  def create_notice_message
+    return "Daily page created. You can add notes or more photos now." if redirect_to_edit_after_create?
+
+    "Notepad entry created."
+  end
+
+  def redirect_to_edit_after_create?
+    params[:after_create].to_s == "edit"
   end
 
   def index_view_mode

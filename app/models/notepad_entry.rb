@@ -1,5 +1,6 @@
 class NotepadEntry < ApplicationRecord
   include RetainsPendingPhotos
+  include RichNotes
 
   belongs_to :user
   has_many_attached :photos
@@ -33,7 +34,7 @@ class NotepadEntry < ApplicationRecord
   end
 
   def notes_excerpt
-    notes.to_s.squish.truncate(60, separator: " ")
+    plain_notes.squish.truncate(60, separator: " ")
   end
 
   def dated_title

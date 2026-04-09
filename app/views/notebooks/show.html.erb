@@ -1,50 +1,83 @@
-<div class="wrapper wrapper-content animated fadeInRight">
-  <nav aria-label="breadcrumb" class="m-b-md">
-    <ol class="breadcrumb">
-      <li><%= link_to "Home", dashboard_path %></li>
-      <li><%= link_to "Notebook", notebooks_path %></li>
-      <li class="active"><%= @notebook.title %></li>
-    </ol>
-  </nav>
+<div class="wrapper wrapper-content animated fadeInRight notebook-detail-page">
+  <%= render "shared/workspace_breadcrumbs",
+    items: [["Home", dashboard_path], ["Notebook", notebooks_path], @notebook.title],
+    class_name: "notebook-detail-breadcrumb" %>
 
-  <section class="ibox float-e-margins">
-    <div class="ibox-title">
-      <h5>Notebook overview</h5>
-      <div class="ibox-tools">
-        <span class="label <%= @notebook.status_active? ? "label-primary" : "label-default" %>"><%= @notebook.status.humanize %></span>
+  <section class="ibox float-e-margins notebook-detail-summary">
+    <div class="ibox-title notebook-detail-summary__titlebar">
+      <div class="notebook-detail-summary__identity">
+        <div class="notebook-detail-summary__icon" aria-hidden="true">
+          <i class="ti ti-notebook"></i>
+        </div>
+
+        <div class="notebook-detail-summary__title-group">
+          <h2 class="notebook-detail-summary__title"><%= @notebook.title %></h2>
+          <p class="notebook-detail-summary__description"><%= @notebook.description.presence || "Add a short description so this notebook is easier to recognize later." %></p>
+        </div>
+      </div>
+
+      <div class="ibox-tools notebook-detail-summary__actions">
+        <span class="notebook-detail-status <%= @notebook.status_active? ? "is-active" : "is-archived" %>">
+          <span class="notebook-detail-status__dot" aria-hidden="true"></span>
+          <%= @notebook.status.humanize %>
+        </span>
+
         <%= link_to edit_notebook_path(@notebook), class: "btn btn-sm btn-icon notebook-overview-edit-button", title: "Edit notebook", aria: { label: "Edit notebook" } do %>
           <i class="ti ti-edit" aria-hidden="true"></i>
         <% end %>
+
         <%= render "shared/ibox_toggle_button", target_id: dom_id(@notebook, :overview_content) %>
       </div>
     </div>
-    <div id="<%= dom_id(@notebook, :overview_content) %>" class="ibox-content collapse show">
-      <div class="row">
-        <div class="col-sm-12">
-          <h2 class="m-t-none"><%= @notebook.title %></h2>
-          <p class="text-muted"><%= @notebook.description.presence || "Add a description to make the purpose of this notebook clear to future-you." %></p>
-          <p class="m-b-none">
-            <span class="label label-default"><%= pluralize(@notebook.chapters.count, "chapter") %></span>
-            <span class="label label-default"><%= pluralize(@notebook.pages.count, "page") %></span>
-            <span class="label label-default">Created <%= @notebook.created_at.strftime("%b %-d, %Y") %></span>
-          </p>
+
+    <div id="<%= dom_id(@notebook, :overview_content) %>" class="ibox-content collapse show notebook-detail-summary__content">
+      <div class="notebook-detail-summary__stats">
+        <div class="notebook-detail-stat">
+          <div class="notebook-detail-stat__copy">
+            <strong><%= @chapters.size %></strong>
+            <span><%= "Chapter".pluralize(@chapters.size) %></span>
+          </div>
+        </div>
+
+        <div class="notebook-detail-stat">
+          <div class="notebook-detail-stat__copy">
+            <strong><%= @notebook.pages.count %></strong>
+            <span><%= "Page".pluralize(@notebook.pages.count) %></span>
+          </div>
+        </div>
+
+        <div class="notebook-detail-stat">
+          <div class="notebook-detail-stat__copy">
+            <strong><%= @notebook.created_at.strftime("%b %-d, %Y") %></strong>
+            <span>Created</span>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <section class="ibox float-e-margins">
-    <div class="ibox-title">
-      <h5>Chapters</h5>
-      <div class="ibox-tools">
-        <%= link_to "Add chapter", new_notebook_chapter_path(@notebook), class: "btn btn-primary btn-sm" %>
+  <section class="ibox float-e-margins notebook-detail-section">
+    <div class="ibox-title notebook-detail-section__titlebar">
+      <div class="notebook-detail-section__heading">
+        <h5>Chapters</h5>
+        <p>Main sections of this notebook.</p>
+      </div>
+
+      <div class="ibox-tools notebook-detail-section__tools">
+        <%= link_to new_notebook_chapter_path(@notebook),
+          class: "ibox-toggle-button notebook-detail-section__add",
+          title: "Add chapter",
+          aria: { label: "Add chapter" } do %>
+          <i class="ti ti-plus" aria-hidden="true"></i>
+        <% end %>
+
         <%= render "shared/ibox_toggle_button", target_id: dom_id(@notebook, :chapters_content) %>
       </div>
     </div>
-    <div id="<%= dom_id(@notebook, :chapters_content) %>" class="ibox-content collapse show">
-      <p class="text-muted m-b-md">Chapters create the main sections of this notebook.</p>
+
+    <div id="<%= dom_id(@notebook, :chapters_content) %>" class="ibox-content collapse show notebook-detail-section__content <%= "notebook-detail-chapter-list-content" if @chapters.any? %>">
       <% if @chapters.any? %>
-        <div class="notebook-list-stack">
+        <div class="notebook-list-stack notebook-list-stack--separated">
           <% @chapters.each do |chapter| %>
             <%= render "chapters/chapter_card", notebook: @notebook, chapter: chapter %>
           <% end %>
@@ -56,17 +89,21 @@
   </section>
 
   <% if @deleted_chapters.any? %>
-    <section class="ibox float-e-margins">
-      <div class="ibox-title">
-        <h5>Deleted chapters</h5>
-        <div class="ibox-tools">
+    <section class="ibox float-e-margins notebook-detail-section notebook-detail-section--deleted">
+      <div class="ibox-title notebook-detail-section__titlebar">
+        <div class="notebook-detail-section__heading">
+          <h5>Deleted chapters</h5>
+          <p>Chapters with saved pages stay here so they can be restored later.</p>
+        </div>
+
+        <div class="ibox-tools notebook-detail-section__tools">
           <span class="label label-default"><%= pluralize(@deleted_chapters.count, "chapter") %></span>
           <%= render "shared/ibox_toggle_button", target_id: "deleted-chapters-content" %>
         </div>
       </div>
-      <div id="deleted-chapters-content" class="ibox-content collapse show">
-        <p class="text-muted m-b-md">Chapters with pages are soft deleted here so their notes can be restored later instead of being removed.</p>
-        <div class="notebook-list-stack">
+
+      <div id="deleted-chapters-content" class="ibox-content collapse show notebook-detail-section__content notebook-detail-deleted-chapter-list-content">
+        <div class="notebook-list-stack notebook-list-stack--separated">
           <% @deleted_chapters.each do |chapter| %>
             <%= render "chapters/deleted_chapter_card", notebook: @notebook, chapter: chapter %>
           <% end %>

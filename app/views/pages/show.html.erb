@@ -1,32 +1,38 @@
 <div class="wrapper wrapper-content animated fadeInRight">
-  <nav aria-label="breadcrumb" class="m-b-md">
-    <ol class="breadcrumb">
-      <li><%= link_to "Home", dashboard_path %></li>
-      <li><%= link_to "Notebook", notebooks_path %></li>
-      <li><%= link_to @notebook.title, notebook_path(@notebook) %></li>
-      <li><%= link_to @chapter.title, notebook_chapter_path(@notebook, @chapter) %></li>
-      <li class="active"><%= @page.display_title %></li>
-    </ol>
-  </nav>
+  <%= render "shared/workspace_breadcrumbs",
+    items: [["Home", dashboard_path], ["Notebook", notebooks_path], [@notebook.title, notebook_path(@notebook)], [@chapter.title, notebook_chapter_path(@notebook, @chapter)], @page.display_title] %>
 
   <section class="ibox float-e-margins">
     <div class="ibox-title">
       <h5>Page overview</h5>
       <div class="ibox-tools">
+        <span class="label label-info">Page <%= @page.position %></span>
         <%= link_to edit_notebook_chapter_page_path(@notebook, @chapter, @page), class: "btn btn-sm btn-icon notebook-overview-edit-button", title: "Edit page", aria: { label: "Edit page" } do %>
           <i class="ti ti-edit" aria-hidden="true"></i>
+        <% end %>
+        <%= button_to notebook_chapter_page_path(@notebook, @chapter, @page),
+          method: :delete,
+          form: { class: "notebook-overview-delete-form", onsubmit: "return confirm('Delete this page?');" },
+          class: "btn btn-sm btn-icon notebook-overview-delete-button",
+          title: "Delete page",
+          aria: { label: "Delete page" } do %>
+          <i class="ti ti-trash" aria-hidden="true"></i>
         <% end %>
         <%= render "shared/ibox_toggle_button", target_id: dom_id(@page, :overview_content) %>
       </div>
     </div>
     <div id="<%= dom_id(@page, :overview_content) %>" class="ibox-content collapse show">
       <div class="row">
-        <div class="col-sm-12 detail-overview-stack">
+        <div class="col-sm-8 detail-overview-stack">
           <h2 class="m-t-none"><%= @page.display_title %></h2>
+          <% if @page.plain_notes.present? %>
+            <div class="detail-overview-notes detail-notes-copy trix-content workspace-trix-content"><%= render "shared/rich_notes", notes: @page.notes %></div>
+          <% else %>
+            <p class="detail-overview-notes detail-overview-notes--empty">No notes added yet.</p>
+          <% end %>
           <p class="m-b-none detail-overview-meta">
-            <span class="label label-default">Order: <%= @page.position %></span>
             <% if @page.captured_on.present? %>
-              <span class="label label-info">Captured <%= @page.captured_on.strftime("%b %-d, %Y") %></span>
+              <span class="label label-info"><%= @page.captured_on.strftime("%b %-d, %Y") %></span>
             <% else %>
               <span class="label label-default">No date yet</span>
             <% end %>
@@ -38,53 +44,32 @@
   </section>
 
   <section class="row notes-gallery-row">
-    <div class="col-lg-4">
+    <div class="col-12">
       <div class="ibox">
         <div class="ibox-title">
-          <h5>Notes</h5>
-          <div class="ibox-tools">
-            <%= render "shared/ibox_toggle_button", target_id: dom_id(@page, :notes_content) %>
+          <div class="detail-photo-gallery-heading">
+            <h5 class="detail-photo-gallery-title">Photo gallery</h5>
+            <span class="label label-info detail-photo-gallery-count"><%= @page.photos.count %></span>
           </div>
-        </div>
-        <div id="<%= dom_id(@page, :notes_content) %>" class="ibox-content collapse show">
-          <% if @page.notes.present? %>
-            <div class="detail-notes-copy"><%= simple_format(@page.notes) %></div>
-          <% else %>
-            <p class="text-muted m-b-none">No notes added yet.</p>
-          <% end %>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-lg-8">
-      <div class="ibox">
-        <div class="ibox-title">
-          <h5>Photo gallery</h5>
           <div class="ibox-tools">
             <%= link_to "Manage photos", edit_notebook_chapter_page_path(@notebook, @chapter, @page), class: "btn btn-white btn-sm" %>
             <%= render "shared/ibox_toggle_button", target_id: dom_id(@page, :gallery_content) %>
           </div>
         </div>
         <div id="<%= dom_id(@page, :gallery_content) %>" class="ibox-content collapse show">
-
           <% if @page.photos.attached? %>
-            <div class="row detail-photo-grid">
-              <% @page.photos.each do |photo| %>
-                <div class="col-sm-6">
+            <div class="detail-photo-grid detail-photo-grid--gallery">
+              <% @page.photos.attachments.sort_by(&:created_at).reverse_each do |attachment| %>
+                <% photo = attachment.blob %>
+                <div class="detail-photo-grid__item">
                   <div class="thumbnail">
                     <%= render "shared/photo_lightbox", photo:, alt: @page.display_title, image_style: "width: 100%; height: 240px; object-fit: cover;" %>
-                    <div class="caption photo-card-actions">
-                      <%= button_to "Remove photo", photo_notebook_chapter_page_path(@notebook, @chapter, @page, photo),
-                        method: :delete,
-                        form: { style: "margin: 0;", onsubmit: "return confirm('Remove this photo?');" },
-                        class: "btn btn-danger btn-sm" %>
-                    </div>
                   </div>
                 </div>
               <% end %>
             </div>
           <% else %>
-            <%= render "shared/empty_state", title: "No photos yet", description: "Attach photos to make this page a complete record of the captured content." %>
+            <%= render "shared/empty_state", title: "No photos yet", description: "Upload one or more photos to keep this page visually complete." %>
           <% end %>
         </div>
       </div>

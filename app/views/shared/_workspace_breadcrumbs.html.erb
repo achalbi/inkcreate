@@ -1,0 +1,40 @@
+<%
+  breadcrumb_items = Array(local_assigns[:items]).compact
+  nav_classes = ["workspace-breadcrumbs", local_assigns[:class_name]].compact.join(" ")
+%>
+
+<% if breadcrumb_items.any? %>
+  <nav aria-label="breadcrumb" class="<%= nav_classes %>">
+    <ol class="breadcrumb">
+      <% breadcrumb_items.each_with_index do |item, index| %>
+        <%
+          label = nil
+          path = nil
+          current = nil
+
+          case item
+          when Hash
+            label = item[:label] || item["label"]
+            path = item[:path] || item["path"]
+            current_value = item.key?(:current) ? item[:current] : item["current"]
+            current = current_value.nil? ? index == breadcrumb_items.length - 1 : current_value
+          when Array
+            label, path, current = item
+            current = index == breadcrumb_items.length - 1 if current.nil?
+          else
+            label = item
+            current = true
+          end
+        %>
+
+        <li class="<%= "active" if current %>" <%= current ? 'aria-current="page"' : nil %>>
+          <% if path.present? && !current %>
+            <%= link_to label, path %>
+          <% else %>
+            <span><%= label %></span>
+          <% end %>
+        </li>
+      <% end %>
+    </ol>
+  </nav>
+<% end %>

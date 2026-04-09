@@ -53,7 +53,7 @@ jobs:
             --region=${{ env.REGION }} \
             --command=bundle \
             --args=exec,rails,db:migrate \
-            --set-env-vars=RAILS_ENV=production
+            --set-env-vars=RAILS_ENV=production,ACTIVE_STORAGE_SERVICE=gcs,GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }},GCS_UPLOAD_BUCKET=${{ vars.GCS_UPLOAD_BUCKET || secrets.GCS_UPLOAD_BUCKET }}
           gcloud run jobs execute inkcreate-migrate --region=${{ env.REGION }} --wait
 
       - name: Deploy public API service
@@ -67,7 +67,7 @@ jobs:
             --memory=1Gi \
             --min-instances=1 \
             --max-instances=20 \
-            --set-env-vars=RAILS_ENV=production,JOB_BACKEND=cloud_tasks,GCP_REGION=${{ env.REGION }},GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }},WORKER_BASE_URL=${{ secrets.WORKER_BASE_URL }},CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL=${{ secrets.CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL }}
+            --set-env-vars=RAILS_ENV=production,JOB_BACKEND=cloud_tasks,ACTIVE_STORAGE_SERVICE=gcs,GCP_REGION=${{ env.REGION }},GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }},GCS_UPLOAD_BUCKET=${{ vars.GCS_UPLOAD_BUCKET || secrets.GCS_UPLOAD_BUCKET }},WORKER_BASE_URL=${{ secrets.WORKER_BASE_URL }},CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL=${{ secrets.CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL }}
 
       - name: Deploy private worker service
         run: |
@@ -81,4 +81,4 @@ jobs:
             --timeout=900 \
             --min-instances=0 \
             --max-instances=10 \
-            --set-env-vars=RAILS_ENV=production,JOB_BACKEND=cloud_tasks,GCP_REGION=${{ env.REGION }},GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }},WORKER_BASE_URL=${{ secrets.WORKER_BASE_URL }},CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL=${{ secrets.CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL }}
+            --set-env-vars=RAILS_ENV=production,JOB_BACKEND=cloud_tasks,ACTIVE_STORAGE_SERVICE=gcs,GCP_REGION=${{ env.REGION }},GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }},GCS_UPLOAD_BUCKET=${{ vars.GCS_UPLOAD_BUCKET || secrets.GCS_UPLOAD_BUCKET }},WORKER_BASE_URL=${{ secrets.WORKER_BASE_URL }},CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL=${{ secrets.CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL }}

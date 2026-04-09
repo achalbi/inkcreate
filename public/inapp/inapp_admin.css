@@ -31,9 +31,9 @@ body.admin-body {
   background-image:
     radial-gradient(circle at 12% 14%, rgba(230, 98, 57, 0.13), transparent 22%),
     radial-gradient(circle at 84% 6%, rgba(95, 82, 69, 0.08), transparent 22%),
-    radial-gradient(circle, rgba(95, 82, 69, 0.1) 1px, transparent 1.2px),
+    radial-gradient(circle, rgba(95, 82, 69, 0.18) 1px, transparent 1.2px),
     linear-gradient(180deg, #fbf7ef 0%, #f5eee3 52%, #efe4d4 100%);
-  background-size: auto, auto, 24px 24px, auto;
+  background-size: auto, auto, 18px 18px, auto;
   background-attachment: fixed;
   color: var(--inapp-ink);
   font-family: var(--inapp-font-body);
@@ -688,4 +688,11 @@ body.admin-body {
   .admin-body #content .fs-3 {
     font-size: clamp(1.68rem, 6.8vw, 2rem);
   }
+}
+
+.metric-icon {
+  width: 2.06rem;
+  height: 2.06rem;
+  border-radius: 0.56rem;
+  font-size: 0.94rem;
 }

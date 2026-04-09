@@ -52,7 +52,7 @@ class PagesController < BrowserController
     attachment = @page.photos.attachments.find(params[:attachment_id])
     attachment.purge
     schedule_drive_export(@page)
-    redirect_to notebook_chapter_page_path(@notebook, @chapter, @page), notice: "Photo removed."
+    redirect_back fallback_location: notebook_chapter_page_path(@notebook, @chapter, @page), notice: "Photo removed."
   end
 
   private

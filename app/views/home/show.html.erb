@@ -1,4 +1,40 @@
+<%= render "shared/workspace_header",
+  # breadcrumbs: ["Home"],
+  eyebrow: "Home",
+  title: "Choose how you want to organize your work.",
+  description: "Notebook keeps project-based material structured by chapter and page. Notepad keeps fast daily capture organized by date." %>
+
 <div class="wrapper wrapper-content animated fadeInRight">
+  <section class="row g-2 g-md-3 home-metric-grid">
+    <div class="col-4 col-md-4">
+      <div class="ibox float-e-margins">
+        <div class="ibox-content home-metric-card">
+          <h2 class="home-metric-value"><%= @total_notebooks %></h2>
+          <h5 class="home-metric-title">Total notebooks</h5>
+          <small class="home-metric-copy">Total notebooks across your workspace.</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-4 col-md-4">
+      <div class="ibox float-e-margins">
+        <div class="ibox-content home-metric-card">
+          <h2 class="home-metric-value"><%= @active_notebooks %></h2>
+          <h5 class="home-metric-title">Active notebooks</h5>
+          <small class="home-metric-copy">Project notebooks currently in progress.</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-4 col-md-4">
+      <div class="ibox float-e-margins">
+        <div class="ibox-content home-metric-card">
+          <h2 class="home-metric-value"><%= @today_notepad_entries %></h2>
+          <h5 class="home-metric-title">Today's notepad</h5>
+          <small class="home-metric-copy">Notepad entries stored for <%= @today.strftime("%b %-d, %Y") %>.</small>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="row">
     <div class="col-lg-6">
       <div class="ibox float-e-margins">
@@ -17,7 +53,7 @@
             <span class="label label-default">Total: <%= @total_notebooks %></span>
           </p>
 
-          <h5 class="m-b-sm">Recent notebooks</h5>
+          <h5 class="m-b-sm home-recent-heading">Recent notebooks</h5>
           <% if @recent_notebooks.any? %>
             <ul class="home-recent-list m-b-md">
               <% @recent_notebooks.each do |notebook| %>
@@ -66,7 +102,7 @@
             <span class="label label-default">Latest first</span>
           </p>
 
-          <h5 class="m-b-sm">Recent entries</h5>
+          <h5 class="m-b-sm home-recent-heading">Recent entries</h5>
           <% if @recent_notepad_entries.any? %>
             <ul class="home-recent-list m-b-md">
               <% @recent_notepad_entries.each do |entry| %>
@@ -92,45 +128,10 @@
 
           <div class="m-t-md workspace-form-actions">
             <%= link_to "Open notepad", notepad_entries_path, class: "btn btn-primary btn-sm" %>
-            <%= link_to "New entry", new_notepad_entry_path, class: "btn btn-white btn-sm" %>
+            <%= link_to "New Page", new_notepad_entry_path, class: "btn btn-white btn-sm" %>
           </div>
         </div>
       </div>
     </div>
   </section>
-  <section class="row g-2 g-md-3 home-metric-grid">
-    <div class="col-4 col-md-4">
-      <div class="ibox float-e-margins">
-        <div class="ibox-content home-metric-card">
-          <h2 class="home-metric-value"><%= @total_notebooks %></h2>
-          <h5 class="home-metric-title">Total notebooks</h5>
-          <small class="home-metric-copy">Total notebooks across your workspace.</small>
-        </div>
-      </div>
-    </div>
-    <div class="col-4 col-md-4">
-      <div class="ibox float-e-margins">
-        <div class="ibox-content home-metric-card">
-          <h2 class="home-metric-value"><%= @active_notebooks %></h2>
-          <h5 class="home-metric-title">Active notebooks</h5>
-          <small class="home-metric-copy">Project notebooks currently in progress.</small>
-        </div>
-      </div>
-    </div>
-    <div class="col-4 col-md-4">
-      <div class="ibox float-e-margins">
-        <div class="ibox-content home-metric-card">
-          <h2 class="home-metric-value"><%= @today_notepad_entries %></h2>
-          <h5 class="home-metric-title">Today's notepad</h5>
-          <small class="home-metric-copy">Notepad entries stored for <%= @today.strftime("%b %-d, %Y") %>.</small>
-        </div>
-      </div>
-    </div>
-  </section>
 </div>
-
-<%= render "shared/workspace_header",
-  eyebrow: "Home",
-  title: "Choose how you want to organize your work.",
-  description: "Notebook keeps project-based material structured by chapter and page. Notepad keeps fast daily capture organized by date.",
-  spacing_class: "mb-0" %>

@@ -10,5 +10,6 @@ Rails.application.configure do
   config.action_controller.perform_caching = true
   config.action_mailer.perform_caching = false
   config.active_job.queue_adapter = ENV.fetch("JOB_BACKEND", "sidekiq") == "cloud_tasks" ? :async : :sidekiq
-  config.active_storage.service = ENV.fetch("ACTIVE_STORAGE_SERVICE", "local").to_sym
+  default_active_storage_service = ENV["GCS_UPLOAD_BUCKET"].present? ? "gcs" : "local"
+  config.active_storage.service = ENV.fetch("ACTIVE_STORAGE_SERVICE", default_active_storage_service).to_sym
 end

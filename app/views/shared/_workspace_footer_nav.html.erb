@@ -9,6 +9,16 @@
     <span>Notebook</span>
   <% end %>
 
+  <%= link_to capture_studio_path,
+    class: ["mobile-footer-link", "mobile-footer-link--center", ("active" if controller_path == "capture_studio")].compact.join(" "),
+    aria: { label: "Open camera capture" },
+    title: "Open camera capture" do %>
+    <span class="mobile-footer-link__center-button" aria-hidden="true">
+      <i class="ti ti-camera"></i>
+    </span>
+    <span class="visually-hidden">Capture</span>
+  <% end %>
+
   <%= link_to notepad_entries_path, class: ["mobile-footer-link", ("active" if controller_path == "notepad_entries")].compact.join(" ") do %>
     <i class="ti ti-calendar-event"></i>
     <span>Notepad</span>

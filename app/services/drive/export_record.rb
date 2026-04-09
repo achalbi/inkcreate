@@ -3,7 +3,7 @@ require "stringio"
 
 module Drive
   class ExportRecord
-    NOTES_FILE_NAME = "notes.txt".freeze
+    NOTES_FILE_NAME = "notes.md".freeze
     MANIFEST_FILE_NAME = "manifest.json".freeze
 
     def initialize(google_drive_export:)
@@ -30,7 +30,7 @@ module Drive
         folder_id: folder_id,
         file_name: NOTES_FILE_NAME,
         content: notes_content,
-        content_type: "text/plain"
+        content_type: "text/markdown"
       )
       manifest_file_id = upsert_text_file(
         file_id: google_drive_export.remote_manifest_file_id,
@@ -150,12 +150,18 @@ module Drive
 
     def notes_content
       [
-        "Title: #{record_title}",
-        metadata_lines,
+        "# #{record_title}",
         "",
-        "Notes:",
-        record.notes.presence || "(no notes)"
+        metadata_markdown_lines,
+        "",
+        "## Notes",
+        "",
+        record_notes_text.presence || "_(no notes)_"
       ].flatten.join("\n")
+    end
+
+    def metadata_markdown_lines
+      metadata_lines.map { |line| "- #{line}" }
     end
 
     def metadata_lines
@@ -194,7 +200,7 @@ module Drive
         "record_type" => record.class.name,
         "record_id" => record.id,
         "title" => record_title,
-        "notes" => record.notes.to_s,
+        "notes" => record_notes_text,
         "photo_count" => record.photos.attachments.size,
         "exported_photo_count" => exported_photo_count,
         "photos_exported" => photos_allowed_in_backups?,
@@ -266,6 +272,10 @@ module Drive
       end
     rescue Google::Apis::ClientError
       drive_service.create_file(metadata, upload_source: StringIO.new(content), content_type: content_type, fields: "id").id
+    end
+
+    def record_notes_text
+      record.respond_to?(:plain_notes) ? record.plain_notes : record.notes.to_s
     end
 
     def upsert_photo_file(file_id:, folder_id:, attachment:, index:)

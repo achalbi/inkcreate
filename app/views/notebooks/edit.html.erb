@@ -1,4 +1,5 @@
 <%= render "shared/workspace_header",
+  breadcrumbs: [["Home", dashboard_path], ["Notebook", notebooks_path], [@notebook.title, notebook_path(@notebook)], "Edit notebook"],
   eyebrow: "Notebook",
   title: "Edit notebook",
   description: "Update the notebook title, description, or status." %>

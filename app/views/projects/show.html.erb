@@ -1,5 +1,6 @@
 <div class="workspace-page">
     <%= render "shared/workspace_header",
+      breadcrumbs: [["Home", dashboard_path], ["Projects", projects_path], @project.title],
       eyebrow: "Project workspace",
       title: @project.title,
       description: @project.description.presence || "This project is ready for captures, tasks, media, and future AI digests.",

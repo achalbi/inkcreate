@@ -1,45 +1,56 @@
 <article
-  class="notebook-list-card"
+  class="notebook-list-card notebook-list-card--chapter"
   data-card-link="<%= notebook_chapter_path(notebook, chapter) %>"
   tabindex="0"
   role="link"
   aria-label="Open <%= chapter.title %>"
 >
   <div class="notebook-list-card__body">
-    <div class="notebook-list-card__header">
+    <div class="notebook-list-card__content notebook-list-card__content--chapter">
+      <div class="notebook-list-card__symbol" aria-hidden="true">
+        <i class="ti ti-book-2"></i>
+      </div>
+
       <div class="notebook-list-card__main">
-        <h6 class="notebook-list-card__title"><%= chapter.title %></h6>
-        <p class="notebook-list-card__description"><%= chapter.description.presence || "No chapter description yet." %></p>
+        <div class="notebook-list-card__title-row">
+          <h6 class="notebook-list-card__title"><%= chapter.title %></h6>
+          <span class="label label-default notebook-list-card__status">Ch. <%= chapter.position %></span>
+        </div>
+
+        <p class="notebook-list-card__description"><%= chapter.description.presence || "No description." %></p>
+
+        <div class="notebook-list-card__meta notebook-list-card__meta--chapter">
+          <span class="notebook-list-card__meta-item notebook-list-card__meta-item--chapter">
+            <i class="ti ti-file-text" aria-hidden="true"></i>
+            <strong><%= chapter.pages.count %></strong> <%= "page".pluralize(chapter.pages.count) %>
+          </span>
+
+          <span class="notebook-list-card__meta-item notebook-list-card__meta-item--chapter">
+            <i class="ti ti-clock-hour-4" aria-hidden="true"></i>
+            <%= time_ago_in_words(chapter.updated_at) %> ago
+          </span>
+        </div>
       </div>
 
-      <div class="notebook-list-card__header-tools">
-        <span class="label label-default notebook-list-card__status">Chapter <%= chapter.position %></span>
+      <div class="notebook-list-card__trailing">
+        <%= button_to move_notebook_chapter_path(notebook, chapter, direction: :up),
+          method: :patch,
+          class: "btn btn-white btn-sm btn-icon chapter-move-btn",
+          title: "Move up",
+          aria: { label: "Move #{chapter.title} up" },
+          form: { class: "content-list-actions__form" } do %>
+          <i class="ti ti-chevron-up" aria-hidden="true"></i>
+        <% end %>
+
+        <%= button_to move_notebook_chapter_path(notebook, chapter, direction: :down),
+          method: :patch,
+          class: "btn btn-white btn-sm btn-icon chapter-move-btn",
+          title: "Move down",
+          aria: { label: "Move #{chapter.title} down" },
+          form: { class: "content-list-actions__form" } do %>
+          <i class="ti ti-chevron-down" aria-hidden="true"></i>
+        <% end %>
       </div>
-    </div>
-
-    <div class="notebook-list-card__meta">
-      <span class="notebook-list-card__meta-item"><strong><%= chapter.pages.count %></strong> <%= "page".pluralize(chapter.pages.count) %></span>
-      <span class="notebook-list-card__meta-item">Updated <%= time_ago_in_words(chapter.updated_at) %> ago</span>
-    </div>
-
-    <div class="content-list-actions">
-      <%= button_to move_notebook_chapter_path(notebook, chapter, direction: :up),
-        method: :patch,
-        class: "btn btn-white btn-sm btn-icon",
-        title: "Move chapter up",
-        aria: { label: "Move #{chapter.title} up" },
-        form: { class: "content-list-actions__form" } do %>
-        <i class="ti ti-arrow-up" aria-hidden="true"></i>
-      <% end %>
-
-      <%= button_to move_notebook_chapter_path(notebook, chapter, direction: :down),
-        method: :patch,
-        class: "btn btn-white btn-sm btn-icon",
-        title: "Move chapter down",
-        aria: { label: "Move #{chapter.title} down" },
-        form: { class: "content-list-actions__form" } do %>
-        <i class="ti ti-arrow-down" aria-hidden="true"></i>
-      <% end %>
     </div>
   </div>
 </article>

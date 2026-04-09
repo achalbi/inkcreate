@@ -1,17 +1,9 @@
 <%= render "shared/workspace_header",
+  breadcrumbs: [["Home", dashboard_path], ["Notebook", notebooks_path], [@notebook.title, notebook_path(@notebook)], [@chapter.title, notebook_chapter_path(@notebook, @chapter)], "Create page"],
   eyebrow: "Page",
   title: "Create page",
   description: "Add a new content page inside #{@chapter.title}." %>
 
 <div class="wrapper wrapper-content animated fadeInRight">
-  <nav aria-label="breadcrumb" class="m-b-md">
-    <ol class="breadcrumb">
-      <li><%= link_to "Home", dashboard_path %></li>
-      <li><%= link_to "Notebook", notebooks_path %></li>
-      <li><%= link_to @notebook.title, notebook_path(@notebook) %></li>
-      <li><%= link_to @chapter.title, notebook_chapter_path(@notebook, @chapter) %></li>
-      <li class="active">Create page</li>
-    </ol>
-  </nav>
   <%= render "form", notebook: @notebook, chapter: @chapter, page: @page %>
 </div>

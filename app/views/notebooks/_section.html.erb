@@ -3,7 +3,7 @@
     <div class="notebook-section-title-row">
       <div class="notebook-section-heading">
         <h5><%= title %></h5>
-        <p class="notebook-section-copy"><%= description %></p>
+        <span class="label <%= badge_class %> notebook-section-badge"><%= badge_text %></span>
       </div>
       <div class="ibox-tools notebook-section-tools">
         <% if all_notebooks.any? %>
@@ -21,14 +21,11 @@
         <%= render "shared/ibox_toggle_button", target_id: content_id %>
       </div>
     </div>
-    <div class="notebook-section-meta">
-      <span class="label <%= badge_class %> notebook-section-badge"><%= badge_text %></span>
-    </div>
   </div>
 
-  <div id="<%= content_id %>" class="ibox-content collapse show notebook-section-content">
+  <div id="<%= content_id %>" class="ibox-content collapse show notebook-section-content <%= "notebook-section-list-content" if notebooks.any? %>">
     <% if notebooks.any? %>
-      <div class="notebook-list-stack">
+      <div class="notebook-list-stack notebook-list-stack--separated">
         <% notebooks.each do |notebook| %>
           <%= render "notebook_card", notebook: notebook %>
         <% end %>

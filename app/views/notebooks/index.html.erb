@@ -1,3 +1,9 @@
+<!-- <%= render "shared/workspace_header",
+  breadcrumbs: [["Home", dashboard_path], "Notebooks"],
+  eyebrow: "Notebook",
+  title: "Project notebooks",
+  description: "Create project spaces, organize them into chapters, and store pages with notes, dates, and photos." %> -->
+
 <div class="wrapper wrapper-content animated fadeInRight">
   <div class="workspace-index-actions">
     <div class="workspace-index-actions__left">
@@ -58,9 +64,3 @@
 
   <%= render "shared/workspace_fab", path: new_notebook_path, title: "Create new notebook" %>
 </div>
-
-<%= render "shared/workspace_header",
-  eyebrow: "Notebook",
-  title: "Project notebooks",
-  description: "Create project spaces, organize them into chapters, and store pages with notes, dates, and photos.",
-  spacing_class: "mb-0" %>

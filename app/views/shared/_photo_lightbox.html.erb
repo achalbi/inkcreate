@@ -8,6 +8,8 @@
   lightbox_width = 1600 if lightbox_width <= 0
   lightbox_height = 1200 if lightbox_height <= 0
   lightbox_src = url_for(photo)
+  lightbox_remove_path = local_assigns[:removal_path].presence
+  lightbox_remove_message = local_assigns[:removal_message].presence
 %>
 
 <a
@@ -19,6 +21,12 @@
   data-pswp-src="<%= lightbox_src %>"
   data-pswp-width="<%= lightbox_width %>"
   data-pswp-height="<%= lightbox_height %>"
+  <% if lightbox_remove_path.present? %>
+  data-pswp-remove-path="<%= lightbox_remove_path %>"
+  <% end %>
+  <% if lightbox_remove_message.present? %>
+  data-pswp-remove-message="<%= lightbox_remove_message %>"
+  <% end %>
   data-cropped="true"
   target="_blank"
   rel="noreferrer"

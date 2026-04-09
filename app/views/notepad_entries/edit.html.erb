@@ -1,7 +1,9 @@
-<%= render "shared/workspace_header",
+<!-- <%= render "shared/workspace_header",
+  breadcrumbs: [["Home", dashboard_path], ["Notepad", notepad_entries_path], [@notepad_entry.display_title, notepad_entry_path(@notepad_entry)], "Edit daily page"],
   eyebrow: "Notepad",
+  class_name: "workspace-header--compact",
   title: "Edit daily page",
-  description: "Update the date, notes, or photos for this page." %>
+  description: "Update the date, notes, or photos for this page." %> -->
 
 <div class="wrapper wrapper-content animated fadeInRight">
   <%= render "form", notepad_entry: @notepad_entry %>

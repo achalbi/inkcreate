@@ -1,5 +1,6 @@
 <div class="workspace-page">
     <%= render "shared/workspace_header",
+      breadcrumbs: [["Home", dashboard_path], "Tasks"],
       eyebrow: "Tasks",
       title: "Extracted actions and manual tasks in one place.",
       description: "Tasks can come from AI summaries or be created manually from capture context, then tracked across projects and days." %>

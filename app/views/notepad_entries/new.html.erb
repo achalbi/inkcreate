@@ -1,5 +1,7 @@
 <%= render "shared/workspace_header",
+  breadcrumbs: [["Home", dashboard_path], ["Notepad", notepad_entries_path], "Create daily page"],
   eyebrow: "Notepad",
+  class_name: "workspace-header--compact",
   title: "Create daily page",
   description: "Capture text and photos for a single day without a notebook hierarchy." %>
 

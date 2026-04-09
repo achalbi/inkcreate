@@ -1,5 +1,6 @@
 <div class="workspace-page settings-page settings-page--backup">
   <%= render "shared/workspace_header",
+    breadcrumbs: [["Home", dashboard_path], ["Settings", settings_path], "Backup"],
     eyebrow: "Backup",
     title: "Google Drive backup stays explicit and observable.",
     description: "The backup adapter tracks local-only, pending, uploaded, and failed states so users always know where their notes live." %>
