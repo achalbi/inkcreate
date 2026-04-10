@@ -117,6 +117,30 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_select "button[data-action='notification-preferences#disable']", text: "Disable notifications"
   end
 
+  test "workspace footer exposes the mobile quick action menu" do
+    sign_in!
+
+    get dashboard_path
+
+    assert_response :success
+    assert_select "[data-controller='footer-action-menu']", count: 1
+    assert_select "button[data-action='footer-action-menu#toggle'][aria-controls='mobile-footer-leaf-actions']", count: 1
+    assert_select "a.mobile-footer-action-menu__item[href='#{capture_studio_path}']", text: /Quick capture/
+    assert_select "a.mobile-footer-action-menu__item[href='#{tasks_path(task: { due_date: Date.current.iso8601 })}']", text: /Reminder/
+    assert_select "a.mobile-footer-action-menu__item[href='#{tasks_path}']", text: /To-do/
+  end
+
+  test "tasks page can prefill the reminder due date" do
+    sign_in!
+
+    reminder_date = Date.current
+
+    get tasks_path(task: { due_date: reminder_date.iso8601 })
+
+    assert_response :success
+    assert_select "input[name='task[due_date]'][value='#{reminder_date.iso8601}']"
+  end
+
   test "install page shows notification setup step" do
     sign_in!
 

@@ -2,7 +2,7 @@ class TasksController < BrowserController
   before_action :require_authenticated_user!
 
   def index
-    @task = current_user.tasks.new(priority: :medium)
+    @task = current_user.tasks.new({ priority: :medium }.merge(task_prefill_params))
     @tasks = current_user.tasks.includes(:project, :daily_log, :capture).recent_first
   end
 
@@ -27,5 +27,12 @@ class TasksController < BrowserController
 
   def task_params
     params.fetch(:task, {}).permit(:title, :description, :priority, :due_date, :completed)
+  end
+
+  def task_prefill_params
+    task = params[:task]
+    return {} unless task.respond_to?(:permit)
+
+    task.permit(:title, :description, :priority, :due_date).to_h.symbolize_keys
   end
 end

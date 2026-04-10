@@ -12,6 +12,7 @@ import NotificationPreferencesController from "/scripts/controllers/notification
 import DriveOauthController from "/scripts/controllers/drive_oauth_controller.js";
 import RichTextController from "/scripts/controllers/rich_text_controller.js";
 import QuickCaptureController from "/scripts/controllers/quick_capture_controller.js";
+import FooterActionMenuController from "/scripts/controllers/footer_action_menu_controller.js";
 import { enableNotificationsForInstall } from "/scripts/notification_preferences.js";
 
 const AUTO_DISMISS_DELAY_MS = 5000;
@@ -69,6 +70,7 @@ application.register("notification-preferences", NotificationPreferencesControll
 application.register("drive-oauth", DriveOauthController);
 application.register("rich-text", RichTextController);
 application.register("quick-capture", QuickCaptureController);
+application.register("footer-action-menu", FooterActionMenuController);
 
 document.addEventListener("DOMContentLoaded", () => scheduleTimedMessages());
 document.addEventListener("turbo:load", () => scheduleTimedMessages());

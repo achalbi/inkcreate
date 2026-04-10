@@ -1,31 +1,87 @@
+<% center_action_active = %w[capture_studio tasks].include?(controller_path) %>
+
 <nav class="mobile-footer-nav d-lg-none" aria-label="Primary mobile navigation">
-  <%= link_to dashboard_path, class: ["mobile-footer-link", ("active" if controller_path == "home")].compact.join(" ") do %>
-    <i class="ti ti-home"></i>
-    <span>Home</span>
-  <% end %>
+  <div class="mobile-footer-nav__content">
+    <%= link_to dashboard_path, class: ["mobile-footer-link", ("active" if controller_path == "home")].compact.join(" ") do %>
+      <i class="ti ti-home"></i>
+      <span>Home</span>
+    <% end %>
 
-  <%= link_to notebooks_path, class: ["mobile-footer-link", ("active" if controller_path == "notebooks" || controller_path == "chapters" || controller_path == "pages")].compact.join(" ") do %>
-    <i class="ti ti-notebook"></i>
-    <span>Notebook</span>
-  <% end %>
+    <%= link_to notebooks_path, class: ["mobile-footer-link", ("active" if controller_path == "notebooks" || controller_path == "chapters" || controller_path == "pages")].compact.join(" ") do %>
+      <i class="ti ti-notebook"></i>
+      <span>Notebook</span>
+    <% end %>
 
-  <%= link_to capture_studio_path,
-    class: ["mobile-footer-link", "mobile-footer-link--center", ("active" if controller_path == "capture_studio")].compact.join(" "),
-    aria: { label: "Open camera capture" },
-    title: "Open camera capture" do %>
-    <span class="mobile-footer-link__center-button" aria-hidden="true">
-      <i class="ti ti-camera"></i>
-    </span>
-    <span class="visually-hidden">Capture</span>
-  <% end %>
+    <div
+      class="<%= ["mobile-footer-link", "mobile-footer-link--center", "mobile-footer-action-menu", ("active" if center_action_active)].compact.join(" ") %>"
+      data-controller="footer-action-menu"
+      data-action="click@window->footer-action-menu#closeOnWindow keydown.esc@window->footer-action-menu#close"
+    >
+      <div
+        id="mobile-footer-leaf-actions"
+        class="mobile-footer-action-menu__items"
+        data-footer-action-menu-target="menu"
+        aria-hidden="true"
+      >
+        <%= link_to capture_studio_path,
+          class: "mobile-footer-action-menu__item mobile-footer-action-menu__item--capture",
+          title: "Quick capture",
+          aria: { label: "Quick capture" },
+          data: { action: "click->footer-action-menu#close", footer_action_menu_target: "item" } do %>
+          <span class="mobile-footer-action-menu__item-icon" aria-hidden="true">
+            <i class="ti ti-camera"></i>
+          </span>
+          <span class="mobile-footer-action-menu__item-label">Quick capture</span>
+        <% end %>
 
-  <%= link_to notepad_entries_path, class: ["mobile-footer-link", ("active" if controller_path == "notepad_entries")].compact.join(" ") do %>
-    <i class="ti ti-calendar-event"></i>
-    <span>Notepad</span>
-  <% end %>
+        <%= link_to tasks_path(task: { due_date: Date.current.iso8601 }),
+          class: "mobile-footer-action-menu__item mobile-footer-action-menu__item--reminder",
+          title: "Reminder",
+          aria: { label: "Create reminder" },
+          data: { action: "click->footer-action-menu#close", footer_action_menu_target: "item" } do %>
+          <span class="mobile-footer-action-menu__item-icon" aria-hidden="true">
+            <i class="ti ti-bell"></i>
+          </span>
+          <span class="mobile-footer-action-menu__item-label">Reminder</span>
+        <% end %>
 
-  <%= link_to settings_path, class: ["mobile-footer-link", ("active" if controller_path == "settings" || controller_path == "settings/backup" || controller_path == "settings/privacy")].compact.join(" ") do %>
-    <i class="ti ti-settings"></i>
-    <span>Settings</span>
-  <% end %>
+        <%= link_to tasks_path,
+          class: "mobile-footer-action-menu__item mobile-footer-action-menu__item--todo",
+          title: "To-do",
+          aria: { label: "Create to-do" },
+          data: { action: "click->footer-action-menu#close", footer_action_menu_target: "item" } do %>
+          <span class="mobile-footer-action-menu__item-icon" aria-hidden="true">
+            <i class="ti ti-square-rounded-plus"></i>
+          </span>
+          <span class="mobile-footer-action-menu__item-label">To-do</span>
+        <% end %>
+      </div>
+
+      <button
+        type="button"
+        class="mobile-footer-link__center-button"
+        data-action="footer-action-menu#toggle"
+        data-footer-action-menu-target="toggle"
+        aria-controls="mobile-footer-leaf-actions"
+        aria-expanded="false"
+        aria-pressed="false"
+        aria-haspopup="true"
+        aria-label="Open quick actions"
+        title="Open quick actions"
+      >
+        <i class="ti ti-leaf" aria-hidden="true"></i>
+      </button>
+      <span class="visually-hidden">Quick actions</span>
+    </div>
+
+    <%= link_to notepad_entries_path, class: ["mobile-footer-link", ("active" if controller_path == "notepad_entries")].compact.join(" ") do %>
+      <i class="ti ti-calendar-event"></i>
+      <span>Notepad</span>
+    <% end %>
+
+    <%= link_to settings_path, class: ["mobile-footer-link", ("active" if controller_path == "settings" || controller_path == "settings/backup" || controller_path == "settings/privacy")].compact.join(" ") do %>
+      <i class="ti ti-settings"></i>
+      <span>Settings</span>
+    <% end %>
+  </div>
 </nav>

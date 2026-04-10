@@ -1,11 +1,11 @@
 module Drive
   class CreateFolder
-    DEFAULT_FOLDER_NAME = "Inkcreate".freeze
+    DEFAULT_FOLDER_PREFIX = "inkcreate".freeze
     DEFAULT_CHILD_FOLDERS = ["Notebooks", "Notepad"].freeze
 
-    def initialize(user:, name: DEFAULT_FOLDER_NAME)
+    def initialize(user:, name: nil)
       @user = user
-      @name = name
+      @name = name.presence || default_folder_name
     end
 
     def call
@@ -19,5 +19,20 @@ module Drive
     private
 
     attr_reader :user, :name
+
+    def default_folder_name
+      [DEFAULT_FOLDER_PREFIX, normalized_username, user.id].join("-")
+    end
+
+    def normalized_username
+      username =
+        if user.respond_to?(:username) && user.username.present?
+          user.username
+        else
+          user.email.to_s.split("@").first
+        end
+
+      username.to_s.parameterize(separator: "-").presence || "user"
+    end
   end
 end
