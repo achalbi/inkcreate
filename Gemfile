@@ -27,12 +27,15 @@ gem "sentry-sidekiq", "~> 6.0"
 gem "sidekiq", "~> 8.0"
 gem "tailwindcss-rails"
 gem "tzinfo-data", platforms: %i[ mingw mswin x64_mingw jruby ]
+gem "web-push", "~> 3.0"
 
 group :development, :test do
+  gem "capybara"
   gem "dotenv-rails"
   gem "factory_bot_rails"
   gem "faker"
   gem "rspec-rails"
+  gem "selenium-webdriver"
 end
 
 group :development do

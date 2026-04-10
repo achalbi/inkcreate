@@ -34,7 +34,7 @@ class PageTest < ActiveSupport::TestCase
     assert_equal "Captured follow-up questions and quotes from the... - Page 1", page.display_title
   end
 
-  test "requires notes or a photo" do
+  test "requires some form of content" do
     chapter = build_chapter(email: "page-empty-content@example.com")
 
     page = chapter.pages.new(
@@ -45,24 +45,30 @@ class PageTest < ActiveSupport::TestCase
     assert_not page.valid?
     assert_equal "Apr 5, 2026 - Page 1", page.title
     assert_equal "Apr 5, 2026 - Page 1", page.display_title
-    assert_includes page.errors.full_messages, "Add notes or at least one photo."
+    assert_includes page.errors.full_messages, "Add notes, a photo, a voice note, or a to-do item."
   end
 
   test "generates a title from captured date when notes are blank" do
     chapter = build_chapter(email: "page-date-title@example.com")
-
-    page = chapter.pages.create!(
-      title: "",
-      captured_on: Date.new(2026, 4, 5)
+    blob = ActiveStorage::Blob.create_and_upload!(
+      io: StringIO.new("fake image bytes"),
+      filename: "page.jpg",
+      content_type: "image/jpeg"
     )
+
+    page = chapter.pages.new(title: "", captured_on: Date.new(2026, 4, 5))
+    page.retained_photo_signed_ids = [blob.signed_id]
+    page.save!
 
     assert_equal "Apr 5, 2026 - Page 1", page.title
     assert_equal "Apr 5, 2026 - Page 1", page.display_title
+  ensure
+    blob&.purge
   end
 
   test "uses the running page number in the generated suffix" do
     chapter = build_chapter(email: "page-running-number@example.com")
-    chapter.pages.create!(title: "Existing page")
+    chapter.pages.create!(title: "Existing page", notes: "Original page content")
 
     page = chapter.pages.create!(
       title: "",
@@ -87,6 +93,23 @@ class PageTest < ActiveSupport::TestCase
     assert page.valid?
   ensure
     blob&.purge
+  end
+
+  test "is valid with a pending voice note upload and no notes or photos" do
+    chapter = build_chapter(email: "page-pending-voice-note@example.com")
+    page = chapter.pages.new(title: "", captured_on: Date.current)
+    page.pending_voice_note_uploads = [Object.new]
+
+    assert page.valid?
+  end
+
+  test "is valid with pending to-do items and no notes or media" do
+    chapter = build_chapter(email: "page-pending-todo@example.com")
+    page = chapter.pages.new(title: "", captured_on: Date.current)
+    page.pending_todo_list_enabled = true
+    page.pending_todo_item_contents = ["Draft reminder item"]
+
+    assert page.valid?
   end
 
   test "adds the current suffix to a manually entered title" do

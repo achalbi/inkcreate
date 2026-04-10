@@ -1,0 +1,141 @@
+<%
+  todo_list = page.todo_list
+  todo_items = todo_list&.todo_items&.ordered&.to_a || []
+  reminders_available = Reminder.schema_ready?
+  visible_items =
+    if todo_list&.hide_completed?
+      todo_items.reject(&:completed?)
+    else
+      todo_items
+    end
+%>
+
+<section
+  id="<%= dom_id(page, :todo_list_section) %>"
+  class="ibox float-e-margins"
+  data-controller="todo-list"
+  data-todo-list-mode-value="persisted"
+>
+  <div class="ibox-title">
+    <div class="detail-photo-gallery-heading">
+      <h5 class="detail-photo-gallery-title">To-do list</h5>
+      <span class="label label-info detail-photo-gallery-count"><%= todo_items.size %></span>
+    </div>
+    <div class="ibox-tools d-flex align-items-center gap-2">
+      <% if todo_list&.enabled? && todo_items.any? %>
+        <span class="label label-default"><%= todo_list.progress_label %></span>
+      <% end %>
+      <%= render "shared/ibox_toggle_button", target_id: dom_id(page, :todo_list_content) %>
+    </div>
+  </div>
+
+  <div id="<%= dom_id(page, :todo_list_content) %>" class="ibox-content collapse show">
+    <% if todo_list.blank? || !todo_list.enabled? %>
+      <div class="vstack gap-3">
+        <%= render "shared/empty_state", title: "To-do list disabled", description: "Enable a checklist on this page to track action items and attach reminders." %>
+
+        <form action="<%= notebook_chapter_page_todo_list_path(notebook, chapter, page) %>" method="post" data-action="submit->todo-list#submit">
+          <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+          <input type="hidden" name="todo_list[enabled]" value="true">
+          <button type="submit" class="btn btn-primary">Enable to-do list</button>
+        </form>
+      </div>
+    <% else %>
+      <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
+        <form action="<%= notebook_chapter_page_todo_list_path(notebook, chapter, page) %>" method="post" data-action="submit->todo-list#submit" class="d-inline-flex">
+          <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+          <input type="hidden" name="_method" value="patch">
+          <input type="hidden" name="todo_list[hide_completed]" value="<%= todo_list.hide_completed? ? "false" : "true" %>">
+          <button type="submit" class="btn btn-outline-secondary btn-sm">
+            <%= todo_list.hide_completed? ? "Show completed" : "Hide completed" %>
+          </button>
+        </form>
+
+        <form action="<%= notebook_chapter_page_todo_list_path(notebook, chapter, page) %>" method="post" data-action="submit->todo-list#submit" class="d-inline-flex">
+          <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+          <input type="hidden" name="_method" value="patch">
+          <input type="hidden" name="todo_list[enabled]" value="false">
+          <button type="submit" class="btn btn-outline-danger btn-sm">Disable list</button>
+        </form>
+      </div>
+
+      <form action="<%= notebook_chapter_page_todo_items_path(notebook, chapter, page) %>" method="post" data-action="submit->todo-list#submit" class="todo-list-create-form mb-3">
+        <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+        <div class="input-group">
+          <input type="text" name="todo_item[content]" class="form-control" placeholder="Add a to-do item">
+          <button type="submit" class="btn btn-primary">Add</button>
+        </div>
+      </form>
+
+      <% if visible_items.any? %>
+        <div class="vstack gap-2" data-todo-list-target="items">
+          <% visible_items.each_with_index do |todo_item, index| %>
+            <article
+              class="todo-list-item <%= "is-completed" if todo_item.completed? %>"
+              draggable="true"
+              data-item-id="<%= todo_item.id %>"
+              data-position="<%= index + 1 %>"
+              data-reorder-url="<%= reorder_notebook_chapter_page_todo_item_path(notebook, chapter, page, todo_item) %>"
+              data-action="dragstart->todo-list#dragStart dragover->todo-list#dragOver drop->todo-list#drop dragend->todo-list#dragEnd"
+            >
+              <div class="todo-list-item__row">
+                <button type="button" class="todo-list-item__handle btn btn-white btn-sm" aria-label="Reorder item">
+                  <i class="ti ti-grip-vertical" aria-hidden="true"></i>
+                </button>
+
+                <form action="<%= toggle_notebook_chapter_page_todo_item_path(notebook, chapter, page, todo_item) %>" method="post" data-action="submit->todo-list#submit" class="d-inline-flex">
+                  <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+                  <input type="hidden" name="_method" value="patch">
+                  <button type="submit" class="btn btn-white btn-sm todo-list-item__check" aria-label="<%= todo_item.completed? ? "Mark incomplete" : "Mark complete" %>">
+                    <i class="ti <%= todo_item.completed? ? "ti-check" : "ti-circle" %>" aria-hidden="true"></i>
+                  </button>
+                </form>
+
+                <form action="<%= notebook_chapter_page_todo_item_path(notebook, chapter, page, todo_item) %>" method="post" data-action="submit->todo-list#submit" class="todo-list-item__edit">
+                  <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+                  <input type="hidden" name="_method" value="patch">
+                  <input type="text" name="todo_item[content]" value="<%= todo_item.content %>" class="form-control">
+                  <button type="submit" class="btn btn-outline-secondary btn-sm">Save</button>
+                </form>
+
+                <form action="<%= notebook_chapter_page_todo_item_path(notebook, chapter, page, todo_item) %>" method="post" data-action="submit->todo-list#submit" class="d-inline-flex">
+                  <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+                  <input type="hidden" name="_method" value="delete">
+                  <button type="submit" class="btn btn-white btn-sm btn-icon" aria-label="Delete to-do item">
+                    <i class="ti ti-trash" aria-hidden="true"></i>
+                  </button>
+                </form>
+              </div>
+
+              <div class="todo-list-item__meta">
+                <% if reminders_available && todo_item.reminder.present? %>
+                  <div class="todo-list-item__reminder">
+                    <i class="ti ti-bell" aria-hidden="true"></i>
+                    <span><%= todo_item.reminder.fire_at.in_time_zone.strftime("%b %-d at %-I:%M %p") %></span>
+                    <%= link_to "Edit reminder", edit_reminder_path(todo_item.reminder), class: "btn btn-link btn-sm p-0" %>
+                  </div>
+                <% end %>
+
+                <% if reminders_available %>
+                  <div class="todo-list-item__reminder-form" data-controller="reminder-form">
+                    <button type="button" class="btn btn-link btn-sm p-0" data-action="reminder-form#toggle">
+                      <%= todo_item.reminder.present? ? "Change reminder" : "Add reminder" %>
+                    </button>
+
+                    <div class="todo-list-item__reminder-panel" data-reminder-form-target="panel" hidden>
+                      <%= render "reminders/form",
+                        reminder: todo_item.reminder || current_user.reminders.new(title: todo_item.content),
+                        target: todo_item %>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            </article>
+          <% end %>
+        </div>
+      <% else %>
+        <%= render "shared/empty_state", title: "No to-do items yet", description: "Add the first checklist item to start tracking progress on this page." %>
+      <% end %>
+    <% end %>
+  </div>
+</section>

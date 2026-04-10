@@ -1,0 +1,78 @@
+<%
+  form = local_assigns[:form]
+  auto_submit_on_save = local_assigns.fetch(:auto_submit_on_save, false)
+  voice_notes = if notepad_entry.persisted? && VoiceNote.notepad_entries_supported?
+    notepad_entry.voice_notes.chronological.includes(audio_attachment: :blob)
+  else
+    []
+  end
+  recorder_mode = notepad_entry.persisted? ? :persisted : :form
+  recorder_url = notepad_entry.persisted? ? notepad_entry_voice_notes_path(notepad_entry) : nil
+%>
+
+<section class="ibox float-e-margins">
+  <div class="ibox-title">
+    <div class="detail-photo-gallery-heading">
+      <h5 class="detail-photo-gallery-title">Voice notes</h5>
+      <span class="label label-info detail-photo-gallery-count"><%= voice_notes.size %></span>
+    </div>
+    <div class="ibox-tools">
+      <% if notepad_entry.persisted? %>
+        <span class="label label-default">Saved to this daily page</span>
+      <% else %>
+        <span class="label label-default">Saved with this form</span>
+      <% end %>
+      <%= render "shared/ibox_toggle_button", target_id: dom_id(notepad_entry, :voice_notes_content) %>
+    </div>
+  </div>
+
+  <div id="<%= dom_id(notepad_entry, :voice_notes_content) %>" class="ibox-content collapse show">
+    <%= render "pages/voice_note_recorder",
+      form: form,
+      mode: recorder_mode,
+      create_url: recorder_url,
+      param_key: form&.object_name || "notepad_entry",
+      auto_submit_on_save: auto_submit_on_save %>
+
+    <% if voice_notes.any? %>
+      <div class="vstack gap-3 m-t-md">
+        <% voice_notes.each do |voice_note| %>
+          <article class="border rounded-4 p-3 bg-light-subtle">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+              <div>
+                <div class="fw-semibold">Recorded <%= voice_note.recorded_at.in_time_zone.strftime("%b %-d, %Y at %-I:%M %p") %></div>
+                <div class="text-secondary small">
+                  <span><%= voice_note_duration_label(voice_note.duration_seconds) %></span>
+                  <span>·</span>
+                  <span><%= number_to_human_size(voice_note.byte_size) %></span>
+                </div>
+              </div>
+
+              <% if voice_note.persisted? %>
+                <button
+                  type="button"
+                  class="btn btn-white btn-sm btn-icon"
+                  title="Delete voice note"
+                  aria-label="Delete voice note recorded <%= voice_note.recorded_at.in_time_zone.strftime("%b %-d, %Y at %-I:%M %p") %>"
+                  data-controller="voice-note-delete"
+                  data-action="voice-note-delete#destroy"
+                  data-voice-note-delete-delete-url-value="<%= notepad_entry_voice_note_path(notepad_entry, voice_note) %>"
+                >
+                  <i class="ti ti-trash" aria-hidden="true"></i>
+                </button>
+              <% end %>
+            </div>
+
+            <audio controls preload="metadata" class="w-100">
+              <source src="<%= url_for(voice_note.audio) %>" type="<%= voice_note.mime_type %>">
+            </audio>
+          </article>
+        <% end %>
+      </div>
+    <% elsif !form.present? %>
+      <div class="m-t-md">
+        <%= render "shared/empty_state", title: "No voice notes yet", description: "Record an audio note to capture spoken context for this daily page." %>
+      </div>
+    <% end %>
+  </div>
+</section>

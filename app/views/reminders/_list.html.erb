@@ -1,0 +1,21 @@
+<% compact = local_assigns.fetch(:compact, false) %>
+
+<% if reminders.any? %>
+  <% if compact %>
+    <div class="home-reminder-list-content reminders-page__compact-list">
+      <div class="notebook-list-stack notebook-list-stack--separated">
+        <% reminders.each do |reminder| %>
+          <%= render "home/upcoming_reminder_row", reminder: reminder %>
+        <% end %>
+      </div>
+    </div>
+  <% else %>
+    <div class="vstack gap-3">
+      <% reminders.each do |reminder| %>
+        <%= render "reminders/reminder_card", reminder: reminder %>
+      <% end %>
+    </div>
+  <% end %>
+<% else %>
+  <%= render "shared/empty_state", title: empty_title, description: empty_description %>
+<% end %>

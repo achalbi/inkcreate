@@ -1,7 +1,7 @@
 class DriveExportJob < ApplicationJob
   queue_as :low
 
-  retry_on StandardError, wait: :exponentially_longer, attempts: 8
+  retry_on StandardError, wait: :polynomially_longer, attempts: 8
 
   def perform(drive_sync_id)
     drive_sync = DriveSync.find(drive_sync_id)

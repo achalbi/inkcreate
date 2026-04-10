@@ -1,0 +1,58 @@
+<%
+  show_open_source = local_assigns.fetch(:show_open_source, reminder.persisted? && !reminder.standalone?)
+  show_actions = local_assigns.fetch(:show_actions, true)
+  form_html_options = {}
+  form_html_options[:id] = local_assigns[:form_id] if local_assigns[:form_id].present?
+%>
+
+<%= form_with model: reminder,
+  url: reminder.persisted? ? reminder_path(reminder) : reminders_path,
+  method: reminder.persisted? ? :patch : :post,
+  html: form_html_options do |form| %>
+  <% if local_assigns[:form_context].present? %>
+    <%= hidden_field_tag :form_context, local_assigns[:form_context] %>
+  <% end %>
+
+  <% if reminder.errors.any? %>
+    <% error_body = capture do %>
+      <ul class="m-b-none m-t-sm">
+        <% reminder.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    <% end %>
+    <%= render "shared/inline_alert", type: :danger, title: "Please fix the following:", body_html: error_body, extra_classes: "mb-3" %>
+  <% end %>
+
+  <% if local_assigns[:target].present? %>
+    <%= form.hidden_field :target_type, value: local_assigns[:target].class.name %>
+    <%= form.hidden_field :target_id, value: local_assigns[:target].id %>
+  <% end %>
+
+  <div class="mb-3">
+    <%= form.label :title, class: "form-label" %>
+    <%= form.text_field :title, class: "form-control", placeholder: "Reminder title", required: true %>
+  </div>
+
+  <div class="mb-3">
+    <%= form.label :fire_at_local, "Date and time", class: "form-label" %>
+    <%= form.datetime_local_field :fire_at_local,
+      value: reminder_fire_at_local_value(reminder),
+      class: "form-control",
+      required: true %>
+  </div>
+
+  <div class="mb-3">
+    <%= form.label :note, class: "form-label" %>
+    <%= form.text_area :note, class: "form-control", rows: 3, placeholder: "Optional note" %>
+  </div>
+
+  <% if show_actions %>
+    <div class="d-flex flex-wrap gap-2">
+      <%= form.submit reminder.persisted? ? "Save reminder" : "Create reminder", class: "btn btn-primary" %>
+      <% if show_open_source %>
+        <%= link_to "Open source", reminder.destination_path, class: "btn btn-outline-secondary" %>
+      <% end %>
+    </div>
+  <% end %>
+<% end %>

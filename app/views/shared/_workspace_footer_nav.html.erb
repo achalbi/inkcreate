@@ -1,4 +1,4 @@
-<% center_action_active = %w[capture_studio tasks].include?(controller_path) %>
+<% center_action_active = %w[capture_studio tasks reminders].include?(controller_path) %>
 
 <nav class="mobile-footer-nav d-lg-none" aria-label="Primary mobile navigation">
   <div class="mobile-footer-nav__content">
@@ -29,15 +29,15 @@
           aria: { label: "Quick capture" },
           data: { action: "click->footer-action-menu#close", footer_action_menu_target: "item" } do %>
           <span class="mobile-footer-action-menu__item-icon" aria-hidden="true">
-            <i class="ti ti-camera"></i>
+            <i class="ti ti-bolt"></i>
           </span>
           <span class="mobile-footer-action-menu__item-label">Quick capture</span>
         <% end %>
 
-        <%= link_to tasks_path(task: { due_date: Date.current.iso8601 }),
+        <%= link_to reminders_path,
           class: "mobile-footer-action-menu__item mobile-footer-action-menu__item--reminder",
-          title: "Reminder",
-          aria: { label: "Create reminder" },
+          title: "Reminders",
+          aria: { label: "Open reminders" },
           data: { action: "click->footer-action-menu#close", footer_action_menu_target: "item" } do %>
           <span class="mobile-footer-action-menu__item-icon" aria-hidden="true">
             <i class="ti ti-bell"></i>

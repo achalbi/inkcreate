@@ -1,0 +1,49 @@
+<%= render "shared/workspace_header",
+  breadcrumbs: [["Home", dashboard_path], "Reminders"],
+  eyebrow: "Reminders",
+  title: "Track upcoming reminders and recent activity.",
+  description: "Review everything that is scheduled, triggered, dismissed, or expired, then create new standalone reminders from one place." %>
+
+<div class="wrapper wrapper-content animated fadeInRight">
+  <section class="ibox float-e-margins">
+    <div class="ibox-title">
+      <h5>Upcoming reminders</h5>
+      <div class="ibox-tools d-flex align-items-center gap-2">
+        <span class="label label-default"><%= @upcoming_reminders.size %></span>
+        <button
+          type="button"
+          class="btn btn-primary btn-sm"
+          data-bs-toggle="modal"
+          data-bs-target="#new-reminder-modal"
+        >
+          + New reminder
+        </button>
+      </div>
+    </div>
+    <div class="ibox-content home-upcoming-reminders__content reminders-page__section-content reminders-page__upcoming-content">
+      <%= render "list",
+        reminders: @upcoming_reminders,
+        compact: true,
+        empty_title: "No upcoming reminders",
+        empty_description: "Create one here to get a push notification when it's time." %>
+    </div>
+  </section>
+
+  <section class="ibox float-e-margins">
+    <div class="ibox-title">
+      <h5>Reminder history</h5>
+      <div class="ibox-tools">
+        <span class="label label-default"><%= @historical_reminders.size %></span>
+      </div>
+    </div>
+    <div class="ibox-content reminders-page__section-content reminders-page__history-content">
+      <%= render "list",
+        reminders: @historical_reminders,
+        compact: true,
+        empty_title: "No reminder history yet",
+        empty_description: "Triggered, dismissed, and expired reminders will show up here." %>
+    </div>
+  </section>
+
+  <%= render "new_reminder_modal", reminder: @new_reminder, form_context: "reminders_index" %>
+</div>

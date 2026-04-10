@@ -1,0 +1,53 @@
+<%
+  current_todo_list = page.todo_list
+  current_items = current_todo_list&.todo_items&.ordered&.to_a || []
+  todo_list_enabled = current_todo_list&.enabled?
+  hide_completed = current_todo_list&.hide_completed?
+%>
+
+<section class="ibox float-e-margins" data-controller="todo-list" data-todo-list-mode-value="draft">
+  <div class="ibox-title">
+    <div class="detail-photo-gallery-heading">
+      <h5 class="detail-photo-gallery-title">To-do list</h5>
+      <span class="label label-info detail-photo-gallery-count"><%= current_items.size %></span>
+    </div>
+    <div class="ibox-tools d-flex align-items-center gap-2">
+      <% if current_todo_list&.enabled? && current_items.any? %>
+        <span class="label label-default"><%= current_todo_list.progress_label %></span>
+      <% end %>
+      <button type="button" class="btn btn-white btn-sm" data-action="todo-list#toggleDraftEnabled" data-todo-list-target="toggleButton">
+        <%= todo_list_enabled ? "Disable list" : "Enable list" %>
+      </button>
+      <%= render "shared/ibox_toggle_button", target_id: dom_id(page, :todo_form_list_content) %>
+    </div>
+  </div>
+
+  <div id="<%= dom_id(page, :todo_form_list_content) %>" class="ibox-content collapse show">
+    <%= form.hidden_field :todo_list_enabled, value: todo_list_enabled ? "true" : "false", data: { todo_list_target: "enabledField" } %>
+    <%= form.hidden_field :todo_list_hide_completed, value: hide_completed ? "true" : "false", data: { todo_list_target: "hideCompletedField" } %>
+    <div data-todo-list-target="draftFields"></div>
+
+    <div class="todo-list-draft <%= "is-disabled" unless todo_list_enabled %>" data-todo-list-target="draftPanel">
+      <p class="text-secondary small mb-3">Enable the checklist and add draft items before saving the page.</p>
+
+      <div class="input-group mb-3">
+        <input type="text" class="form-control" placeholder="Draft to-do item" data-todo-list-target="draftInput">
+        <button type="button" class="btn btn-primary" data-action="todo-list#addDraftItem">Add item</button>
+      </div>
+
+      <div class="vstack gap-2 mb-3" data-todo-list-target="draftItems"></div>
+
+      <% if current_items.any? %>
+        <div class="border rounded-4 p-3 bg-light-subtle">
+          <div class="fw-semibold mb-2">Saved items on this page</div>
+          <ul class="small m-b-none ps-3">
+            <% current_items.each do |item| %>
+              <li><%= item.content %><%= " (completed)" if item.completed? %></li>
+            <% end %>
+          </ul>
+          <div class="text-secondary small mt-2">You can manage saved checklist items from the page detail view after saving.</div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</section>

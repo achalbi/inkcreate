@@ -1,43 +1,106 @@
-<section class="ibox h-100" data-controller="notification-preferences">
+<section
+  class="ibox h-100"
+  data-controller="device-push"
+  data-device-push-enable-url-value="<%= enable_push_device_path(@current_device) if @current_device.present? %>"
+  data-device-push-disable-url-value="<%= disable_push_device_path(@current_device) if @current_device.present? %>"
+  data-device-push-public-key-value="<%= @web_push_public_key %>"
+>
   <div class="ibox-title">
     <h5>App notifications</h5>
+    <span class="badge rounded-pill <%= @web_push_available ? "text-bg-success" : "text-bg-secondary" %>">
+      <%= @web_push_available ? "Web Push ready" : "Unavailable" %>
+    </span>
   </div>
   <div class="ibox-content">
-    <p class="text-secondary mb-4">Background upload retries can notify this device when queued photos finish syncing after the connection comes back.</p>
+    <% unless @web_push_available %>
+      <%= render "shared/inline_alert",
+        type: :warning,
+        title: "Web Push is not configured yet",
+        message: "Add the VAPID public key, private key, and subject in Rails credentials before device push can be enabled.",
+        extra_classes: "mb-4" %>
+    <% end %>
 
     <div class="vstack gap-3 mb-4">
       <div class="border rounded-4 p-3 bg-light-subtle">
         <div class="text-uppercase text-secondary fw-semibold small mb-1">Browser permission</div>
-        <div class="fw-semibold" data-notification-preferences-target="permissionStatus">Checking...</div>
-        <div class="text-secondary small mt-1">The browser still controls whether Inkcreate is allowed to show notifications at all.</div>
+        <div class="fw-semibold" data-device-push-target="permissionStatus">Checking...</div>
+        <div class="text-secondary small mt-1">The browser still controls whether this device is allowed to show reminder notifications.</div>
       </div>
 
       <div class="border rounded-4 p-3 bg-light-subtle">
-        <div class="text-uppercase text-secondary fw-semibold small mb-1">This device</div>
-        <div class="fw-semibold" data-notification-preferences-target="deviceStatus">Checking...</div>
-        <div class="text-secondary small mt-1" data-notification-preferences-target="helpText">Notifications turn on by default when the app is installed.</div>
+        <div class="text-uppercase text-secondary fw-semibold small mb-1">Current device</div>
+        <div class="fw-semibold" data-device-push-target="deviceStatus">Checking...</div>
+        <div class="text-secondary small mt-1" data-device-push-target="helpText">Enable notifications here only after deciding this device should receive reminder pushes.</div>
       </div>
     </div>
 
-    <div class="d-flex flex-wrap gap-2">
+    <div class="d-flex flex-wrap gap-2 mb-4">
       <button
         type="button"
         class="btn btn-primary"
-        data-notification-preferences-target="enableButton"
-        data-action="notification-preferences#enable"
+        data-device-push-target="enableButton"
+        data-action="device-push#enable"
+        <%= "disabled" unless @web_push_available %>
       >
-        Enable notifications
+        Enable on this device
       </button>
       <button
         type="button"
         class="btn btn-outline-secondary"
-        data-notification-preferences-target="disableButton"
-        data-action="notification-preferences#disable"
+        data-device-push-target="disableButton"
+        data-action="device-push#disable"
+        <%= "disabled" unless @web_push_available %>
       >
-        Disable notifications
+        Disable on this device
       </button>
     </div>
 
-    <p class="form-text mt-3 mb-0" data-notification-preferences-target="feedback" hidden></p>
+    <p class="form-text mt-0 mb-4" data-device-push-target="feedback" hidden></p>
+
+    <div class="border-top pt-4">
+      <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+        <div>
+          <div class="text-uppercase text-secondary fw-semibold small">Your devices</div>
+          <div class="text-secondary small">Every browser or installed app can opt into pushes independently.</div>
+        </div>
+        <span class="badge rounded-pill text-bg-light"><%= @devices.size %></span>
+      </div>
+
+      <% if @devices.any? %>
+        <div class="vstack gap-3">
+          <% @devices.each do |device| %>
+            <article class="border rounded-4 p-3 bg-light-subtle">
+              <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                <div class="min-w-0">
+                  <div class="fw-semibold">
+                    <%= device.display_label %>
+                    <% if @current_device == device %>
+                      <span class="badge rounded-pill text-bg-light ms-1">This device</span>
+                    <% end %>
+                  </div>
+                  <div class="text-secondary small">
+                    Last seen <%= time_ago_in_words(device.last_seen_at || device.updated_at || device.created_at) %> ago
+                  </div>
+                </div>
+                <span class="badge rounded-pill <%= device.push_enabled? ? "text-bg-success" : "text-bg-light" %>">
+                  <%= device.push_enabled? ? "Push enabled" : "Push disabled" %>
+                </span>
+              </div>
+
+              <div class="text-secondary small break-anywhere mb-3"><%= device.user_agent.presence || "No user agent captured." %></div>
+
+              <div class="d-flex flex-wrap gap-2">
+                <% if device.push_enabled? %>
+                  <%= button_to "Disable push", disable_push_device_path(device), method: :delete, class: "btn btn-outline-secondary btn-sm", form_class: "d-inline-flex" %>
+                <% end %>
+                <%= button_to "Remove device", device_path(device), method: :delete, class: "btn btn-outline-danger btn-sm", form_class: "d-inline-flex", form: { onsubmit: "return confirm('Remove this device from Inkcreate?');" } %>
+              </div>
+            </article>
+          <% end %>
+        </div>
+      <% else %>
+        <%= render "shared/empty_state", title: "No devices yet", description: "Your current browser will appear here automatically after sign-in." %>
+      <% end %>
+    </div>
   </div>
 </section>

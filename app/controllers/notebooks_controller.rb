@@ -28,8 +28,9 @@ class NotebooksController < BrowserController
   end
 
   def show
-    @chapters = @notebook.chapters.includes(:pages)
-    @deleted_chapters = @notebook.deleted_chapters.includes(:pages)
+    page_includes = notebook_page_includes
+    @chapters = chapters_with_page_includes(@notebook.chapters, page_includes)
+    @deleted_chapters = chapters_with_page_includes(@notebook.deleted_chapters, page_includes)
   end
 
   def new
@@ -113,5 +114,18 @@ class NotebooksController < BrowserController
 
   def notebook_collection_for(scope)
     scope.includes(chapters: :pages).ordered.to_a
+  end
+
+  def notebook_page_includes
+    includes = []
+    includes << :voice_notes if VoiceNote.schema_ready?
+    includes << { todo_list: :todo_items } if TodoList.schema_ready? && TodoItem.schema_ready?
+    includes
+  end
+
+  def chapters_with_page_includes(scope, page_includes)
+    return scope.includes(:pages) if page_includes.empty?
+
+    scope.includes(pages: page_includes)
   end
 end

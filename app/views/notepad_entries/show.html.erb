@@ -40,6 +40,12 @@
   </section>
 
   <section class="row notes-gallery-row">
+    <% if VoiceNote.notepad_entries_supported? %>
+      <div class="col-12">
+        <%= render "notepad_entries/voice_notes_section", notepad_entry: @notepad_entry %>
+      </div>
+    <% end %>
+
     <div class="col-12">
       <div class="ibox">
         <div class="ibox-title">

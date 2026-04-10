@@ -11,6 +11,8 @@ ENV APP_HOME=/app \
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
       build-essential \
+      chromium \
+      chromium-driver \
       curl \
       git \
       imagemagick \

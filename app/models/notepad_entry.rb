@@ -2,12 +2,17 @@ class NotepadEntry < ApplicationRecord
   include RetainsPendingPhotos
   include RichNotes
 
+  attr_accessor :pending_voice_note_uploads,
+    :pending_voice_note_duration_seconds,
+    :pending_voice_note_recorded_ats
+
   belongs_to :user
   has_many_attached :photos
+  has_many :voice_notes, -> { order(recorded_at: :asc, created_at: :asc) }, dependent: :destroy
   has_one :google_drive_export, as: :exportable, dependent: :destroy
 
   validates :entry_date, presence: true
-  validate :notes_or_photos_present
+  validate :content_present
 
   scope :recent_first, -> { order(entry_date: :desc, created_at: :desc) }
 
@@ -15,6 +20,18 @@ class NotepadEntry < ApplicationRecord
 
   def display_title
     title.presence || generated_title
+  end
+
+  def pending_voice_note_uploads
+    Array(@pending_voice_note_uploads).reject(&:blank?)
+  end
+
+  def pending_voice_note_duration_seconds
+    Array(@pending_voice_note_duration_seconds).map(&:presence)
+  end
+
+  def pending_voice_note_recorded_ats
+    Array(@pending_voice_note_recorded_ats).map(&:presence)
   end
 
   private
@@ -51,9 +68,15 @@ class NotepadEntry < ApplicationRecord
     scope.count + 1
   end
 
-  def notes_or_photos_present
-    return if notes.present? || photos.attached? || pending_photo_blobs.any?
+  def content_present
+    return if plain_notes.present?
+    return if photos.attached? || pending_photo_blobs.any?
+    return if voice_notes_available? && (voice_notes.exists? || pending_voice_note_uploads.any?)
 
-    errors.add(:base, "Add notes or at least one photo.")
+    errors.add(:base, "Add notes, a photo, or a voice note.")
+  end
+
+  def voice_notes_available?
+    VoiceNote.notepad_entries_supported?
   end
 end

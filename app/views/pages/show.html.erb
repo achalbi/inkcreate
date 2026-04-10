@@ -44,6 +44,18 @@
   </section>
 
   <section class="row notes-gallery-row">
+    <% if VoiceNote.schema_ready? %>
+      <div class="col-12">
+        <%= render "pages/voice_notes_section", notebook: @notebook, chapter: @chapter, page: @page %>
+      </div>
+    <% end %>
+
+    <% if TodoList.schema_ready? && TodoItem.schema_ready? %>
+      <div class="col-12">
+        <%= render "pages/todo_list_section", notebook: @notebook, chapter: @chapter, page: @page %>
+      </div>
+    <% end %>
+
     <div class="col-12">
       <div class="ibox">
         <div class="ibox-title">

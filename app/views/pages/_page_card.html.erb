@@ -25,6 +25,20 @@
             <strong><%= page.photos.count %></strong> <%= "photo".pluralize(page.photos.count) %>
           </span>
 
+          <% if VoiceNote.schema_ready? %>
+            <span class="notebook-list-card__meta-item notebook-list-card__meta-item--chapter">
+              <i class="ti ti-microphone" aria-hidden="true"></i>
+              <strong><%= page.voice_notes.count %></strong> <%= "voice note".pluralize(page.voice_notes.count) %>
+            </span>
+          <% end %>
+
+          <% if TodoList.schema_ready? && TodoItem.schema_ready? && page.todo_list&.enabled? %>
+            <span class="notebook-list-card__meta-item notebook-list-card__meta-item--chapter">
+              <i class="ti ti-list-check" aria-hidden="true"></i>
+              <%= page.todo_list.progress_label %>
+            </span>
+          <% end %>
+
           <span class="notebook-list-card__meta-item notebook-list-card__meta-item--chapter">
             <i class="ti ti-calendar-event" aria-hidden="true"></i>
             <% if page.captured_on.present? %>

@@ -1,0 +1,68 @@
+<article class="notebook-list-card notebook-list-card--chapter notebook-list-card--reminder">
+  <div class="notebook-list-card__body">
+    <div class="notebook-list-card__content notebook-list-card__content--chapter">
+      <div class="notebook-list-card__symbol home-reminder-card__symbol" aria-hidden="true">
+        <i class="ti ti-bell-ringing"></i>
+      </div>
+
+      <div class="notebook-list-card__main">
+        <div class="notebook-list-card__header home-reminder-card__header">
+          <div class="notebook-list-card__header-copy">
+            <div class="notebook-list-card__title-row">
+              <h6 class="notebook-list-card__title"><%= reminder.title %></h6>
+              <span class="label label-default notebook-list-card__status home-reminder-card__status"><%= reminder.status.humanize %></span>
+            </div>
+          </div>
+
+          <div class="notebook-list-card__header-tools home-reminder-card__tools">
+            <%= link_to edit_reminder_path(reminder),
+              class: "btn btn-white btn-sm btn-icon home-reminder-card__tool",
+              title: "Edit reminder",
+              aria: { label: "Edit reminder" } do %>
+              <i class="ti ti-edit" aria-hidden="true"></i>
+            <% end %>
+
+            <% unless reminder.status_dismissed? || reminder.status_expired? %>
+              <%= button_tag type: "button",
+                class: "btn btn-white btn-sm btn-icon home-reminder-card__tool",
+                title: "Dismiss reminder",
+                aria: { label: "Dismiss reminder" },
+                data: {
+                  action: "reminder-dismiss-confirm#open",
+                  reminder_dismiss_url: dismiss_reminder_path(reminder),
+                  reminder_dismiss_title: reminder.title
+                } do %>
+                <i class="ti ti-x" aria-hidden="true"></i>
+              <% end %>
+            <% end %>
+
+            <% if reminder.status_pending? || reminder.status_snoozed? %>
+              <%= button_to snooze_reminder_path(reminder, minutes: 10),
+                method: :patch,
+                class: "btn btn-white btn-sm btn-icon home-reminder-card__tool",
+                form_class: "content-list-actions__form home-reminder-card__tool-form",
+                title: "Snooze reminder for 10 minutes",
+                aria: { label: "Snooze reminder for 10 minutes" } do %>
+                <i class="ti ti-clock-hour-4" aria-hidden="true"></i>
+              <% end %>
+            <% end %>
+          </div>
+        </div>
+
+        <p class="notebook-list-card__description home-reminder-card__description"><%= reminder_source_label(reminder) %></p>
+
+        <div class="notebook-list-card__meta notebook-list-card__meta--chapter home-reminder-card__meta">
+          <span class="notebook-list-card__meta-item notebook-list-card__meta-item--chapter">
+            <i class="ti ti-clock-hour-4" aria-hidden="true"></i>
+            <%= reminder_relative_time(reminder) %>
+          </span>
+
+          <span class="notebook-list-card__meta-item notebook-list-card__meta-item--chapter">
+            <i class="ti ti-calendar-event" aria-hidden="true"></i>
+            <%= reminder.fire_at.in_time_zone.strftime("%b %-d at %-I:%M %p") %>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>

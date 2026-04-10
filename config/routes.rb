@@ -30,6 +30,17 @@ Rails.application.routes.draw do
           patch :move
           delete "photos/:attachment_id", action: :destroy_photo, as: :photo
         end
+
+        scope module: :pages do
+          resource :todo_list, only: %i[create update]
+          resources :todo_items, only: %i[create update destroy] do
+            member do
+              patch :toggle
+              patch :reorder
+            end
+          end
+          resources :voice_notes, only: %i[create destroy]
+        end
       end
     end
   end
@@ -37,6 +48,10 @@ Rails.application.routes.draw do
   resources :notepad_entries, path: "notepad" do
     member do
       delete "photos/:attachment_id", action: :destroy_photo, as: :photo
+    end
+
+    scope module: :notepad_entries do
+      resources :voice_notes, only: %i[create destroy]
     end
   end
 
@@ -58,6 +73,18 @@ Rails.application.routes.draw do
     resources :tasks, only: :create, controller: "capture_tasks"
   end
   resources :tasks, only: %i[index create update]
+  resources :reminders, only: %i[index show edit create update destroy] do
+    member do
+      patch :dismiss
+      patch :snooze
+    end
+  end
+  resources :devices, only: %i[index destroy] do
+    member do
+      post :enable_push
+      delete :disable_push
+    end
+  end
   get "/search", to: "search#index", as: :search_page
   get "/library", to: "library#index", as: :library
   get "/settings", to: "settings#show", as: :settings

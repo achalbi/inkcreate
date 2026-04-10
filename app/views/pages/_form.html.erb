@@ -10,7 +10,7 @@
     <%= render "shared/inline_alert", type: :danger, title: "Please fix the following:", body_html: error_body %>
   <% end %>
 
-  <div class="row entry-photos-form-row" data-controller="photo-capture">
+  <div data-controller="photo-capture">
     <input
       type="file"
       accept="image/*"
@@ -22,102 +22,102 @@
       data-action="change->photo-capture#acceptCameraCapture"
     >
 
-    <div class="col-lg-7">
-      <div class="ibox">
-        <div class="ibox-title">
-          <h5>Page details</h5>
-          <div class="ibox-tools">
-            <button
-              type="submit"
-              class="btn btn-sm btn-icon notebook-overview-edit-button page-details-save-button"
-              title="Save"
-              aria-label="Save"
-            >
-              <i class="ti ti-device-floppy" aria-hidden="true"></i>
-            </button>
-            <%= render "shared/ibox_toggle_button", target_id: "page-form-details-content" %>
-          </div>
-        </div>
-        <div id="page-form-details-content" class="ibox-content collapse show">
-          <div class="row entry-details-fields-row">
-            <div class="col-lg-8 entry-details-title-column">
-              <div class="form-group">
-                <%= form.label :title, class: "control-label" %>
-                <%= form.text_field :title, class: "form-control", placeholder: "Interview notes - stakeholder round 1 - Page 1" %>
-              </div>
-            </div>
-            <div class="col-lg-4">
-              <div class="form-group">
-                <%= form.label :captured_on, class: "control-label" %>
-                <%= form.date_field :captured_on, class: "form-control" %>
-              </div>
+    <div class="row entry-photos-form-row">
+      <div class="col-lg-7">
+        <div class="ibox">
+          <div class="ibox-title">
+            <h5>Page details</h5>
+            <div class="ibox-tools">
+              <button
+                type="submit"
+                class="btn btn-sm btn-icon notebook-overview-edit-button page-details-save-button"
+                title="Save"
+                aria-label="Save"
+              >
+                <i class="ti ti-device-floppy" aria-hidden="true"></i>
+              </button>
+              <%= render "shared/ibox_toggle_button", target_id: "page-form-details-content" %>
             </div>
           </div>
+          <div id="page-form-details-content" class="ibox-content collapse show">
+            <div class="row entry-details-fields-row">
+              <div class="col-lg-8 entry-details-title-column">
+                <div class="form-group">
+                  <%= form.label :title, class: "control-label" %>
+                  <%= form.text_field :title, class: "form-control", placeholder: "Interview notes - stakeholder round 1 - Page 1" %>
+                </div>
+              </div>
+              <div class="col-lg-4">
+                <div class="form-group">
+                  <%= form.label :captured_on, class: "control-label" %>
+                  <%= form.date_field :captured_on, class: "form-control" %>
+                </div>
+              </div>
+            </div>
 
-          <div class="form-group">
-            <% notes_input_id = dom_id(page, :notes_input) %>
-            <%= form.label :notes, class: "control-label" %>
-            <%= form.hidden_field :notes, id: notes_input_id %>
-            <trix-editor
-              input="<%= notes_input_id %>"
-              class="workspace-rich-text-editor page-notes-field"
-              placeholder="Store text context, observations, transcript notes, action items, or any supporting detail for this page."
-              data-controller="rich-text"
-              data-action="trix-file-accept->rich-text#preventFileAccept"
-            ></trix-editor>
-          </div>
+            <div class="form-group">
+              <% notes_input_id = dom_id(page, :notes_input) %>
+              <%= form.label :notes, class: "control-label" %>
+              <%= form.hidden_field :notes, id: notes_input_id %>
+              <trix-editor
+                input="<%= notes_input_id %>"
+                class="workspace-rich-text-editor page-notes-field"
+                placeholder="Store text context, observations, transcript notes, action items, or any supporting detail for this page."
+                data-controller="rich-text"
+                data-action="trix-file-accept->rich-text#preventFileAccept"
+              ></trix-editor>
+            </div>
 
-          <div class="m-t-md workspace-form-actions">
-            <%= form.submit "Save", class: "btn btn-primary btn-sm" %>
+            <div class="m-t-md workspace-form-actions">
+              <%= form.submit "Save", class: "btn btn-primary btn-sm" %>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="col-lg-5">
-      <div class="ibox" id="page_photos">
-        <div class="ibox-title">
-          <h5>Photos</h5>
-          <div class="ibox-tools">
-            <button
-              type="button"
-              class="btn btn-white btn-sm btn-icon photo-section-camera-button"
-              data-action="photo-capture#openCameraApp"
-              data-photo-capture-target="cameraToggle"
-              aria-pressed="false"
-              title="Open camera"
-            >
-              <i class="ti ti-camera" aria-hidden="true"></i>
-            </button>
-            <button
-              type="button"
-              class="btn btn-white btn-sm btn-icon photo-section-upload-button"
-              data-action="photo-capture#chooseFromGallery"
-              title="Upload from gallery"
-            >
-              <i class="ti ti-photo-plus" aria-hidden="true"></i>
-            </button>
-            <button
-              type="button"
-              class="btn btn-white btn-sm btn-icon photo-section-info-button"
-              data-bs-toggle="collapse"
-              data-bs-target="#page-form-capture-tips"
-              aria-expanded="false"
-              aria-controls="page-form-capture-tips"
-              title="Capture tips"
-            >
-              <i class="ti ti-info-circle" aria-hidden="true"></i>
-            </button>
-            <%= render "shared/ibox_toggle_button", target_id: "page-form-photos-content" %>
+      <div class="col-lg-5">
+        <div class="ibox" id="page_photos">
+          <div class="ibox-title">
+            <h5>Photos</h5>
+            <div class="ibox-tools">
+              <button
+                type="button"
+                class="btn btn-white btn-sm btn-icon photo-section-camera-button"
+                data-action="photo-capture#openCameraApp"
+                data-photo-capture-target="cameraToggle"
+                aria-pressed="false"
+                title="Open camera"
+              >
+                <i class="ti ti-camera" aria-hidden="true"></i>
+              </button>
+              <button
+                type="button"
+                class="btn btn-white btn-sm btn-icon photo-section-upload-button"
+                data-action="photo-capture#chooseFromGallery"
+                title="Upload from gallery"
+              >
+                <i class="ti ti-photo-plus" aria-hidden="true"></i>
+              </button>
+              <button
+                type="button"
+                class="btn btn-white btn-sm btn-icon photo-section-info-button"
+                data-bs-toggle="collapse"
+                data-bs-target="#page-form-capture-tips"
+                aria-expanded="false"
+                aria-controls="page-form-capture-tips"
+                title="Capture tips"
+              >
+                <i class="ti ti-info-circle" aria-hidden="true"></i>
+              </button>
+              <%= render "shared/ibox_toggle_button", target_id: "page-form-photos-content" %>
+            </div>
           </div>
-        </div>
-        <div id="page-form-photos-content" class="ibox-content collapse show">
-          <%= render "shared/photo_capture_field", form:, field_name: :photos, tips_target_id: "page-form-capture-tips" %>
+          <div id="page-form-photos-content" class="ibox-content collapse show">
+            <%= render "shared/photo_capture_field", form:, field_name: :photos, tips_target_id: "page-form-capture-tips" %>
 
-          <% if page.photos.attached? %>
-            <hr>
-            <h5 class="m-t-none m-b-md">Current photos</h5>
-            <div>
+            <% if page.photos.attached? %>
+              <hr>
+              <h5 class="m-t-none m-b-md">Current photos</h5>
               <div class="detail-photo-grid detail-photo-grid--gallery">
                 <% page.photos.attachments.sort_by(&:created_at).reverse_each do |attachment| %>
                   <% photo = attachment.blob %>
@@ -134,10 +134,24 @@
                   </div>
                 <% end %>
               </div>
-            </div>
-          <% end %>
+            <% end %>
+          </div>
         </div>
       </div>
+    </div>
+
+    <div class="row g-3 m-t-md">
+      <% if VoiceNote.schema_ready? %>
+        <div class="col-12">
+          <%= render "pages/voice_notes_section", notebook: notebook, chapter: chapter, page: page, form: form %>
+        </div>
+      <% end %>
+
+      <% if TodoList.schema_ready? && TodoItem.schema_ready? %>
+        <div class="col-12">
+          <%= render "pages/todo_list_form_section", notebook: notebook, chapter: chapter, page: page, form: form %>
+        </div>
+      <% end %>
     </div>
 
     <button
@@ -152,5 +166,4 @@
       <i class="ti ti-camera" aria-hidden="true"></i>
     </button>
   </div>
-
 <% end %>

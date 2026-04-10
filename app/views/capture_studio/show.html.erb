@@ -12,7 +12,7 @@
     <div class="ibox-content collapse show">
       <div class="quick-capture-body">
         <p class="quick-capture-intro">
-          Capture a page and continue editing right away. The first photo creates a new daily page dated
+          Capture a page and continue editing right away. The first photo or saved voice note creates a new daily page dated
           <strong><%= @entry_date.strftime("%b %-d, %Y") %></strong>.
         </p>
 
@@ -58,6 +58,21 @@
               <span>Pick an existing image and continue editing the page after it is created.</span>
             </button>
           </div>
+
+          <% if VoiceNote.notepad_entries_supported? %>
+            <section class="quick-capture-voice-note-panel">
+              <div class="quick-capture-voice-note-panel__header">
+                <strong>Record a voice note</strong>
+                <span>Save the recording to create today's daily page, then keep editing notes, photos, and audio.</span>
+              </div>
+
+              <%= render "pages/voice_note_recorder",
+                form: form,
+                mode: :form,
+                param_key: "notepad_entry",
+                auto_submit_on_save: true %>
+            </section>
+          <% end %>
         <% end %>
 
         <p class="quick-capture-status text-muted" data-quick-capture-target="status" hidden></p>

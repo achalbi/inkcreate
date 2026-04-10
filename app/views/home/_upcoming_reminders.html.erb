@@ -1,0 +1,46 @@
+<section class="ibox float-e-margins">
+  <div class="ibox-title">
+    <h5>Upcoming reminders</h5>
+    <div class="ibox-tools d-flex align-items-center gap-2">
+      <span class="label label-default"><%= @upcoming_reminders_count %></span>
+      <% if @reminders_available %>
+        <button
+          type="button"
+          class="btn btn-primary btn-sm"
+          data-bs-toggle="modal"
+          data-bs-target="#new-reminder-modal"
+        >
+          + New reminder
+        </button>
+      <% end %>
+    </div>
+  </div>
+  <div class="ibox-content home-upcoming-reminders__content <%= "notebook-detail-chapter-list-content" if @upcoming_reminders.any? %>">
+    <% if !@reminders_available %>
+      <%= render "shared/inline_alert",
+        type: :warning,
+        title: "Reminders are not ready yet",
+        message: "Run the latest database migrations to enable reminders and web push." %>
+    <% elsif @upcoming_reminders.any? %>
+      <div class="home-reminder-list-content">
+        <div class="notebook-list-stack notebook-list-stack--separated">
+          <% @upcoming_reminders.each do |reminder| %>
+            <%= render "home/upcoming_reminder_row", reminder: reminder %>
+          <% end %>
+        </div>
+      </div>
+    <% else %>
+      <%= render "shared/empty_state", title: "No upcoming reminders", description: "Create one to get a push notification when it's time." %>
+    <% end %>
+
+    <% if @reminders_available %>
+      <div class="m-t-md home-upcoming-reminders__footer">
+        <%= link_to "View all", reminders_path, class: "btn btn-white btn-sm home-upcoming-reminders__footer-button" %>
+      </div>
+    <% end %>
+  </div>
+</section>
+
+<% if @reminders_available %>
+  <%= render "reminders/new_reminder_modal", reminder: @new_reminder, form_context: "home_dashboard" %>
+<% end %>

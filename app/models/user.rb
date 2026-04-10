@@ -15,6 +15,8 @@ class User < ApplicationRecord
   has_many :tags, dependent: :destroy
   has_many :attachments, dependent: :destroy
   has_many :tasks, dependent: :destroy
+  has_many :devices, dependent: :destroy
+  has_many :reminders, dependent: :destroy
   has_many :reference_links, dependent: :destroy
   has_many :backup_records, dependent: :destroy
   has_many :sync_jobs, dependent: :destroy
@@ -41,6 +43,12 @@ class User < ApplicationRecord
 
   def google_drive_connected?
     google_drive_connected_at.present? && google_drive_refresh_token.present?
+  end
+
+  def enabled_devices_for_push
+    return Device.none unless Device.schema_ready?
+
+    devices.enabled_for_push
   end
 
   def google_drive_ready?

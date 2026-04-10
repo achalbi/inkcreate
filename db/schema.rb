@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_06_203000) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_11_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -206,6 +206,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_06_203000) do
     t.index ["user_id"], name: "index_daily_logs_on_user_id"
   end
 
+  create_table "devices", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "label"
+    t.datetime "last_seen_at"
+    t.string "push_auth_key"
+    t.boolean "push_enabled", default: false, null: false
+    t.text "push_endpoint"
+    t.string "push_p256dh_key"
+    t.datetime "updated_at", null: false
+    t.string "user_agent", default: "", null: false
+    t.uuid "user_id", null: false
+    t.index ["push_endpoint"], name: "index_devices_on_push_endpoint", unique: true, where: "(push_endpoint IS NOT NULL)"
+    t.index ["user_id", "push_enabled"], name: "index_devices_on_user_id_and_push_enabled"
+    t.index ["user_id"], name: "index_devices_on_user_id"
+  end
+
   create_table "drive_syncs", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "capture_id", null: false
     t.datetime "created_at", null: false
@@ -374,6 +390,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_06_203000) do
     t.index ["user_id"], name: "index_reference_links_on_user_id"
   end
 
+  create_table "reminders", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "fire_at", null: false
+    t.datetime "last_triggered_at"
+    t.text "note"
+    t.datetime "snooze_until"
+    t.integer "status", default: 0, null: false
+    t.uuid "target_id"
+    t.string "target_type"
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.uuid "user_id", null: false
+    t.index ["status", "fire_at"], name: "index_reminders_on_status_and_fire_at"
+    t.index ["target_type", "target_id"], name: "index_reminders_on_target"
+    t.index ["user_id", "status", "fire_at"], name: "index_reminders_on_user_id_and_status_and_fire_at"
+    t.index ["user_id"], name: "index_reminders_on_user_id"
+  end
+
   create_table "sync_jobs", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.integer "attempts", default: 0, null: false
     t.datetime "created_at", null: false
@@ -424,6 +458,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_06_203000) do
     t.index ["user_id"], name: "index_tasks_on_user_id"
   end
 
+  create_table "todo_items", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.boolean "completed", default: false, null: false
+    t.datetime "completed_at"
+    t.string "content", null: false
+    t.datetime "created_at", null: false
+    t.integer "position", default: 1, null: false
+    t.uuid "todo_list_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["todo_list_id", "position"], name: "index_todo_items_on_todo_list_id_and_position"
+    t.index ["todo_list_id"], name: "index_todo_items_on_todo_list_id"
+  end
+
+  create_table "todo_lists", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.boolean "enabled", default: true, null: false
+    t.boolean "hide_completed", default: false, null: false
+    t.uuid "page_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["page_id"], name: "index_todo_lists_on_page_id", unique: true
+  end
+
   create_table "users", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "current_sign_in_at"
@@ -450,6 +505,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_06_203000) do
     t.index ["role"], name: "index_users_on_role"
   end
 
+  create_table "voice_notes", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.bigint "byte_size", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.integer "duration_seconds", default: 0, null: false
+    t.string "mime_type", null: false
+    t.uuid "notepad_entry_id"
+    t.uuid "page_id"
+    t.datetime "recorded_at", null: false
+    t.text "transcript"
+    t.datetime "updated_at", null: false
+    t.index ["notepad_entry_id", "recorded_at"], name: "index_voice_notes_on_notepad_entry_id_and_recorded_at"
+    t.index ["notepad_entry_id"], name: "index_voice_notes_on_notepad_entry_id"
+    t.index ["page_id", "recorded_at"], name: "index_voice_notes_on_page_id_and_recorded_at"
+    t.index ["page_id"], name: "index_voice_notes_on_page_id"
+  end
+
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "ai_summaries", "captures"
@@ -469,6 +540,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_06_203000) do
   add_foreign_key "captures", "users"
   add_foreign_key "chapters", "notebooks"
   add_foreign_key "daily_logs", "users"
+  add_foreign_key "devices", "users"
   add_foreign_key "drive_syncs", "captures"
   add_foreign_key "drive_syncs", "users"
   add_foreign_key "google_drive_exports", "users"
@@ -483,10 +555,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_06_203000) do
   add_foreign_key "reference_links", "captures", column: "source_capture_id"
   add_foreign_key "reference_links", "captures", column: "target_capture_id"
   add_foreign_key "reference_links", "users"
+  add_foreign_key "reminders", "users"
   add_foreign_key "sync_jobs", "users"
   add_foreign_key "tags", "users"
   add_foreign_key "tasks", "captures"
   add_foreign_key "tasks", "daily_logs"
   add_foreign_key "tasks", "projects"
   add_foreign_key "tasks", "users"
+  add_foreign_key "todo_items", "todo_lists"
+  add_foreign_key "todo_lists", "pages"
+  add_foreign_key "voice_notes", "notepad_entries"
+  add_foreign_key "voice_notes", "pages"
 end

@@ -12,6 +12,9 @@
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
     <script src="<%= versioned_public_asset_path("/scripts/device_time_zone.js") %>" defer></script>
+    <% if Rails.env.test? %>
+      <script src="<%= versioned_public_asset_path("/scripts/test_browser_mocks.js") %>"></script>
+    <% end %>
     <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
     <link rel="stylesheet" href="<%= versioned_public_asset_path("/inapp/page_loader.css") %>">
     <link rel="manifest" href="<%= versioned_public_asset_path("/manifest.json") %>">

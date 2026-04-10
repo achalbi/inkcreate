@@ -31,6 +31,11 @@ self.addEventListener("install", (event) => {
       "/scripts/controllers/queue_controller.js",
       "/scripts/controllers/search_filters_controller.js",
       "/scripts/controllers/notification_preferences_controller.js"
+      ,
+      "/scripts/controllers/voice_recorder_controller.js",
+      "/scripts/controllers/todo_list_controller.js",
+      "/scripts/controllers/reminder_form_controller.js",
+      "/scripts/controllers/device_push_controller.js"
     ]))
   );
   self.skipWaiting();
@@ -107,6 +112,14 @@ self.addEventListener("notificationclick", (event) => {
   event.waitUntil(focusOrOpenClient(event.notification.data?.url || "/capture"));
 });
 
+self.addEventListener("push", (event) => {
+  if (!event.data) {
+    return;
+  }
+
+  event.waitUntil(handlePushEvent(event));
+});
+
 async function replayUploadQueue() {
   const uploads = await allQueuedUploads();
   let syncedCount = 0;
@@ -180,6 +193,28 @@ async function replayUploadQueue() {
   }
 
   await notifyReplayResult(syncedCount, uploads.length);
+}
+
+async function handlePushEvent(event) {
+  let payload = {};
+
+  try {
+    payload = event.data.json();
+  } catch (_error) {
+    payload = { title: "Inkcreate reminder", body: event.data.text() };
+  }
+
+  await self.registration.showNotification(payload.title || "Inkcreate reminder", {
+    body: payload.body || "A reminder is due now.",
+    tag: payload.tag || `push-${Date.now()}`,
+    renotify: true,
+    icon: "/icons/app-icon.svg",
+    badge: "/icons/app-icon.svg",
+    data: {
+      url: payload.url || "/app",
+      reminderId: payload.reminder_id || null
+    }
+  });
 }
 
 function openDatabase() {

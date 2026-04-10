@@ -1,4 +1,5 @@
 require "test_helper"
+require "tempfile"
 
 class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
   test "user can create notebook chapter page and notepad entry" do
@@ -64,6 +65,47 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
 
     entry = user.notepad_entries.find_by!(title: "Daily wrap-up")
     assert_redirected_to notepad_entry_path(entry)
+  end
+
+  test "user can create a notepad entry with only a voice note upload" do
+    user = User.create!(
+      email: "notepad-voice@example.com",
+      password: "Password123!",
+      password_confirmation: "Password123!",
+      time_zone: "UTC",
+      locale: "en",
+      role: :user
+    )
+
+    sign_in_browser_user(user)
+
+    get capture_studio_path
+
+    upload = audio_upload(filename: "quick-capture-note.webm", content_type: "audio/webm", contents: "voice-note-bytes")
+
+    assert_difference -> { user.notepad_entries.count }, +1 do
+      post notepad_entries_path, params: {
+        authenticity_token: authenticity_token_for(notepad_entries_path),
+        after_create: "edit",
+        notepad_entry: {
+          title: "",
+          notes: "",
+          entry_date: Date.current,
+          voice_note_uploads: [upload],
+          voice_note_duration_seconds: ["42"],
+          voice_note_recorded_ats: [Time.current.iso8601]
+        }
+      }
+    end
+
+    entry = user.notepad_entries.order(:created_at).last
+
+    assert_redirected_to edit_notepad_entry_path(entry)
+    assert_equal 1, entry.voice_notes.count
+    assert entry.voice_notes.first.audio.attached?
+    assert_equal 42, entry.voice_notes.first.duration_seconds
+  ensure
+    upload&.tempfile&.close!
   end
 
   test "user cannot access another users notebook" do
@@ -232,5 +274,20 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "#archived-notebooks-content .notebook-list-card", 1
     assert_select "#archived-notebooks-content .notebook-list-card__title", text: "Dormant workspace"
+  end
+
+  private
+
+  def audio_upload(filename:, content_type:, contents:)
+    tempfile = Tempfile.new([File.basename(filename, ".*"), File.extname(filename)])
+    tempfile.binmode
+    tempfile.write(contents)
+    tempfile.rewind
+
+    Rack::Test::UploadedFile.new(
+      tempfile.path,
+      content_type,
+      original_filename: filename
+    )
   end
 end

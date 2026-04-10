@@ -14,9 +14,12 @@ class PagesController < BrowserController
   def create
     @page = @chapter.pages.new(page_attributes)
     preserve_pending_photos(@page, page_params)
+    assign_pending_content_from_params(@page, page_params, raw_page_attributes)
 
     if @page.save
       attach_pending_photos(@page)
+      persist_pending_voice_notes(@page)
+      persist_pending_todo_list(@page, page_params)
       schedule_drive_export(@page)
       redirect_to notebook_chapter_page_path(@notebook, @chapter, @page), notice: "Page created."
     else
@@ -28,9 +31,12 @@ class PagesController < BrowserController
 
   def update
     preserve_pending_photos(@page, page_params)
+    assign_pending_content_from_params(@page, page_params, raw_page_attributes)
 
     if @page.update(page_attributes)
       attach_pending_photos(@page)
+      persist_pending_voice_notes(@page)
+      persist_pending_todo_list(@page, page_params)
       schedule_drive_export(@page)
       redirect_to notebook_chapter_page_path(@notebook, @chapter, @page), notice: "Page updated."
     else
@@ -66,15 +72,39 @@ class PagesController < BrowserController
   end
 
   def set_page
-    @page = @chapter.pages.with_attached_photos.find(params[:id])
+    scope = @chapter.pages.with_attached_photos
+    includes = page_detail_includes
+    scope = scope.includes(*includes) if includes.any?
+    @page = scope.find(params[:id])
   end
 
   def page_params
-    params.require(:page).permit(:title, :notes, :captured_on, retained_photo_signed_ids: [], photos: [])
+    params.require(:page).permit(
+      :title,
+      :notes,
+      :captured_on,
+      :todo_list_enabled,
+      :todo_list_hide_completed,
+      retained_photo_signed_ids: [],
+      photos: [],
+      voice_note_uploads: [],
+      voice_note_duration_seconds: [],
+      voice_note_recorded_ats: [],
+      todo_item_contents: []
+    )
   end
 
   def page_attributes
-    page_params.except(:photos, :retained_photo_signed_ids)
+    page_params.except(
+      :photos,
+      :retained_photo_signed_ids,
+      :voice_note_uploads,
+      :voice_note_duration_seconds,
+      :voice_note_recorded_ats,
+      :todo_list_enabled,
+      :todo_list_hide_completed,
+      :todo_item_contents
+    )
   end
 
   def preserve_pending_photos(page, attrs)
@@ -105,9 +135,99 @@ class PagesController < BrowserController
     page.retained_photo_signed_ids = []
   end
 
+  def raw_page_attributes
+    params.fetch(:page, {})
+  end
+
+  def assign_pending_content_from_params(page, attrs, raw_attrs)
+    page.pending_voice_note_uploads = raw_voice_note_uploads(raw_attrs)
+    page.pending_voice_note_duration_seconds = Array(attrs[:voice_note_duration_seconds])
+    page.pending_voice_note_recorded_ats = Array(attrs[:voice_note_recorded_ats])
+    page.pending_todo_list_enabled = attrs[:todo_list_enabled]
+    page.pending_todo_list_hide_completed = attrs[:todo_list_hide_completed]
+    page.pending_todo_item_contents = Array(attrs[:todo_item_contents])
+  end
+
+  def raw_voice_note_uploads(raw_attrs)
+    Array(raw_attrs[:voice_note_uploads]).filter_map do |upload|
+      next if upload.blank?
+      next upload if upload.respond_to?(:content_type)
+
+      nil
+    end
+  end
+
+  def persist_pending_voice_notes(page)
+    return unless VoiceNote.schema_ready?
+
+    uploads = page.pending_voice_note_uploads
+    return if uploads.empty?
+
+    uploads.each_with_index do |upload, index|
+      next unless upload.respond_to?(:content_type)
+
+      voice_note = page.voice_notes.new(
+        duration_seconds: normalized_voice_note_duration(page, index),
+        recorded_at: normalized_voice_note_recorded_at(page, index),
+        byte_size: upload.size,
+        mime_type: upload.content_type.to_s
+      )
+      voice_note.audio.attach(upload)
+      voice_note.save!
+    end
+
+    page.pending_voice_note_uploads = []
+  end
+
+  def normalized_voice_note_duration(page, index)
+    page.pending_voice_note_duration_seconds[index].to_i.clamp(0, VoiceNote::MAX_DURATION_SECONDS)
+  end
+
+  def normalized_voice_note_recorded_at(page, index)
+    Time.zone.parse(page.pending_voice_note_recorded_ats[index].to_s)
+  rescue ArgumentError, TypeError
+    Time.current
+  end
+
+  def persist_pending_todo_list(page, attrs)
+    return unless TodoList.schema_ready? && TodoItem.schema_ready?
+
+    item_contents = Array(attrs[:todo_item_contents]).filter_map { |content| content.to_s.squish.presence }
+    should_enable = ActiveModel::Type::Boolean.new.cast(attrs[:todo_list_enabled]) || item_contents.any?
+    should_hide_completed = ActiveModel::Type::Boolean.new.cast(attrs[:todo_list_hide_completed]) == true
+    return unless should_enable || page.todo_list.present?
+
+    todo_list = page.todo_list || page.build_todo_list
+    todo_list.enabled = should_enable
+    todo_list.hide_completed = should_hide_completed
+    todo_list.save! if todo_list.new_record? || todo_list.changed?
+
+    item_contents.each do |content|
+      todo_list.todo_items.create!(content: content)
+    end
+
+    page.pending_todo_item_contents = []
+  end
+
   def schedule_drive_export(page)
     Drive::ScheduleRecordExport.new(record: page).call
   end
+
+  def page_detail_includes
+    includes = []
+    includes << { voice_notes: [audio_attachment: :blob] } if VoiceNote.schema_ready?
+
+    if TodoList.schema_ready? && TodoItem.schema_ready?
+      includes << if Reminder.schema_ready?
+        { todo_list: { todo_items: :reminder } }
+      else
+        { todo_list: :todo_items }
+      end
+    end
+
+    includes
+  end
+
 
   def move_within_scope(scope, record, direction)
     items = scope.to_a

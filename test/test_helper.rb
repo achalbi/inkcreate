@@ -3,6 +3,35 @@ require_relative "../config/environment"
 require "rails/test_help"
 require "nokogiri"
 
+unless Object.method_defined?(:stub)
+  class Object
+    def stub(method_name, implementation)
+      eigenclass = class << self; self; end
+      backup_method = :"__codex_stub_#{method_name}_#{Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)}"
+      had_original = eigenclass.method_defined?(method_name) || eigenclass.private_method_defined?(method_name)
+
+      eigenclass.alias_method backup_method, method_name if had_original
+
+      eigenclass.define_method(method_name) do |*args, **kwargs, &block|
+        if implementation.respond_to?(:call)
+          implementation.call(*args, **kwargs, &block)
+        else
+          implementation
+        end
+      end
+
+      yield
+    ensure
+      eigenclass.remove_method(method_name) if eigenclass.method_defined?(method_name) || eigenclass.private_method_defined?(method_name)
+
+      if had_original
+        eigenclass.alias_method method_name, backup_method
+        eigenclass.remove_method(backup_method)
+      end
+    end
+  end
+end
+
 class ActiveSupport::TestCase
 end
 

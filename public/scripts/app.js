@@ -13,6 +13,12 @@ import DriveOauthController from "/scripts/controllers/drive_oauth_controller.js
 import RichTextController from "/scripts/controllers/rich_text_controller.js";
 import QuickCaptureController from "/scripts/controllers/quick_capture_controller.js";
 import FooterActionMenuController from "/scripts/controllers/footer_action_menu_controller.js";
+import VoiceRecorderController from "/scripts/controllers/voice_recorder_controller.js";
+import VoiceNoteDeleteController from "/scripts/controllers/voice_note_delete_controller.js";
+import TodoListController from "/scripts/controllers/todo_list_controller.js";
+import ReminderFormController from "/scripts/controllers/reminder_form_controller.js";
+import DevicePushController from "/scripts/controllers/device_push_controller.js";
+import ReminderDismissConfirmController from "/scripts/controllers/reminder_dismiss_confirm_controller.js";
 import { enableNotificationsForInstall } from "/scripts/notification_preferences.js";
 
 const AUTO_DISMISS_DELAY_MS = 5000;
@@ -71,6 +77,12 @@ application.register("drive-oauth", DriveOauthController);
 application.register("rich-text", RichTextController);
 application.register("quick-capture", QuickCaptureController);
 application.register("footer-action-menu", FooterActionMenuController);
+application.register("voice-recorder", VoiceRecorderController);
+application.register("voice-note-delete", VoiceNoteDeleteController);
+application.register("todo-list", TodoListController);
+application.register("reminder-form", ReminderFormController);
+application.register("device-push", DevicePushController);
+application.register("reminder-dismiss-confirm", ReminderDismissConfirmController);
 
 document.addEventListener("DOMContentLoaded", () => scheduleTimedMessages());
 document.addEventListener("turbo:load", () => scheduleTimedMessages());

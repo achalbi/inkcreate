@@ -24,9 +24,11 @@ class NotepadEntriesController < BrowserController
   def create
     @notepad_entry = current_user.notepad_entries.new(notepad_entry_attributes)
     preserve_pending_photos(@notepad_entry, notepad_entry_params)
+    assign_pending_voice_notes_from_params(@notepad_entry, notepad_entry_params, raw_notepad_entry_attributes)
 
     if @notepad_entry.save
       attach_pending_photos(@notepad_entry)
+      persist_pending_voice_notes(@notepad_entry)
       schedule_drive_export(@notepad_entry)
       redirect_to create_redirect_path(@notepad_entry), notice: create_notice_message
     else
@@ -38,6 +40,7 @@ class NotepadEntriesController < BrowserController
 
   def update
     preserve_pending_photos(@notepad_entry, notepad_entry_params)
+    assign_pending_voice_notes_from_params(@notepad_entry, notepad_entry_params, raw_notepad_entry_attributes)
 
     if moving_to_notebook_chapter?
       @notepad_entry.assign_attributes(notepad_entry_attributes)
@@ -46,6 +49,7 @@ class NotepadEntriesController < BrowserController
 
     if @notepad_entry.update(notepad_entry_attributes)
       attach_pending_photos(@notepad_entry)
+      persist_pending_voice_notes(@notepad_entry)
       schedule_drive_export(@notepad_entry)
       redirect_to notepad_entry_path(@notepad_entry), notice: "Notepad entry updated."
     else
@@ -68,7 +72,9 @@ class NotepadEntriesController < BrowserController
   private
 
   def set_notepad_entry
-    @notepad_entry = current_user.notepad_entries.with_attached_photos.find(params[:id])
+    scope = current_user.notepad_entries.with_attached_photos
+    scope = scope.includes(voice_notes: [audio_attachment: :blob]) if VoiceNote.notepad_entries_supported?
+    @notepad_entry = scope.find(params[:id])
   end
 
   def load_move_destination_groups
@@ -80,11 +86,26 @@ class NotepadEntriesController < BrowserController
   end
 
   def notepad_entry_params
-    params.require(:notepad_entry).permit(:title, :notes, :entry_date, retained_photo_signed_ids: [], photos: [])
+    params.require(:notepad_entry).permit(
+      :title,
+      :notes,
+      :entry_date,
+      retained_photo_signed_ids: [],
+      photos: [],
+      voice_note_uploads: [],
+      voice_note_duration_seconds: [],
+      voice_note_recorded_ats: []
+    )
   end
 
   def notepad_entry_attributes
-    notepad_entry_params.except(:photos, :retained_photo_signed_ids)
+    notepad_entry_params.except(
+      :photos,
+      :retained_photo_signed_ids,
+      :voice_note_uploads,
+      :voice_note_duration_seconds,
+      :voice_note_recorded_ats
+    )
   end
 
   def preserve_pending_photos(entry, attrs)
@@ -113,6 +134,57 @@ class NotepadEntriesController < BrowserController
 
     entry.photos.attach(signed_ids)
     entry.retained_photo_signed_ids = []
+  end
+
+  def raw_notepad_entry_attributes
+    params.fetch(:notepad_entry, {})
+  end
+
+  def assign_pending_voice_notes_from_params(entry, attrs, raw_attrs)
+    entry.pending_voice_note_uploads = raw_voice_note_uploads(raw_attrs)
+    entry.pending_voice_note_duration_seconds = Array(attrs[:voice_note_duration_seconds])
+    entry.pending_voice_note_recorded_ats = Array(attrs[:voice_note_recorded_ats])
+  end
+
+  def raw_voice_note_uploads(raw_attrs)
+    Array(raw_attrs[:voice_note_uploads]).filter_map do |upload|
+      next if upload.blank?
+      next upload if upload.respond_to?(:content_type)
+
+      nil
+    end
+  end
+
+  def persist_pending_voice_notes(entry)
+    return unless VoiceNote.notepad_entries_supported?
+
+    uploads = entry.pending_voice_note_uploads
+    return if uploads.empty?
+
+    uploads.each_with_index do |upload, index|
+      next unless upload.respond_to?(:content_type)
+
+      voice_note = entry.voice_notes.new(
+        duration_seconds: normalized_voice_note_duration(entry, index),
+        recorded_at: normalized_voice_note_recorded_at(entry, index),
+        byte_size: upload.size,
+        mime_type: upload.content_type.to_s
+      )
+      voice_note.audio.attach(upload)
+      voice_note.save!
+    end
+
+    entry.pending_voice_note_uploads = []
+  end
+
+  def normalized_voice_note_duration(entry, index)
+    entry.pending_voice_note_duration_seconds[index].to_i.clamp(0, VoiceNote::MAX_DURATION_SECONDS)
+  end
+
+  def normalized_voice_note_recorded_at(entry, index)
+    Time.zone.parse(entry.pending_voice_note_recorded_ats[index].to_s)
+  rescue ArgumentError, TypeError
+    Time.current
   end
 
   def schedule_drive_export(entry)
@@ -154,6 +226,8 @@ class NotepadEntriesController < BrowserController
     NotepadEntry.transaction do
       page.save!
       attach_pending_photos(page)
+      move_pending_voice_notes_to_page(page)
+      move_voice_notes_to_page(page)
       @notepad_entry.photos.detach
       @notepad_entry.destroy!
     end
@@ -173,6 +247,31 @@ class NotepadEntriesController < BrowserController
     (@notepad_entry.photos.blobs.map(&:signed_id) + @notepad_entry.retained_photo_signed_ids).uniq
   end
 
+  def move_voice_notes_to_page(page)
+    return unless VoiceNote.notepad_entries_supported?
+
+    @notepad_entry.voice_notes.find_each do |voice_note|
+      voice_note.update!(page: page, notepad_entry: nil)
+    end
+  end
+
+  def move_pending_voice_notes_to_page(page)
+    return unless VoiceNote.notepad_entries_supported?
+
+    @notepad_entry.pending_voice_note_uploads.each_with_index do |upload, index|
+      next unless upload.respond_to?(:content_type)
+
+      voice_note = page.voice_notes.new(
+        duration_seconds: normalized_voice_note_duration(@notepad_entry, index),
+        recorded_at: normalized_voice_note_recorded_at(@notepad_entry, index),
+        byte_size: upload.size,
+        mime_type: upload.content_type.to_s
+      )
+      voice_note.audio.attach(upload)
+      voice_note.save!
+    end
+  end
+
   def move_destination_label(chapter)
     return if chapter.blank?
 
@@ -186,7 +285,7 @@ class NotepadEntriesController < BrowserController
   end
 
   def create_notice_message
-    return "Daily page created. You can add notes or more photos now." if redirect_to_edit_after_create?
+    return "Daily page created. You can add notes, photos, or more voice notes now." if redirect_to_edit_after_create?
 
     "Notepad entry created."
   end

@@ -1,0 +1,32 @@
+<article class="border rounded-4 p-3 bg-light-subtle">
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+    <div class="min-w-0">
+      <div class="fw-semibold"><%= reminder.title %></div>
+      <div class="text-secondary small">
+        <span><%= reminder_relative_time(reminder) %></span>
+        <span>·</span>
+        <span><%= reminder.fire_at.in_time_zone.strftime("%b %-d at %-I:%M %p") %></span>
+      </div>
+    </div>
+    <span class="badge rounded-pill text-bg-light"><%= reminder.status.humanize %></span>
+  </div>
+
+  <div class="text-secondary small mb-3"><%= reminder_source_label(reminder) %></div>
+
+  <div class="d-flex flex-wrap gap-2">
+    <%= link_to "Edit", edit_reminder_path(reminder), class: "btn btn-outline-secondary btn-sm" %>
+    <% unless reminder.status_dismissed? || reminder.status_expired? %>
+      <%= button_tag "Dismiss",
+        type: "button",
+        class: "btn btn-outline-secondary btn-sm",
+        data: {
+          action: "reminder-dismiss-confirm#open",
+          reminder_dismiss_url: dismiss_reminder_path(reminder),
+          reminder_dismiss_title: reminder.title
+        } %>
+    <% end %>
+    <% if reminder.status_pending? || reminder.status_snoozed? %>
+      <%= button_to "Snooze 10 min", snooze_reminder_path(reminder, minutes: 10), method: :patch, class: "btn btn-outline-secondary btn-sm", form_class: "d-inline-flex" %>
+    <% end %>
+  </div>
+</article>

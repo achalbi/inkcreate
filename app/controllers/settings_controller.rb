@@ -23,6 +23,11 @@ class SettingsController < BrowserController
   def load_settings_dashboard
     @app_setting = current_user.ensure_app_setting!
     @backup_records = current_user.backup_records.recent_first.limit(20)
+    @devices_available = Device.schema_ready?
+    @devices = @devices_available ? current_user.devices.recent_first : []
+    @current_device = @devices_available ? current_device_record : nil
+    @web_push_available = @devices_available && WebPushDeliverer.configured?
+    @web_push_public_key = @web_push_available ? WebPushDeliverer.public_key : nil
     @storage_stats = {
       captures: current_user.captures.count,
       attachments: current_user.attachments.count,

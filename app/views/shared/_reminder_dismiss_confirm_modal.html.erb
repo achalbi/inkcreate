@@ -1,0 +1,35 @@
+<div
+  class="modal fade reminder-dismiss-confirm-modal"
+  id="reminderDismissConfirmModal"
+  tabindex="-1"
+  aria-labelledby="reminderDismissConfirmModalLabel"
+  aria-hidden="true"
+  data-reminder-dismiss-confirm-target="modal"
+>
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title" id="reminderDismissConfirmModalLabel" data-reminder-dismiss-confirm-target="title">Dismiss reminder?</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body pt-2">
+        <p class="mb-0 text-secondary" data-reminder-dismiss-confirm-target="message">
+          This reminder will move to reminder history and stop sending notifications.
+        </p>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <form
+          id="reminderDismissConfirmForm"
+          action="<%= reminders_path %>"
+          method="post"
+          data-reminder-dismiss-confirm-target="form"
+        >
+          <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+          <input type="hidden" name="_method" value="patch">
+        </form>
+        <button type="button" class="btn btn-white btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" form="reminderDismissConfirmForm" class="btn btn-danger btn-sm">Dismiss reminder</button>
+      </div>
+    </div>
+  </div>
+</div>

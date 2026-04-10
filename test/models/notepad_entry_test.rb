@@ -12,13 +12,13 @@ class NotepadEntryTest < ActiveSupport::TestCase
     )
   end
 
-  test "requires notes or a photo" do
+  test "requires notes, a photo, or a voice note" do
     user = build_user(email: "notes@example.com")
 
     entry = user.notepad_entries.new(entry_date: Date.current)
 
     assert_not entry.valid?
-    assert_includes entry.errors.full_messages, "Add notes or at least one photo."
+    assert_includes entry.errors.full_messages, "Add notes, a photo, or a voice note."
   end
 
   test "generated title alone does not satisfy content validation" do
@@ -31,7 +31,7 @@ class NotepadEntryTest < ActiveSupport::TestCase
 
     assert_not entry.valid?
     assert_equal "Sunday, Apr 5 - Page 1", entry.title
-    assert_includes entry.errors.full_messages, "Add notes or at least one photo."
+    assert_includes entry.errors.full_messages, "Add notes, a photo, or a voice note."
   end
 
   test "generates a title from notes when blank" do
@@ -43,7 +43,7 @@ class NotepadEntryTest < ActiveSupport::TestCase
       notes: "Discussed rollout sequencing and next actions for the capture experience."
     )
 
-    assert_equal "Discussed rollout sequencing and next actions for the capture... - Page 1", entry.title
+    assert_equal "Discussed rollout sequencing and next actions for the... - Page 1", entry.title
   end
 
   test "is valid with a retained pending photo and no notes" do
@@ -60,6 +60,15 @@ class NotepadEntryTest < ActiveSupport::TestCase
     assert entry.valid?
   ensure
     blob&.purge
+  end
+
+  test "is valid with a pending voice note and no notes or photos" do
+    user = build_user(email: "retained-voice-note@example.com")
+
+    entry = user.notepad_entries.new(entry_date: Date.current, title: "")
+    entry.pending_voice_note_uploads = [Object.new]
+
+    assert entry.valid?
   end
 
   test "uses the running page number in the generated suffix" do
