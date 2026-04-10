@@ -32,26 +32,45 @@
       </div>
 
       <% if local_assigns.fetch(:show_pagination, true) && total_pages > 1 %>
+        <% total_count = local_assigns.fetch(:total_count, notebooks.size) %>
+        <% per_page = local_assigns.fetch(:per_page, NotebooksController::NOTEBOOKS_PER_PAGE) %>
+        <% first_item_number = ((current_page - 1) * per_page) + 1 %>
+        <% last_item_number = [((current_page - 1) * per_page) + notebooks.size, total_count].min %>
         <div class="notebook-section-pagination">
-          <div class="notebook-section-pagination__meta">
-            Page <%= current_page %> of <%= total_pages %>
+          <div class="notebook-section-pagination__summary">
+            <div class="notebook-section-pagination__meta">
+              Showing <%= first_item_number %>-<%= last_item_number %> of <%= total_count %>
+            </div>
+            <div class="notebook-section-pagination__page-pill">
+              Page <%= current_page %> of <%= total_pages %>
+            </div>
           </div>
 
-          <div class="notebook-section-pagination__actions">
+          <div class="notebook-section-pagination__actions" role="navigation" aria-label="<%= title %> pagination">
             <% if current_page > 1 %>
-              <%= link_to "Previous",
-                request.query_parameters.merge(page_param => current_page - 1),
-                class: "btn btn-white btn-sm notebook-section-pagination__button" %>
+              <%= link_to request.query_parameters.merge(page_param => current_page - 1),
+                class: "btn btn-white btn-sm notebook-section-pagination__button" do %>
+                <i class="ti ti-chevron-left" aria-hidden="true"></i>
+                <span>Previous</span>
+              <% end %>
             <% else %>
-              <span class="btn btn-white btn-sm notebook-section-pagination__button disabled" aria-disabled="true">Previous</span>
+              <span class="btn btn-white btn-sm notebook-section-pagination__button disabled" aria-disabled="true">
+                <i class="ti ti-chevron-left" aria-hidden="true"></i>
+                <span>Previous</span>
+              </span>
             <% end %>
 
             <% if current_page < total_pages %>
-              <%= link_to "Next",
-                request.query_parameters.merge(page_param => current_page + 1),
-                class: "btn btn-white btn-sm notebook-section-pagination__button" %>
+              <%= link_to request.query_parameters.merge(page_param => current_page + 1),
+                class: "btn btn-white btn-sm notebook-section-pagination__button" do %>
+                <span>Next</span>
+                <i class="ti ti-chevron-right" aria-hidden="true"></i>
+              <% end %>
             <% else %>
-              <span class="btn btn-white btn-sm notebook-section-pagination__button disabled" aria-disabled="true">Next</span>
+              <span class="btn btn-white btn-sm notebook-section-pagination__button disabled" aria-disabled="true">
+                <span>Next</span>
+                <i class="ti ti-chevron-right" aria-hidden="true"></i>
+              </span>
             <% end %>
           </div>
         </div>

@@ -2,7 +2,12 @@ import { Controller } from "/scripts/vendor/stimulus.js";
 
 export default class extends Controller {
   static targets = ["search", "item", "empty", "count", "pageInfo", "pagination", "previous", "next"];
-  static values = { pageSize: { type: Number, default: 5 } };
+  static values = {
+    pageSize: { type: Number, default: 5 },
+    itemLabelSingular: { type: String, default: "notebook" },
+    itemLabelPlural: { type: String, default: "notebooks" },
+    emptyMessage: { type: String, default: "No matching notebooks" }
+  };
 
   connect() {
     this.currentPage = 1;
@@ -68,7 +73,8 @@ export default class extends Controller {
   }
 
   resultLabel(count) {
-    return `${count} notebook${count === 1 ? "" : "s"}`;
+    const label = count === 1 ? this.itemLabelSingularValue : this.itemLabelPluralValue;
+    return `${count} ${label}`;
   }
 
   render() {
@@ -88,6 +94,7 @@ export default class extends Controller {
 
     if (this.hasEmptyTarget) {
       this.emptyTarget.hidden = filtered.length > 0;
+      this.emptyTarget.textContent = this.emptyMessageValue;
     }
 
     if (this.hasCountTarget) {
@@ -96,7 +103,7 @@ export default class extends Controller {
 
     if (this.hasPageInfoTarget) {
       if (filtered.length === 0) {
-        this.pageInfoTarget.textContent = "No matching notebooks";
+        this.pageInfoTarget.textContent = this.emptyMessageValue;
       } else if (totalPages === 1) {
         this.pageInfoTarget.textContent = this.resultLabel(filtered.length);
       } else {

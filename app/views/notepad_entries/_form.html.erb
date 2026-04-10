@@ -155,4 +155,168 @@
     </button>
   </div>
 
+  <% if notepad_entry.persisted? %>
+    <div class="row">
+      <div class="col-12">
+        <% move_modal_id = dom_id(notepad_entry, :move_destination_modal) %>
+        <% move_destination_input_id = "#{move_modal_id}_input" %>
+        <% move_destination_display_id = "#{move_modal_id}_display" %>
+        <% move_destination_data = @move_destination_notebooks.map { |notebook|
+          {
+            notebookId: notebook.id,
+            title: notebook.title,
+            chapters: notebook.chapters.map { |chapter|
+              {
+                chapterId: chapter.id,
+                notebookId: notebook.id,
+                title: chapter.title,
+                label: "#{notebook.title} > #{chapter.title}"
+              }
+            }
+          }
+        } %>
+        <div class="ibox notepad-entry-move-shell">
+          <div class="ibox-title">
+            <h5>Move to notebook</h5>
+            <div class="ibox-tools">
+              <span class="label label-warning">Notepad to notebook</span>
+            </div>
+          </div>
+          <div class="ibox-content">
+            <section class="notepad-entry-move-panel">
+              <div class="notepad-entry-move-panel__header">
+                <div>
+                  <h6 class="notepad-entry-move-panel__title">Move this page into a chapter</h6>
+                  <p class="notepad-entry-move-panel__description">Convert this daily page into a notebook page inside one of your chapters.</p>
+                </div>
+              </div>
+
+              <% if @move_destination_notebooks.present? %>
+                <div class="form-group">
+                  <%= label_tag :move_to_chapter_id, "Destination", class: "control-label" %>
+                  <%= hidden_field_tag :move_to_chapter_id,
+                    @selected_move_destination_chapter_id,
+                    id: move_destination_input_id %>
+                  <button
+                    type="button"
+                    class="btn btn-white btn-sm notepad-entry-move-picker-button"
+                    data-bs-toggle="modal"
+                    data-bs-target="#<%= move_modal_id %>"
+                  >
+                    <span class="notepad-entry-move-picker-button__copy">
+                      <span class="notepad-entry-move-picker-button__label">Selected destination</span>
+                      <span id="<%= move_destination_display_id %>" class="notepad-entry-move-picker-button__value"><%= @selected_move_destination_label.presence || "Choose a notebook and chapter" %></span>
+                    </span>
+                    <i class="ti ti-chevron-right" aria-hidden="true"></i>
+                  </button>
+                  <p class="help-block">Choose a notebook in the modal, then pick a chapter and save the destination.</p>
+                </div>
+
+                <div class="workspace-form-actions">
+                  <%= button_tag "Move to notebook chapter",
+                    type: "submit",
+                    name: "intent",
+                    value: "move_to_notebook",
+                    class: "btn btn-white btn-sm notepad-entry-move-button",
+                    data: { disable_with: "Moving..." } %>
+                </div>
+
+                <div
+                  class="modal fade notebook-section-modal notepad-entry-move-modal"
+                  id="<%= move_modal_id %>"
+                  tabindex="-1"
+                  aria-labelledby="<%= "#{move_modal_id}-label" %>"
+                  aria-hidden="true"
+                >
+                  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                    <div
+                      class="modal-content"
+                      data-controller="move-destination"
+                      data-move-destination-placeholder-value="Choose a notebook and chapter"
+                      data-move-destination-notebooks-value="<%= json_escape(move_destination_data.to_json) %>"
+                      data-move-destination-input-id-value="<%= move_destination_input_id %>"
+                      data-move-destination-display-label-id-value="<%= move_destination_display_id %>"
+                    >
+                      <div class="modal-header notebook-section-modal__header">
+                        <div>
+                          <div class="notebook-section-modal__eyebrow">Move destination</div>
+                          <h5
+                            id="<%= "#{move_modal_id}-label" %>"
+                            class="modal-title notebook-section-modal__title"
+                            data-move-destination-target="modalTitle"
+                          >
+                            Choose a notebook and chapter
+                          </h5>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+
+                      <div class="modal-body notebook-section-modal__body">
+                        <div class="notepad-entry-move-modal__selection">
+                          <span class="notepad-entry-move-modal__selection-label">Pending destination</span>
+                          <span class="notepad-entry-move-modal__selection-value" data-move-destination-target="pendingLabel"><%= @selected_move_destination_label.presence || "Choose a notebook and chapter" %></span>
+                        </div>
+
+                        <div class="notepad-entry-move-modal__field-stack">
+                          <div class="form-group">
+                            <label class="control-label" for="<%= "#{move_modal_id}_notebook" %>">Notebook</label>
+                            <select
+                              id="<%= "#{move_modal_id}_notebook" %>"
+                              class="form-control"
+                              data-move-destination-target="notebookSelect"
+                              data-action="input->move-destination#chooseNotebook change->move-destination#chooseNotebook"
+                            >
+                              <option value="">Choose a notebook</option>
+                              <% @move_destination_notebooks.each do |notebook| %>
+                                <option value="<%= notebook.id %>"><%= notebook.title %></option>
+                              <% end %>
+                            </select>
+                            <p class="help-block notepad-entry-move-modal__help">Select a notebook first to load its chapters.</p>
+                          </div>
+
+                          <div class="form-group m-b-none">
+                            <label class="control-label" for="<%= "#{move_modal_id}_chapter" %>">Chapter</label>
+                            <select
+                              id="<%= "#{move_modal_id}_chapter" %>"
+                              class="form-control"
+                              data-move-destination-target="chapterSelect"
+                              data-action="input->move-destination#selectChapter change->move-destination#selectChapter"
+                              disabled
+                            >
+                              <option value="">Choose a chapter</option>
+                            </select>
+                            <p class="help-block notepad-entry-move-modal__help">Choose the chapter inside that notebook, then save the destination.</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="modal-footer notebook-section-modal__footer">
+                        <div class="notebook-section-modal__page-info">Save the destination here, then move the page from the main action below.</div>
+                        <div class="notepad-entry-move-modal__footer-actions">
+                          <button
+                            type="button"
+                            class="btn btn-primary btn-sm notepad-entry-move-modal__save-button"
+                            data-move-destination-target="saveButton"
+                            data-action="click->move-destination#save"
+                          >
+                            Save destination
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              <% else %>
+                <%= render "shared/inline_alert",
+                  type: :info,
+                  title: "Create a chapter first",
+                  body: "You can move this page once at least one notebook chapter exists in your workspace." %>
+              <% end %>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
 <% end %>

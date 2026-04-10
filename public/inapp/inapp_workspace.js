@@ -423,6 +423,7 @@ const bindModalPortals = () => {
 
   const hoistModal = (modal) => {
     if (!(modal instanceof HTMLElement)) return;
+    if (modal.dataset.workspaceModalPortal === "false") return;
     if (modal.parentElement === document.body) return;
 
     document.body.appendChild(modal);

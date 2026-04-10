@@ -1,0 +1,43 @@
+<section class="ibox h-100" data-controller="notification-preferences">
+  <div class="ibox-title">
+    <h5>App notifications</h5>
+  </div>
+  <div class="ibox-content">
+    <p class="text-secondary mb-4">Background upload retries can notify this device when queued photos finish syncing after the connection comes back.</p>
+
+    <div class="vstack gap-3 mb-4">
+      <div class="border rounded-4 p-3 bg-light-subtle">
+        <div class="text-uppercase text-secondary fw-semibold small mb-1">Browser permission</div>
+        <div class="fw-semibold" data-notification-preferences-target="permissionStatus">Checking...</div>
+        <div class="text-secondary small mt-1">The browser still controls whether Inkcreate is allowed to show notifications at all.</div>
+      </div>
+
+      <div class="border rounded-4 p-3 bg-light-subtle">
+        <div class="text-uppercase text-secondary fw-semibold small mb-1">This device</div>
+        <div class="fw-semibold" data-notification-preferences-target="deviceStatus">Checking...</div>
+        <div class="text-secondary small mt-1" data-notification-preferences-target="helpText">Notifications turn on by default when the app is installed.</div>
+      </div>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2">
+      <button
+        type="button"
+        class="btn btn-primary"
+        data-notification-preferences-target="enableButton"
+        data-action="notification-preferences#enable"
+      >
+        Enable notifications
+      </button>
+      <button
+        type="button"
+        class="btn btn-outline-secondary"
+        data-notification-preferences-target="disableButton"
+        data-action="notification-preferences#disable"
+      >
+        Disable notifications
+      </button>
+    </div>
+
+    <p class="form-text mt-3 mb-0" data-notification-preferences-target="feedback" hidden></p>
+  </div>
+</section>

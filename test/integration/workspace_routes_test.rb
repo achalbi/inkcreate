@@ -103,6 +103,31 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_select ".flash-banner.notice", text: /Backup settings updated/
   end
 
+  test "settings page shows notification controls" do
+    sign_in!
+
+    get settings_path
+
+    assert_response :success
+    assert_select "h5", text: "App notifications"
+    assert_select "[data-controller='notification-preferences']", count: 1
+    assert_select "[data-notification-preferences-target='permissionStatus']", text: "Checking..."
+    assert_select "[data-notification-preferences-target='deviceStatus']", text: "Checking..."
+    assert_select "button[data-action='notification-preferences#enable']", text: "Enable notifications"
+    assert_select "button[data-action='notification-preferences#disable']", text: "Disable notifications"
+  end
+
+  test "install page shows notification setup step" do
+    sign_in!
+
+    get install_path
+
+    assert_response :success
+    assert_select "[data-controller='install-prompt']", count: 1
+    assert_select "[data-install-prompt-target='notificationSetup']", count: 1
+    assert_select "button[data-action='install-prompt#requestNotifications']", text: "Enable notifications"
+  end
+
   private
 
   def sign_in!

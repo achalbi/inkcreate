@@ -1,17 +1,18 @@
 class NotebooksController < BrowserController
-  NOTEBOOKS_PER_PAGE = 2
+  NOTEBOOKS_PER_PAGE = 6
 
   before_action :require_authenticated_user!
   before_action :set_notebook, only: %i[show edit update archive unarchive]
 
   def index
     @notebook_scope = notebook_scope
+    @query = params[:q].to_s.squish
 
-    active_scope = current_user.notebooks.active.includes(chapters: :pages).ordered
-    archived_scope = current_user.notebooks.archived.includes(chapters: :pages).ordered
+    active_scope = filtered_notebooks(current_user.notebooks.active)
+    archived_scope = filtered_notebooks(current_user.notebooks.archived)
 
-    @active_notebooks_all = active_scope.to_a
-    @archived_notebooks_all = archived_scope.to_a
+    @active_notebooks_all = notebook_collection_for(active_scope)
+    @archived_notebooks_all = notebook_collection_for(archived_scope)
 
     @active_notebook_count = @active_notebooks_all.size
     @archived_notebook_count = @archived_notebooks_all.size
@@ -19,8 +20,8 @@ class NotebooksController < BrowserController
     @active_total_pages = total_pages_for(@active_notebook_count)
     @archived_total_pages = total_pages_for(@archived_notebook_count)
 
-    @active_page = 1
-    @archived_page = bounded_page_param(:archived_page, @archived_total_pages)
+    @active_page = bounded_page_param(:page, @active_total_pages)
+    @archived_page = bounded_page_param(:page, @archived_total_pages)
 
     @active_notebooks = paginated_collection(@active_notebooks_all, @active_page)
     @archived_notebooks = paginated_collection(@archived_notebooks_all, @archived_page)
@@ -94,5 +95,23 @@ class NotebooksController < BrowserController
 
   def notebook_scope
     params[:scope] == "archived" ? "archived" : "current"
+  end
+
+  def filtered_notebooks(scope)
+    return scope unless @query.present?
+
+    search_term = "%#{ActiveRecord::Base.sanitize_sql_like(@query)}%"
+
+    scope
+      .left_outer_joins(:chapters)
+      .where(
+        "notebooks.title ILIKE :term OR notebooks.name ILIKE :term OR notebooks.description ILIKE :term OR chapters.title ILIKE :term OR chapters.description ILIKE :term",
+        term: search_term
+      )
+      .distinct
+  end
+
+  def notebook_collection_for(scope)
+    scope.includes(chapters: :pages).ordered.to_a
   end
 end

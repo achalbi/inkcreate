@@ -28,5 +28,21 @@
       <button class="button button-primary" type="button" data-action="install-prompt#prompt">Try install prompt</button>
       <%= link_to "Open onboarding", onboarding_path, class: "button button-secondary" %>
     </div>
+
+    <article class="feature-card mt-4" data-install-prompt-target="notificationSetup" hidden>
+      <div class="pill">Notifications</div>
+      <h3>Enable background sync updates</h3>
+      <p data-install-prompt-target="notificationStatus">Install accepted. Finish setup by allowing notifications for background upload and sync updates on this device.</p>
+      <div class="dashboard-actions">
+        <button
+          class="button button-primary"
+          type="button"
+          data-install-prompt-target="notificationButton"
+          data-action="install-prompt#requestNotifications"
+        >
+          Enable notifications
+        </button>
+      </div>
+    </article>
   </section>
 </div>

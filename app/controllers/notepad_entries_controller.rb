@@ -3,6 +3,7 @@ class NotepadEntriesController < BrowserController
 
   before_action :require_authenticated_user!
   before_action :set_notepad_entry, only: %i[show edit update destroy destroy_photo]
+  before_action :load_move_destination_groups, only: %i[edit update]
 
   def index
     @view_mode = index_view_mode
@@ -38,6 +39,11 @@ class NotepadEntriesController < BrowserController
   def update
     preserve_pending_photos(@notepad_entry, notepad_entry_params)
 
+    if moving_to_notebook_chapter?
+      @notepad_entry.assign_attributes(notepad_entry_attributes)
+      return move_notepad_entry_to_chapter
+    end
+
     if @notepad_entry.update(notepad_entry_attributes)
       attach_pending_photos(@notepad_entry)
       schedule_drive_export(@notepad_entry)
@@ -63,6 +69,14 @@ class NotepadEntriesController < BrowserController
 
   def set_notepad_entry
     @notepad_entry = current_user.notepad_entries.with_attached_photos.find(params[:id])
+  end
+
+  def load_move_destination_groups
+    @move_destination_notebooks = current_user.notebooks.includes(chapters: :pages).ordered.select do |notebook|
+      notebook.chapters.any?
+    end
+    @selected_move_destination_chapter_id = move_destination_chapter_id
+    @selected_move_destination_label = move_destination_label(move_destination_chapter)
   end
 
   def notepad_entry_params
@@ -103,6 +117,66 @@ class NotepadEntriesController < BrowserController
 
   def schedule_drive_export(entry)
     Drive::ScheduleRecordExport.new(record: entry).call
+  end
+
+  def moving_to_notebook_chapter?
+    params[:intent].to_s == "move_to_notebook"
+  end
+
+  def move_destination_chapter_id
+    params[:move_to_chapter_id].presence
+  end
+
+  def move_destination_chapter
+    return if move_destination_chapter_id.blank?
+
+    Chapter.kept
+      .joins(:notebook)
+      .where(notebooks: { user_id: current_user.id })
+      .find_by(id: move_destination_chapter_id)
+  end
+
+  def move_notepad_entry_to_chapter
+    chapter = move_destination_chapter
+
+    unless chapter
+      @notepad_entry.errors.add(:base, "Choose a notebook chapter to move this page into.")
+      return render :edit, status: :unprocessable_entity
+    end
+
+    page = chapter.pages.new(
+      title: @notepad_entry.title,
+      notes: @notepad_entry.notes,
+      captured_on: @notepad_entry.entry_date
+    )
+    page.retained_photo_signed_ids = photo_signed_ids_for_move
+
+    NotepadEntry.transaction do
+      page.save!
+      attach_pending_photos(page)
+      @notepad_entry.photos.detach
+      @notepad_entry.destroy!
+    end
+
+    schedule_drive_export(page)
+    redirect_to notebook_chapter_page_path(chapter.notebook, chapter, page),
+      notice: "Daily page moved to #{chapter.notebook.title} / #{chapter.title}."
+  rescue ActiveRecord::RecordInvalid
+    page.errors.full_messages.each do |message|
+      @notepad_entry.errors.add(:base, message)
+    end
+
+    render :edit, status: :unprocessable_entity
+  end
+
+  def photo_signed_ids_for_move
+    (@notepad_entry.photos.blobs.map(&:signed_id) + @notepad_entry.retained_photo_signed_ids).uniq
+  end
+
+  def move_destination_label(chapter)
+    return if chapter.blank?
+
+    "#{chapter.notebook.title} > #{chapter.title}"
   end
 
   def create_redirect_path(entry)
