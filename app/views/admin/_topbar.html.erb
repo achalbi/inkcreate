@@ -1,10 +1,29 @@
+<%
+  icon_for_path = lambda do |path|
+    case path
+    when admin_dashboard_path
+      "ti-layout-dashboard"
+    when admin_captures_path
+      "ti-box-seam"
+    when admin_operations_path
+      "ti-receipt"
+    when admin_users_path
+      "ti-users"
+    when dashboard_path
+      "ti-layout-dashboard"
+    else
+      "ti-arrow-right"
+    end
+  end
+%>
+
 <nav id="topbar" class="navbar bg-white border-bottom fixed-top topbar px-3 px-lg-4">
   <div class="d-flex align-items-center gap-2 flex-grow-1 min-w-0">
-    <button id="toggleBtn" class="d-none d-lg-inline-flex btn btn-light btn-icon btn-sm">
+    <button id="toggleBtn" class="d-none d-lg-inline-flex btn btn-light btn-icon btn-sm" type="button">
       <i class="ti ti-layout-sidebar-left-expand"></i>
     </button>
 
-    <button id="mobileBtn" class="btn btn-light btn-icon btn-sm d-lg-none">
+    <button id="mobileBtn" class="btn btn-light btn-icon btn-sm d-lg-none" type="button">
       <i class="ti ti-layout-sidebar-left-expand"></i>
     </button>
 
@@ -16,20 +35,26 @@
 
   <div class="d-flex align-items-center gap-2 admin-topbar-actions">
     <% if local_assigns[:primary_path].present? && local_assigns[:primary_label].present? %>
-      <%= link_to primary_label, primary_path, class: "btn btn-primary d-none d-md-inline-flex" %>
+      <%= link_to primary_path, class: "btn btn-primary d-none d-md-inline-flex" do %>
+        <i class="ti <%= icon_for_path.call(primary_path) %> me-1"></i>
+        <span><%= primary_label %></span>
+      <% end %>
     <% end %>
 
     <% if local_assigns[:secondary_path].present? && local_assigns[:secondary_label].present? %>
-      <%= link_to secondary_label, secondary_path, class: "btn btn-outline-secondary d-none d-md-inline-flex" %>
+      <%= link_to secondary_path, class: "btn btn-outline-secondary d-none d-md-inline-flex" do %>
+        <i class="ti <%= icon_for_path.call(secondary_path) %> me-1"></i>
+        <span><%= secondary_label %></span>
+      <% end %>
     <% end %>
 
     <div class="dropdown">
-      <a class="position-relative btn btn-light btn-icon btn-sm rounded-circle" data-bs-toggle="dropdown" aria-expanded="false" href="#" role="button">
+      <button type="button" class="position-relative btn btn-light btn-icon btn-sm rounded-circle" data-bs-toggle="dropdown" data-shell-dropdown-backdrop aria-expanded="false">
         <i class="ti ti-bell"></i>
         <% if @admin_shell_metrics[:issues].positive? %>
           <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"><%= @admin_shell_metrics[:issues] %></span>
         <% end %>
-      </a>
+      </button>
       <div class="dropdown-menu dropdown-menu-end shadow-sm border-0 p-0" style="min-width: 18rem;">
         <div class="p-3 border-bottom">
           <h6 class="mb-1">Admin watchlist</h6>
@@ -53,22 +78,24 @@
     </div>
 
     <div class="dropdown">
-      <a href="#" role="button" data-bs-toggle="dropdown" data-shell-dropdown-backdrop aria-expanded="false" class="text-decoration-none">
+      <button type="button" data-bs-toggle="dropdown" data-shell-dropdown-backdrop aria-expanded="false" class="btn p-0 border-0 bg-transparent text-decoration-none">
         <span class="table-avatar"><%= current_user.email.first.upcase %></span>
-      </a>
+      </button>
       <div class="dropdown-menu dropdown-menu-end shadow-sm border-0 p-0" style="min-width: 16rem;">
         <div class="px-3 py-3 border-bottom">
           <div class="admin-topbar-status">Signed in as</div>
           <strong class="break-anywhere"><%= current_user.email %></strong>
-          <div class="admin-topbar-status"><%= current_user.role.humanize %> access</div>
+          <div class="admin-topbar-status"><%= current_user.role.humanize %> admin workspace</div>
         </div>
         <div class="p-2 d-grid gap-1">
-          <%= link_to "Admin overview", admin_dashboard_path, class: "dropdown-item rounded-2" %>
+          <%= link_to "Dashboard", admin_dashboard_path, class: "dropdown-item rounded-2" %>
+          <%= link_to "Captures", admin_captures_path, class: "dropdown-item rounded-2" %>
+          <%= link_to "Operations", admin_operations_path, class: "dropdown-item rounded-2" %>
+          <%= link_to "User roles", admin_users_path, class: "dropdown-item rounded-2" %>
           <%= link_to "Workspace", dashboard_path, class: "dropdown-item rounded-2" %>
-          <%= link_to "Landing page", root_path, class: "dropdown-item rounded-2" %>
         </div>
         <div class="border-top p-2">
-          <%= button_to "Sign out", browser_sign_out_path, class: "btn btn-outline-danger w-100", form_class: "d-grid" %>
+          <%= button_to "Sign out", browser_sign_out_path, method: :delete, class: "btn btn-outline-danger w-100", form_class: "d-grid" %>
         </div>
       </div>
     </div>

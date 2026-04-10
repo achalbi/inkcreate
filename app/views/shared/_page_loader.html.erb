@@ -1,0 +1,24 @@
+<div
+  id="page-loader"
+  class="page-loader"
+  hidden
+  aria-hidden="true"
+  data-delay-ms="1500"
+  data-default-message="Loading your workspace..."
+  data-upload-message="Uploading your files..."
+>
+  <div class="page-loader__panel" role="status" aria-live="polite" aria-atomic="true">
+    <div class="page-loader__brand">
+      <img
+        src="<%= versioned_public_asset_path("/icons/app-icon.svg") %>"
+        alt=""
+        class="page-loader__brand-mark"
+        width="48"
+        height="48"
+      >
+      <span class="page-loader__brand-copy">Inkcreate</span>
+    </div>
+    <span class="page-loader__spinner" aria-hidden="true"></span>
+    <p class="page-loader__message" data-page-loader-message>Loading your workspace...</p>
+  </div>
+</div>

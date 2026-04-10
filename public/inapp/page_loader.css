@@ -1,0 +1,102 @@
+.page-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 2500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background:
+    linear-gradient(180deg, rgba(255, 250, 242, 0.88), rgba(246, 236, 221, 0.9)),
+    radial-gradient(circle at top left, rgba(242, 120, 58, 0.14), transparent 30%),
+    radial-gradient(circle at top right, rgba(0, 184, 219, 0.12), transparent 28%);
+  backdrop-filter: blur(10px);
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.22s ease, visibility 0.22s ease;
+}
+
+.page-loader[hidden] {
+  display: none;
+}
+
+.page-loader.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.page-loader__panel {
+  width: min(100%, 24rem);
+  padding: 1.4rem 1.4rem 1.25rem;
+  border: 1px solid rgba(28, 35, 33, 0.1);
+  border-radius: 1.6rem;
+  background: rgba(255, 252, 247, 0.94);
+  box-shadow: 0 26px 60px rgba(20, 38, 31, 0.14);
+  text-align: center;
+}
+
+.page-loader__brand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.page-loader__brand-mark {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 1rem;
+  box-shadow: 0 12px 24px rgba(20, 38, 31, 0.12);
+}
+
+.page-loader__brand-copy {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #1b2c25;
+}
+
+.page-loader__spinner {
+  width: 2.8rem;
+  height: 2.8rem;
+  display: inline-block;
+  border: 3px solid rgba(23, 57, 45, 0.14);
+  border-top-color: #d76e3c;
+  border-right-color: #17392d;
+  border-radius: 999px;
+  animation: page-loader-spin 0.85s linear infinite;
+}
+
+.page-loader__message {
+  margin: 1rem 0 0;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: #33473f;
+}
+
+body.page-loader-active {
+  overflow: hidden;
+}
+
+@keyframes page-loader-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 640px) {
+  .page-loader {
+    padding: 1rem;
+  }
+
+  .page-loader__panel {
+    padding: 1.2rem 1.1rem 1.1rem;
+    border-radius: 1.35rem;
+  }
+
+  .page-loader__message {
+    font-size: 0.92rem;
+  }
+}

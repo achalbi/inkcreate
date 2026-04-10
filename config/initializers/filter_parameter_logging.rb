@@ -1,4 +1,5 @@
 Rails.application.config.filter_parameters += %i[
+  code
   password
   password_confirmation
   google_drive_access_token

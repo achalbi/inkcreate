@@ -293,6 +293,7 @@ export default class extends Controller {
     }
 
     this.autoSubmitting = true;
+    window.InkcreatePageLoader?.show("Uploading your photos...");
 
     if (typeof form.requestSubmit === "function") {
       form.requestSubmit();

@@ -15,6 +15,7 @@
     <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.35.0/dist/tabler-icons.min.css" rel="stylesheet">
     <link href="https://unpkg.com/trix@2.1.18/dist/trix.css" rel="stylesheet">
     <link href="<%= versioned_public_asset_path("/vendor/photoswipe/photoswipe.css") %>" rel="stylesheet">
+    <link href="<%= versioned_public_asset_path("/inapp/page_loader.css") %>" rel="stylesheet">
     <link href="<%= versioned_public_asset_path("/inapp/inapp_workspace.css") %>" rel="stylesheet">
     <link rel="manifest" href="<%= versioned_public_asset_path("/manifest.json") %>">
     <link rel="icon" type="image/svg+xml" href="<%= versioned_public_asset_path("/icons/app-icon.svg") %>">
@@ -24,6 +25,7 @@
 
   <body class="<%= ["workspace-body", ("workspace-body--no-sidebar" unless show_workspace_sidebar)].compact.join(" ") %>">
     <div id="overlay" class="overlay"></div>
+    <%= render "shared/page_loader" %>
 
     <%= render "shared/flash_banners" %>
 
@@ -41,6 +43,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/trix@2.1.18/dist/trix.umd.min.js" defer></script>
+    <script src="<%= versioned_public_asset_path("/scripts/page_loader.js") %>" defer></script>
     <script src="<%= versioned_public_asset_path("/inapp/inapp_workspace.js") %>" defer></script>
     <script type="module" src="<%= versioned_public_asset_path("/scripts/app.js") %>"></script>
   </body>

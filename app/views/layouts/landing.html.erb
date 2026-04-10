@@ -13,6 +13,7 @@
     <%= csp_meta_tag %>
     <script src="<%= versioned_public_asset_path("/scripts/device_time_zone.js") %>" defer></script>
     <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
+    <link rel="stylesheet" href="<%= versioned_public_asset_path("/inapp/page_loader.css") %>">
     <link rel="manifest" href="<%= versioned_public_asset_path("/manifest.json") %>">
     <link rel="icon" href="<%= versioned_public_asset_path("/icons/app-icon.svg") %>" type="image/svg+xml">
     <link rel="apple-touch-icon" href="<%= versioned_public_asset_path("/icons/app-icon.svg") %>">
@@ -205,6 +206,15 @@
         color: #fffaf1;
       }
 
+      .nav-actions-auth .mini-button {
+        border-color: rgba(20, 38, 31, 0.22);
+        background: rgba(255, 250, 241, 0.97);
+      }
+
+      .nav-actions-auth .mini-button-primary {
+        background: linear-gradient(135deg, rgba(23, 57, 45, 1) 0%, rgba(61, 120, 93, 1) 100%);
+      }
+
       .hero {
         position: relative;
         display: grid;
@@ -324,6 +334,30 @@
         background: rgba(255, 250, 241, 0.75);
         border: 1px solid rgba(20, 38, 31, 0.1);
         color: var(--forest);
+      }
+
+      .button-google {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid rgba(20, 38, 31, 0.12);
+        color: var(--ink);
+        box-shadow: 0 14px 28px rgba(20, 38, 31, 0.08);
+      }
+
+      .google-mark {
+        display: inline-grid;
+        place-items: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        background: #ffffff;
+        color: #db4437;
+        font-size: 1rem;
+        font-weight: 800;
+        box-shadow: inset 0 0 0 1px rgba(20, 38, 31, 0.1);
       }
 
       .stat-row {
@@ -648,6 +682,34 @@
         text-transform: uppercase;
       }
 
+      .footer-credit {
+        width: 100%;
+        padding-top: 4px;
+        text-align: center;
+        color: var(--ink-soft);
+        font-size: 0.9rem;
+      }
+
+      .footer-credit a {
+        color: var(--forest);
+        font-weight: 700;
+      }
+
+      .footer-heart {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #d94b5c;
+        vertical-align: middle;
+        transform: translateY(-1px);
+      }
+
+      .footer-heart-icon {
+        width: 1rem;
+        height: 1rem;
+        fill: currentColor;
+      }
+
       .legal-shell {
         display: grid;
         grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
@@ -915,6 +977,14 @@
         margin-top: 22px;
       }
 
+      .oauth-form {
+        margin-top: 22px;
+      }
+
+      .oauth-form .button {
+        width: 100%;
+      }
+
       .auth-form-row {
         display: grid;
         gap: 14px;
@@ -958,6 +1028,26 @@
         flex-wrap: wrap;
         gap: 12px;
         margin-top: 18px;
+      }
+
+      .auth-divider {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 18px 0 0;
+        color: rgba(20, 38, 31, 0.56);
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .auth-divider::before,
+      .auth-divider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: rgba(20, 38, 31, 0.12);
       }
 
       .helper-links a {
@@ -1964,9 +2054,11 @@
   </head>
 
   <body>
+    <%= render "shared/page_loader" %>
     <%= render "shared/flash_banners" unless workspace_layout_page? %>
 
     <%= yield %>
+    <script src="<%= versioned_public_asset_path("/scripts/page_loader.js") %>" defer></script>
     <script type="module" src="/scripts/app.js"></script>
   </body>
 </html>

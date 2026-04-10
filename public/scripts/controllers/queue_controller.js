@@ -23,6 +23,12 @@ export default class extends Controller {
   }
 
   async saveDraft() {
+    window.InkcreatePageLoader?.show(
+      this.file
+        ? (navigator.onLine ? "Uploading your photo..." : "Saving your photo draft locally...")
+        : "Saving your draft..."
+    );
+
     const draft = this.buildDraft();
     await localStore.put(localStore.stores.drafts, draft);
 
@@ -44,10 +50,12 @@ export default class extends Controller {
         window.location.href = `/captures/${capture.id}`;
         return;
       } catch (_error) {
+        window.InkcreatePageLoader?.hide();
         // Keep the queued upload locally. The service worker replay path will retry it.
       }
     }
 
+    window.InkcreatePageLoader?.hide();
     window.alert("Draft saved locally. It will stay available offline and retry upload when possible.");
   }
 

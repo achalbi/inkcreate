@@ -56,8 +56,6 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
       tasks_path,
       library_path,
       settings_path,
-      settings_backup_path,
-      settings_privacy_path,
       onboarding_path,
       install_path
     ].each do |path|
@@ -66,9 +64,12 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     end
 
     get dashboard_path
-    assert_select "#sidebar"
+    assert_select "#sidebar", count: 0
     assert_select "#topbar"
+    assert_select "#page-loader"
+    assert_select "link[href*='/inapp/page_loader.css?v=']"
     assert_select "link[href*='/inapp/inapp_workspace.css?v=']"
+    assert_select "script[src*='/scripts/page_loader.js?v=']"
     assert_select "script[src*='/scripts/app.js?v=']"
   end
 
@@ -89,7 +90,7 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
   test "workspace notice renders under the header section" do
     sign_in!
 
-    get settings_backup_path
+    get settings_path
 
     patch settings_backup_path, params: {
       authenticity_token: authenticity_token_for(settings_backup_path),
@@ -99,12 +100,14 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     follow_redirect!
 
     assert_response :success
-    assert_select ".workspace-header .flash-banner.notice", text: /Backup settings updated/
+    assert_select ".flash-banner.notice", text: /Backup settings updated/
   end
 
   private
 
   def sign_in!
+    cookies[:browser_time_zone] = "UTC"
+
     get browser_sign_in_path
 
     post browser_sign_in_path, params: {

@@ -8,6 +8,8 @@ Rails.application.routes.draw do
   post "/auth/sign-in", to: "web/auth/sessions#create"
   post "/auth/sign-out", to: "web/auth/sessions#destroy"
   delete "/auth/sign-out", to: "web/auth/sessions#destroy", as: :browser_sign_out
+  post "/auth/google", to: "web/auth/google#create", as: :browser_google_auth
+  get "/auth/google/callback", to: "web/auth/google#callback", as: :browser_google_auth_callback
   get "/auth/sign-up", to: "web/auth/registrations#new", as: :browser_sign_up
   post "/auth/sign-up", to: "web/auth/registrations#create"
   get "/app", to: "home#show", as: :dashboard

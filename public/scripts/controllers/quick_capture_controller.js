@@ -28,6 +28,7 @@ export default class extends Controller {
     this.submitting = true;
     this.setButtonsDisabled(true);
     this.showStatus("Creating your daily page and opening edit mode...");
+    window.InkcreatePageLoader?.show("Creating your daily page...");
 
     if (typeof this.formTarget.requestSubmit === "function") {
       this.formTarget.requestSubmit();

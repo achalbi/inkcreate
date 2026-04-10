@@ -11,23 +11,26 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.35.0/dist/tabler-icons.min.css" rel="stylesheet">
+    <link href="<%= versioned_public_asset_path("/inapp/page_loader.css") %>" rel="stylesheet">
     <link href="<%= versioned_public_asset_path("/inapp/inapp_admin.css") %>" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="<%= versioned_public_asset_path("/icons/app-icon.svg") %>">
   </head>
 
   <body class="admin-body">
     <div id="overlay" class="overlay"></div>
+    <%= render "shared/page_loader" %>
 
     <%= render "admin/sidebar" %>
     <%= content_for?(:admin_topbar) ? yield(:admin_topbar) : render("admin/topbar", eyebrow: "Admin", title: "Inkcreate", primary_path: admin_dashboard_path, primary_label: "Dashboard") %>
 
     <main id="content" class="content py-4 py-lg-5">
-      <div class="container-fluid px-3 px-lg-4">
+      <div class="container-fluid px-3 px-lg-4 admin-shell-content">
         <%= yield %>
       </div>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="<%= versioned_public_asset_path("/scripts/page_loader.js") %>" defer></script>
     <script src="<%= versioned_public_asset_path("/inapp/inapp_admin.js") %>" defer></script>
   </body>
 </html>

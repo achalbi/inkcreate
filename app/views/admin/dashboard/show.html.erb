@@ -1,242 +1,310 @@
+<%
+  stable_capture_count = [@capture_count - @sync_issue_count, 0].max
+
+  hero_highlights = [
+    {
+      tone: "processing",
+      label: "Live queue",
+      value: @active_capture_count,
+      caption: "#{pluralize(@active_capture_count, "capture")} moving now"
+    },
+    {
+      tone: "completed",
+      label: "Ready now",
+      value: @ready_capture_count,
+      caption: "#{pluralize(@ready_capture_count, "capture")} ready for retrieval"
+    },
+    {
+      tone: "pending",
+      label: "Needs review",
+      value: @backup_backlog_count,
+      caption: "#{pluralize(@backup_backlog_count, "backup item")} waiting for attention"
+    },
+    {
+      tone: "failed",
+      label: "Open issues",
+      value: @admin_shell_metrics[:issues],
+      caption: "#{pluralize(@admin_shell_metrics[:issues], "queue issue")} across capture jobs"
+    }
+  ]
+
+  summary_cards = [
+    {
+      tone: "primary",
+      icon: "ti-users",
+      label: "Accounts",
+      value: @user_count,
+      detail: "#{pluralize(@new_users_this_week, "new user")} in the last 7 days"
+    },
+    {
+      tone: "success",
+      icon: "ti-device-camera-phone",
+      label: "Captures",
+      value: @capture_count,
+      detail: "#{pluralize(@captures_this_week, "new capture")} this week"
+    },
+    {
+      tone: "info",
+      icon: "ti-briefcase",
+      label: "Projects",
+      value: @project_count,
+      detail: "#{@daily_log_count} daily logs preserving date-based context"
+    },
+    {
+      tone: "warning",
+      icon: "ti-list-check",
+      label: "Open tasks",
+      value: @open_task_count,
+      detail: "#{@ready_capture_count} captures are fully ready for retrieval"
+    }
+  ]
+
+  command_center_cards = [
+    {
+      title: "Role balance",
+      description: "Keep access changes grounded in the overall operator mix.",
+      pills: [
+        { tone: "ready", text: pluralize(@admin_count, "admin") },
+        { tone: "not_started", text: pluralize(@standard_user_count, "standard user") }
+      ]
+    },
+    {
+      title: "Backup readiness",
+      description: "Drive-linked users can move straight into export and backup flows.",
+      pills: [
+        { tone: "synced", text: pluralize(@connected_drive_count, "Drive-linked user") },
+        { tone: "pending", text: "#{pluralize(@backup_backlog_count, "capture")} pending review" }
+      ]
+    },
+    {
+      title: "OCR readiness",
+      description: "Manual OCR is explicit, so backlog matters when users start expecting extraction.",
+      pills: [
+        { tone: "processing", text: "#{pluralize(@ocr_backlog_count, "capture")} waiting on OCR" },
+        { tone: "completed", text: pluralize(@ready_capture_count, "ready capture") }
+      ]
+    },
+    {
+      title: "Sync health",
+      description: "Pending, conflict, and failed sync states signal where local-first flow is drifting.",
+      pills: [
+        { tone: "conflict", text: pluralize(@sync_issue_count, "sync issue") },
+        { tone: "uploaded", text: "#{pluralize(stable_capture_count, "capture")} stable" }
+      ]
+    }
+  ]
+
+  watchlist_items = [
+    {
+      tone: "processing",
+      title: "#{pluralize(@active_capture_count, "capture")} in flight",
+      description: "Uploads and live processing that have not settled yet.",
+      value: @active_capture_count
+    },
+    {
+      tone: "failed",
+      title: pluralize(@failed_capture_count, "failed capture"),
+      description: "Use this as the first signal for retries or broken file flows.",
+      value: @failed_capture_count
+    },
+    {
+      tone: "pending",
+      title: "#{pluralize(@backup_backlog_count, "backup item")} need review",
+      description: "Pending and failed backup states stay visible before trust erodes.",
+      value: @backup_backlog_count
+    },
+    {
+      tone: "conflict",
+      title: pluralize(@sync_issue_count, "sync issue"),
+      description: "Conflicts and failed syncs can leave offline users out of parity.",
+      value: @sync_issue_count
+    }
+  ]
+
+  library_cards = [
+    {
+      label: "Notebooks",
+      value: @notebook_count,
+      detail: "Structured containers created across the product."
+    },
+    {
+      label: "Tags",
+      value: @tag_count,
+      detail: "Classification labels attached to saved notebook pages."
+    },
+    {
+      label: "Ready captures",
+      value: @ready_capture_count,
+      detail: "Searchable and settled captures available for retrieval."
+    },
+    {
+      label: "Connected Drive",
+      value: @connected_drive_count,
+      detail: "Users who can export results directly into Google Drive."
+    }
+  ]
+%>
+
 <% content_for :admin_topbar do %>
   <%= render "admin/topbar",
-    eyebrow: "Admin dashboard",
-    title: "Run the notebook pipeline with confidence.",
+    eyebrow: "Home",
+    title: "Admin workspace",
     primary_label: "Review captures",
     primary_path: admin_captures_path,
-    secondary_label: "Operations",
-    secondary_path: admin_operations_path %>
+    secondary_label: "Manage users",
+    secondary_path: admin_users_path %>
 <% end %>
 
-<%= render "admin/page_header",
-  eyebrow: "Admin dashboard",
-  title: "Run the notebook pipeline with confidence.",
-  description: "Track adoption, capture flow, queue health, and role access from one operations surface designed for daily review.",
-  primary_label: "Review captures",
-  primary_path: admin_captures_path,
-  secondary_label: "Manage users",
-  secondary_path: admin_users_path %>
+<div class="admin-dashboard">
+  <section class="surface-card admin-dashboard-hero">
+    <div class="admin-dashboard-hero-shell">
+      <div class="admin-dashboard-hero-copy">
+        <div class="admin-dashboard-kicker">Admin dashboard</div>
+        <h1>Run the notebook pipeline with confidence.</h1>
+        <p>Track adoption, capture flow, queue health, and role access from one operations surface designed for daily review.</p>
+      </div>
 
-<div class="row g-3 mb-4">
-  <div class="col-12 col-sm-6 col-xl-3">
-    <div class="card metric-card border-0 surface-card bg-primary bg-opacity-10">
-      <div class="card-body">
-        <div class="d-flex gap-3">
-          <div class="metric-icon primary"><i class="ti ti-users"></i></div>
-          <div>
-            <h2 class="fs-6 mb-2">Accounts</h2>
-            <h3 class="fw-bold mb-0"><%= @user_count %></h3>
-            <p class="metric-trend text-soft-primary mb-0"><%= pluralize(@new_users_this_week, "new user") %> in the last 7 days</p>
-          </div>
-        </div>
+      <div class="admin-dashboard-hero-actions">
+        <%= link_to "Review captures", admin_captures_path, class: "btn btn-primary" %>
+        <%= link_to "Manage users", admin_users_path, class: "btn btn-outline-secondary" %>
       </div>
     </div>
-  </div>
 
-  <div class="col-12 col-sm-6 col-xl-3">
-    <div class="card metric-card border-0 surface-card bg-success bg-opacity-10">
-      <div class="card-body">
-        <div class="d-flex gap-3">
-          <div class="metric-icon success"><i class="ti ti-device-camera-phone"></i></div>
-          <div>
-            <h2 class="fs-6 mb-2">Captures</h2>
-            <h3 class="fw-bold mb-0"><%= @capture_count %></h3>
-            <p class="metric-trend text-soft-success mb-0"><%= pluralize(@captures_this_week, "new capture") %> this week</p>
+    <div class="admin-dashboard-hero-highlights">
+      <% hero_highlights.each do |highlight| %>
+        <article class="admin-dashboard-highlight">
+          <span class="status-pill <%= highlight[:tone] %>"><%= highlight[:label] %></span>
+          <strong><%= highlight[:value] %></strong>
+          <p><%= highlight[:caption] %></p>
+        </article>
+      <% end %>
+    </div>
+  </section>
+
+  <% if notice.present? || alert.present? %>
+    <div class="admin-dashboard-notices">
+      <% if notice.present? %>
+        <div class="alert alert-success auto-dismiss-alert border-0 shadow-sm" role="alert" data-auto-dismiss="5000"><%= notice %></div>
+      <% end %>
+
+      <% if alert.present? %>
+        <div class="alert alert-warning auto-dismiss-alert border-0 shadow-sm" role="alert" data-auto-dismiss="5000"><%= alert %></div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <section>
+    <div class="admin-dashboard-section-heading">
+      <div>
+        <div class="admin-dashboard-section-kicker">Daily pulse</div>
+        <h2>Key counters you can scan quickly</h2>
+      </div>
+      <p>Four snapshot cards keep the core business, capture, and work-queue numbers visible without pushing the rest of the dashboard below the fold.</p>
+    </div>
+
+    <div class="admin-dashboard-metric-grid">
+      <% summary_cards.each do |card| %>
+        <article class="surface-card admin-dashboard-metric-card admin-dashboard-tone-<%= card[:tone] %>">
+          <div class="metric-icon <%= card[:tone] %>"><i class="ti <%= card[:icon] %>"></i></div>
+          <div class="admin-dashboard-metric-copy">
+            <span class="admin-dashboard-metric-label"><%= card[:label] %></span>
+            <strong class="admin-dashboard-metric-value"><%= card[:value] %></strong>
+            <p class="admin-dashboard-metric-detail"><%= card[:detail] %></p>
           </div>
+        </article>
+      <% end %>
+    </div>
+  </section>
+
+  <div class="admin-dashboard-main-grid">
+    <section class="surface-card admin-dashboard-panel">
+      <div class="admin-dashboard-panel-header">
+        <div>
+          <div class="admin-dashboard-section-kicker">Command center</div>
+          <h2>Where admin review starts</h2>
+          <p>Use the admin workspace to monitor capture quality, queue health, and account access from one in-app surface.</p>
+        </div>
+
+        <div class="admin-dashboard-panel-actions">
+          <%= link_to "Capture oversight", admin_captures_path, class: "btn btn-outline-secondary btn-sm" %>
+          <%= link_to "Queue health", admin_operations_path, class: "btn btn-primary btn-sm" %>
         </div>
       </div>
-    </div>
-  </div>
 
-  <div class="col-12 col-sm-6 col-xl-3">
-    <div class="card metric-card border-0 surface-card bg-info bg-opacity-10">
-      <div class="card-body">
-        <div class="d-flex gap-3">
-          <div class="metric-icon info"><i class="ti ti-briefcase"></i></div>
-          <div>
-            <h2 class="fs-6 mb-2">Projects</h2>
-            <h3 class="fw-bold mb-0"><%= @project_count %></h3>
-            <p class="metric-trend text-soft-info mb-0"><%= @daily_log_count %> daily logs preserving date-based context</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-12 col-sm-6 col-xl-3">
-    <div class="card metric-card border-0 surface-card bg-warning bg-opacity-10">
-      <div class="card-body">
-        <div class="d-flex gap-3">
-          <div class="metric-icon warning"><i class="ti ti-list-check"></i></div>
-          <div>
-            <h2 class="fs-6 mb-2">Open tasks</h2>
-            <h3 class="fw-bold mb-0"><%= @open_task_count %></h3>
-            <p class="metric-trend text-soft-warning mb-0"><%= @ready_capture_count %> captures are fully ready for retrieval</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="row g-3 mb-4">
-  <div class="col-12 col-xl-8">
-    <div class="card border-0 surface-card h-100">
-      <div class="card-body p-4">
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3 mb-4">
-          <div>
-            <h2 class="fs-5 mb-1">Command center</h2>
-            <p class="text-secondary mb-0">Use the admin workspace to monitor capture quality, queue health, and account access from one in-app surface.</p>
-          </div>
-          <div class="d-flex flex-wrap gap-2">
-            <%= link_to "Capture oversight", admin_captures_path, class: "btn btn-outline-secondary btn-sm" %>
-            <%= link_to "Queue health", admin_operations_path, class: "btn btn-primary btn-sm" %>
-          </div>
-        </div>
-
-        <div class="row g-3">
-          <div class="col-md-6">
-            <div class="admin-note h-100">
-              <h6 class="mb-2">Role balance</h6>
-              <p class="text-secondary mb-2">Keep access changes grounded in the overall operator mix.</p>
-              <div class="admin-chip-row">
-                <span class="status-pill ready"><%= pluralize(@admin_count, "admin") %></span>
-                <span class="status-pill not_started"><%= pluralize(@standard_user_count, "standard user") %></span>
-              </div>
+      <div class="admin-dashboard-note-grid">
+        <% command_center_cards.each do |card| %>
+          <article class="admin-note admin-dashboard-note">
+            <h3><%= card[:title] %></h3>
+            <p><%= card[:description] %></p>
+            <div class="admin-chip-row">
+              <% card[:pills].each do |pill| %>
+                <span class="status-pill <%= pill[:tone] %>"><%= pill[:text] %></span>
+              <% end %>
             </div>
-          </div>
-          <div class="col-md-6">
-            <div class="admin-note h-100">
-              <h6 class="mb-2">Backup readiness</h6>
-              <p class="text-secondary mb-2">Drive-linked users can move straight into export and backup flows.</p>
-              <div class="admin-chip-row">
-                <span class="status-pill synced"><%= pluralize(@connected_drive_count, "Drive-linked user") %></span>
-                <span class="status-pill pending"><%= pluralize(@backup_backlog_count, "capture") %> pending review</span>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="admin-note h-100">
-              <h6 class="mb-2">OCR readiness</h6>
-              <p class="text-secondary mb-2">Manual OCR is explicit, so backlog matters when users start expecting extraction.</p>
-              <div class="admin-chip-row">
-                <span class="status-pill processing"><%= pluralize(@ocr_backlog_count, "capture") %> waiting on OCR</span>
-                <span class="status-pill completed"><%= pluralize(@ready_capture_count, "ready capture") %></span>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="admin-note h-100">
-              <h6 class="mb-2">Sync health</h6>
-              <p class="text-secondary mb-2">Pending, conflict, and failed sync states signal where local-first flow is drifting.</p>
-              <div class="admin-chip-row">
-                <span class="status-pill conflict"><%= pluralize(@sync_issue_count, "sync issue") %></span>
-                <span class="status-pill uploaded"><%= pluralize(@capture_count - @sync_issue_count, "capture") %> stable</span>
-              </div>
-            </div>
-          </div>
+          </article>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="surface-card admin-dashboard-panel admin-dashboard-watchlist">
+      <div class="admin-dashboard-panel-header">
+        <div>
+          <div class="admin-dashboard-section-kicker">Watchlist</div>
+          <h2>Signals worth checking first</h2>
+          <p>Start here when you want the fastest read on processing friction, retries, and sync drift.</p>
         </div>
       </div>
-    </div>
-  </div>
 
-  <div class="col-12 col-xl-4">
-    <div class="card border-0 surface-card h-100">
-      <div class="card-body p-4">
-        <h2 class="fs-5 mb-3">Watchlist</h2>
+      <% watchlist_items.each do |item| %>
         <div class="admin-list-item">
           <div class="d-flex justify-content-between align-items-start gap-3">
             <div>
-              <h6 class="mb-1"><%= pluralize(@active_capture_count, "capture") %> in flight</h6>
-              <p class="text-secondary mb-0 small">Uploads and live processing that have not settled yet.</p>
+              <h3 class="admin-dashboard-list-title"><%= item[:title] %></h3>
+              <p class="text-secondary mb-0 small"><%= item[:description] %></p>
             </div>
-            <span class="status-pill processing"><%= @active_capture_count %></span>
+            <span class="status-pill <%= item[:tone] %>"><%= item[:value] %></span>
           </div>
         </div>
-        <div class="admin-list-item">
-          <div class="d-flex justify-content-between align-items-start gap-3">
-            <div>
-              <h6 class="mb-1"><%= pluralize(@failed_capture_count, "failed capture") %></h6>
-              <p class="text-secondary mb-0 small">Use this as the first signal for retries or broken file flows.</p>
-            </div>
-            <span class="status-pill failed"><%= @failed_capture_count %></span>
-          </div>
-        </div>
-        <div class="admin-list-item">
-          <div class="d-flex justify-content-between align-items-start gap-3">
-            <div>
-              <h6 class="mb-1"><%= pluralize(@backup_backlog_count, "backup item") %> need review</h6>
-              <p class="text-secondary mb-0 small">Pending and failed backup states visible before trust erodes.</p>
-            </div>
-            <span class="status-pill pending"><%= @backup_backlog_count %></span>
-          </div>
-        </div>
-        <div class="admin-list-item">
-          <div class="d-flex justify-content-between align-items-start gap-3">
-            <div>
-              <h6 class="mb-1"><%= pluralize(@sync_issue_count, "sync issue") %></h6>
-              <p class="text-secondary mb-0 small">Conflicts and failed syncs can leave offline users out of parity.</p>
-            </div>
-            <span class="status-pill conflict"><%= @sync_issue_count %></span>
-          </div>
-        </div>
-      </div>
-    </div>
+      <% end %>
+    </section>
   </div>
-</div>
 
-<div class="row g-3 mb-4">
-  <div class="col-12 col-lg-6 col-xl-3">
-    <div class="card border-0 surface-card h-100">
-      <div class="card-body p-4">
-        <h6 class="text-secondary mb-3">Notebooks</h6>
-        <h3 class="fw-bold mb-1"><%= @notebook_count %></h3>
-        <p class="mb-0 text-secondary small">Structured containers created across the product.</p>
+  <section>
+    <div class="admin-dashboard-section-heading">
+      <div>
+        <div class="admin-dashboard-section-kicker">Coverage</div>
+        <h2>Library and retrieval readiness</h2>
       </div>
+      <p>These slower-moving totals help answer whether the workspace is keeping up with organization, search, and export expectations.</p>
     </div>
-  </div>
-  <div class="col-12 col-lg-6 col-xl-3">
-    <div class="card border-0 surface-card h-100">
-      <div class="card-body p-4">
-        <h6 class="text-secondary mb-3">Tags</h6>
-        <h3 class="fw-bold mb-1"><%= @tag_count %></h3>
-        <p class="mb-0 text-secondary small">Classification labels attached to saved notebook pages.</p>
-      </div>
-    </div>
-  </div>
-  <div class="col-12 col-lg-6 col-xl-3">
-    <div class="card border-0 surface-card h-100">
-      <div class="card-body p-4">
-        <h6 class="text-secondary mb-3">Ready captures</h6>
-        <h3 class="fw-bold mb-1"><%= @ready_capture_count %></h3>
-        <p class="mb-0 text-secondary small">Searchable and settled captures available for retrieval.</p>
-      </div>
-    </div>
-  </div>
-  <div class="col-12 col-lg-6 col-xl-3">
-    <div class="card border-0 surface-card h-100">
-      <div class="card-body p-4">
-        <h6 class="text-secondary mb-3">Connected Drive</h6>
-        <h3 class="fw-bold mb-1"><%= @connected_drive_count %></h3>
-        <p class="mb-0 text-secondary small">Users who can export results directly into Google Drive.</p>
-      </div>
-    </div>
-  </div>
-</div>
 
-<div class="row g-3">
-  <div class="col-12 col-xl-6">
-    <div class="card border-0 surface-card h-100">
-      <div class="card-body p-4">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <div>
-            <h2 class="fs-5 mb-1">Recent users</h2>
-            <p class="text-secondary mb-0">Role review and onboarding context one click away.</p>
-          </div>
+    <div class="admin-dashboard-mini-grid">
+      <% library_cards.each do |card| %>
+        <article class="surface-card admin-dashboard-mini-card">
+          <span class="admin-dashboard-mini-label"><%= card[:label] %></span>
+          <strong class="admin-dashboard-mini-value"><%= card[:value] %></strong>
+          <p><%= card[:detail] %></p>
+        </article>
+      <% end %>
+    </div>
+  </section>
+
+  <div class="admin-dashboard-activity-grid">
+    <section class="surface-card admin-dashboard-panel">
+      <div class="admin-dashboard-panel-header">
+        <div>
+          <div class="admin-dashboard-section-kicker">Recent users</div>
+          <h2>Role review and onboarding context</h2>
+          <p>See who joined recently, what access they have, and whether Drive-backed export is ready.</p>
+        </div>
+
+        <div class="admin-dashboard-panel-actions">
           <%= link_to "Open user management", admin_users_path, class: "btn btn-outline-secondary btn-sm" %>
         </div>
+      </div>
 
-        <div class="admin-scroll-table">
+      <% if @recent_users.any? %>
+        <div class="admin-scroll-table d-none d-md-block">
           <table class="table align-middle mb-0">
             <thead class="table-light">
               <tr>
@@ -265,27 +333,51 @@
             </tbody>
           </table>
         </div>
-      </div>
-    </div>
-  </div>
 
-  <div class="col-12 col-xl-6">
-    <div class="card border-0 surface-card h-100">
-      <div class="card-body p-4">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <div>
-            <h2 class="fs-5 mb-1">Recent captures</h2>
-            <p class="text-secondary mb-0">Use the live feed to spot stalled processing or repeated failures.</p>
-          </div>
-          <%= link_to "Review all captures", admin_captures_path, class: "btn btn-outline-secondary btn-sm" %>
+        <div class="d-md-none admin-dashboard-mobile-list">
+          <% @recent_users.each do |user| %>
+            <article class="admin-dashboard-user-card">
+              <div class="admin-dashboard-user-header">
+                <span class="table-avatar"><%= user.email.first.upcase %></span>
+                <div class="min-w-0">
+                  <div class="fw-semibold break-anywhere"><%= user.email %></div>
+                  <div class="admin-dashboard-user-meta">
+                    <span>Joined <%= user.created_at.strftime("%b %-d, %Y") %></span>
+                    <span><%= user.google_drive_connected? ? "Drive connected" : "Drive not connected" %></span>
+                  </div>
+                </div>
+              </div>
+              <div class="admin-chip-row">
+                <span class="status-pill <%= user.admin? ? "ready" : "not_started" %>"><%= user.role %></span>
+              </div>
+            </article>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="admin-dashboard-empty">Recent users will appear here as soon as new accounts begin onboarding.</div>
+      <% end %>
+    </section>
+
+    <section class="surface-card admin-dashboard-panel">
+      <div class="admin-dashboard-panel-header">
+        <div>
+          <div class="admin-dashboard-section-kicker">Recent captures</div>
+          <h2>Live processing feed</h2>
+          <p>Use the most recent capture activity to spot stalled processing, repeated failures, or routing surprises.</p>
         </div>
 
-        <% if @recent_captures.any? %>
+        <div class="admin-dashboard-panel-actions">
+          <%= link_to "Review all captures", admin_captures_path, class: "btn btn-outline-secondary btn-sm" %>
+        </div>
+      </div>
+
+      <% if @recent_captures.any? %>
+        <div class="admin-dashboard-capture-list">
           <% @recent_captures.each do |capture| %>
             <div class="admin-list-item">
               <div class="d-flex justify-content-between align-items-start gap-3">
                 <div class="min-w-0">
-                  <h6 class="mb-1 break-anywhere"><%= capture.display_title %></h6>
+                  <h3 class="admin-dashboard-list-title break-anywhere"><%= capture.display_title %></h3>
                   <p class="text-secondary mb-2 small break-anywhere">
                     <%= capture.user.email %>
                     <% if capture.project.present? %>
@@ -303,14 +395,14 @@
                     <span class="status-pill <%= capture.ocr_status %>"><%= capture.ocr_status.humanize %></span>
                   </div>
                 </div>
-                <div class="text-secondary small text-nowrap"><%= capture.created_at.strftime("%b %-d, %Y") %></div>
+                <div class="admin-dashboard-time"><%= capture.created_at.strftime("%b %-d, %Y") %></div>
               </div>
             </div>
           <% end %>
-        <% else %>
-          <div class="admin-empty">The feed will populate as soon as notebook pages begin moving through the capture pipeline.</div>
-        <% end %>
-      </div>
-    </div>
+        </div>
+      <% else %>
+        <div class="admin-dashboard-empty">The feed will populate as soon as notebook pages begin moving through the capture pipeline.</div>
+      <% end %>
+    </section>
   </div>
 </div>

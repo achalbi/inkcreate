@@ -19,11 +19,16 @@ class AdminNavigationTest < ActionDispatch::IntegrationTest
     get admin_dashboard_path
 
     assert_response :success
+    assert_select ".admin-dashboard-hero", 1
+    assert_select ".admin-dashboard-highlight", 4
+    assert_select ".admin-dashboard-mobile-list .admin-dashboard-user-card", minimum: 1
+    assert_select "#page-loader"
+    assert_select "link[href*='/inapp/page_loader.css?v=']"
+    assert_select "script[src*='/scripts/page_loader.js?v=']"
     assert_select "a[href='#{admin_users_path}']"
     assert_select "a[href='#{admin_captures_path}']"
     assert_select "a[href='#{admin_operations_path}']"
     assert_select "a[href='#{dashboard_path}']"
-    assert_select "a[href='#{root_path}']"
 
     get admin_captures_path
     assert_response :success

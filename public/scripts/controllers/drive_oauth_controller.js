@@ -25,6 +25,7 @@ export default class extends Controller {
     const popup = window.open("", "inkcreateDriveOauth", this.popupFeatures());
     if (!popup) {
       this.element.dataset.driveOauthSubmitting = "true";
+      window.InkcreatePageLoader?.show("Connecting Google Drive...");
 
       if (typeof this.element.requestSubmit === "function") {
         this.element.requestSubmit();

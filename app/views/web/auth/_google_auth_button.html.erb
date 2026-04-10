@@ -1,0 +1,10 @@
+<% if ::Auth::GoogleOauthClient.configured? %>
+  <%= button_to browser_google_auth_path, class: "button button-secondary button-google", form_class: "oauth-form" do %>
+    <span class="google-mark" aria-hidden="true">G</span>
+    <span><%= local_assigns.fetch(:label, "Continue with Google") %></span>
+  <% end %>
+
+  <div class="auth-divider" aria-hidden="true">
+    <span>or</span>
+  </div>
+<% end %>

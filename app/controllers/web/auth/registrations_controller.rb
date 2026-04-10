@@ -4,11 +4,12 @@ module Web
       before_action :redirect_signed_in_user, only: :new
 
       def new
-        @user = User.new(time_zone: effective_time_zone_name, locale: "en")
+        @user = User.new
       end
 
       def create
         @user = User.new(registration_params)
+        @user.assign_attributes(time_zone: effective_time_zone_name, locale: "en")
 
         if @user.save
           sign_in(:user, @user)
@@ -27,7 +28,7 @@ module Web
       end
 
       def registration_params
-        params.require(:user).permit(:email, :password, :password_confirmation, :time_zone, :locale)
+        params.require(:user).permit(:email, :password, :password_confirmation)
       end
     end
   end
