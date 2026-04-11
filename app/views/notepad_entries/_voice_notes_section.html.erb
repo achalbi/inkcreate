@@ -17,9 +17,7 @@
       <span class="label label-info detail-photo-gallery-count"><%= voice_notes.size %></span>
     </div>
     <div class="ibox-tools">
-      <% if notepad_entry.persisted? %>
-        <span class="label label-default">Saved to this daily page</span>
-      <% else %>
+      <% unless notepad_entry.persisted? %>
         <span class="label label-default">Saved with this form</span>
       <% end %>
       <%= render "shared/ibox_toggle_button", target_id: dom_id(notepad_entry, :voice_notes_content) %>

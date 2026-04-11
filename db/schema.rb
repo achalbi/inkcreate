@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_11_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_11_153000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -474,9 +474,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_11_120000) do
     t.datetime "created_at", null: false
     t.boolean "enabled", default: true, null: false
     t.boolean "hide_completed", default: false, null: false
-    t.uuid "page_id", null: false
+    t.uuid "notepad_entry_id"
+    t.uuid "page_id"
     t.datetime "updated_at", null: false
+    t.index ["notepad_entry_id"], name: "index_todo_lists_on_notepad_entry_id", unique: true, where: "(notepad_entry_id IS NOT NULL)"
     t.index ["page_id"], name: "index_todo_lists_on_page_id", unique: true
+    t.check_constraint "(\nCASE\n    WHEN page_id IS NOT NULL THEN 1\n    ELSE 0\nEND +\nCASE\n    WHEN notepad_entry_id IS NOT NULL THEN 1\n    ELSE 0\nEND) = 1", name: "todo_lists_exactly_one_owner"
   end
 
   create_table "users", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -563,6 +566,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_11_120000) do
   add_foreign_key "tasks", "projects"
   add_foreign_key "tasks", "users"
   add_foreign_key "todo_items", "todo_lists"
+  add_foreign_key "todo_lists", "notepad_entries"
   add_foreign_key "todo_lists", "pages"
   add_foreign_key "voice_notes", "notepad_entries"
   add_foreign_key "voice_notes", "pages"

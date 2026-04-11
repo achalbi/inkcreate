@@ -18,19 +18,33 @@ class TodoListsSystemTest < ApplicationSystemTestCase
 
     assert_no_text "3 / 3 done"
     assert_text "0 / 3 done"
+    assert_no_button "Disable list"
 
     find("button[aria-label='Mark complete']", match: :first).click
 
     assert_text "1 / 3 done"
 
+    click_button "Active"
+    within ".todo-list-items" do
+      assert_no_text "Pack microphones"
+      assert_text "Confirm venue"
+      assert_text "Email recap"
+    end
+
+    click_button "All"
+    within ".todo-list-items" do
+      assert_text "Pack microphones"
+      assert_text "Confirm venue"
+      assert_text "Email recap"
+    end
+
     within all(".todo-list-item").last do
       click_button "Add reminder"
     end
 
-    panel = find(".todo-list-item__reminder-panel", visible: true)
     fire_at = 2.hours.from_now.change(sec: 0)
 
-    within panel do
+    within ".todo-item-reminder-modal.show" do
       fill_in "Title", with: "Email recap reminder"
       set_datetime_local_field(find("input[name='reminder[fire_at_local]']"), fire_at.strftime("%Y-%m-%dT%H:%M"))
       fill_in "Note", with: "Send the summary while the meeting is fresh."
@@ -62,11 +76,13 @@ class TodoListsSystemTest < ApplicationSystemTestCase
   end
 
   def add_todo_item(content)
-    within ".todo-list-create-form" do
-      find("input[name='todo_item[content]']").set(content)
-      click_button "Add"
+    within ".todo-list-composer" do
+      find("textarea[name='todo_item[content]']").set(content)
+      find("button[aria-label='Add to-do item']").click
     end
 
-    assert_selector("input[name='todo_item[content]'][value='#{content}']", wait: 10)
+    within ".todo-list-items" do
+      assert_text content
+    end
   end
 end

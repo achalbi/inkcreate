@@ -1,0 +1,36 @@
+<div
+  class="modal fade todo-item-delete-confirm-modal"
+  id="<%= modal_id %>"
+  tabindex="-1"
+  aria-labelledby="<%= "#{modal_id}-label" %>"
+  aria-hidden="true"
+  data-todo-list-target="deleteModal"
+>
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title" id="<%= "#{modal_id}-label" %>">Delete to-do item?</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body pt-2">
+        <p class="mb-0 text-secondary" data-todo-list-target="deleteMessage">
+          This item will be removed from the list.
+        </p>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <form
+          id="<%= form_id %>"
+          action=""
+          method="post"
+          data-action="submit->todo-list#submit"
+          data-todo-list-target="deleteForm"
+        >
+          <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+          <input type="hidden" name="_method" value="delete">
+        </form>
+        <button type="button" class="btn btn-white btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" form="<%= form_id %>" class="btn btn-danger btn-sm">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>

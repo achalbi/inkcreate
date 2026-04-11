@@ -12,6 +12,16 @@ class ReminderTest < ActiveSupport::TestCase
     )
   end
 
+  def build_todo_item(email:, content: "Follow up")
+    user = build_user(email: email)
+    notebook = user.notebooks.create!(title: "Launch board", status: :active)
+    chapter = notebook.chapters.create!(title: "Prep")
+    page = chapter.pages.create!(title: "Checklist", notes: "Tasks for launch")
+    todo_list = page.create_todo_list!(enabled: true, hide_completed: false)
+
+    [user, todo_list.todo_items.create!(content: content)]
+  end
+
   test "requires a title and fire time" do
     reminder = Reminder.new
 
@@ -63,5 +73,43 @@ class ReminderTest < ActiveSupport::TestCase
     )
 
     assert_includes user.reminders.history.to_a, expired_reminder
+  end
+
+  test "allows only one reminder per todo item" do
+    user, todo_item = build_todo_item(email: "todo-item-reminder@example.com")
+
+    user.reminders.create!(
+      title: "First reminder",
+      fire_at: 1.hour.from_now,
+      target: todo_item
+    )
+
+    duplicate = user.reminders.new(
+      title: "Second reminder",
+      fire_at: 2.hours.from_now,
+      target: todo_item
+    )
+
+    assert_not duplicate.valid?
+    assert_includes duplicate.errors.full_messages, "This to-do item already has a reminder."
+  end
+
+  test "rescheduling a triggered reminder rearms it" do
+    user, todo_item = build_todo_item(email: "rearm-reminder@example.com")
+    reminder = user.reminders.create!(
+      title: "Check in",
+      fire_at: 30.minutes.from_now,
+      status: :triggered,
+      last_triggered_at: 5.minutes.ago,
+      target: todo_item
+    )
+
+    new_fire_at = 2.hours.from_now.change(sec: 0)
+    reminder.update!(fire_at: new_fire_at)
+
+    assert_equal "pending", reminder.reload.status
+    assert_equal new_fire_at.to_i, reminder.fire_at.to_i
+    assert_nil reminder.snooze_until
+    assert_nil reminder.last_triggered_at
   end
 end

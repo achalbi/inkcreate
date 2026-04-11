@@ -1,0 +1,32 @@
+<%
+  modal_title = local_assigns.fetch(:modal_title, reminder.persisted? ? "Edit reminder" : "Add reminder")
+  label_id = "#{modal_id}-label"
+%>
+
+<div
+  class="modal fade todo-item-reminder-modal"
+  id="<%= modal_id %>"
+  tabindex="-1"
+  aria-labelledby="<%= label_id %>"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <div>
+          <div class="todo-item-reminder-modal__eyebrow">To-do reminder</div>
+          <h5 class="modal-title" id="<%= label_id %>"><%= modal_title %></h5>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body pt-2">
+        <p class="todo-item-reminder-modal__context"><%= todo_item.content %></p>
+        <%= render "reminders/form",
+          reminder: reminder,
+          target: todo_item,
+          show_open_source: false,
+          actions_classes: "d-flex flex-wrap gap-2 justify-content-end" %>
+      </div>
+    </div>
+  </div>
+</div>

@@ -51,6 +51,13 @@ Rails.application.routes.draw do
     end
 
     scope module: :notepad_entries do
+      resource :todo_list, only: %i[create update]
+      resources :todo_items, only: %i[create update destroy] do
+        member do
+          patch :toggle
+          patch :reorder
+        end
+      end
       resources :voice_notes, only: %i[create destroy]
     end
   end

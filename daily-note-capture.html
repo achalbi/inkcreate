@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Daily Note Capture</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --bg: #0f0f13;
+  --surface: #1a1a24;
+  --surface2: #22222f;
+  --surface3: #2a2a3a;
+  --accent: #7c6cfc;
+  --accent2: #a78bfa;
+  --gold: #f5c842;
+  --green: #4ade80;
+  --red: #f87171;
+  --pink: #f472b6;
+  --text: #f0f0f8;
+  --text2: #9090b0;
+  --text3: #5a5a7a;
+  --border: rgba(255,255,255,0.06);
+  --border2: rgba(255,255,255,0.1);
+  --radius: 20px;
+  --radius-sm: 14px;
+  --radius-xs: 10px;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding-bottom: 110px;
+}
+
+.phone { width:390px; min-height:100vh; position:relative; }
+
+/* ═══════════════════════════════════════
+   TOP BAR
+═══════════════════════════════════════ */
+.topbar {
+  position: sticky; top:0; z-index:100;
+  backdrop-filter: blur(28px) saturate(200%);
+  background: rgba(15,15,19,0.88);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 20px 12px;
+  display: flex; align-items:center; justify-content:space-between;
+}
+.topbar-left { display:flex; flex-direction:column; gap:2px; }
+.breadcrumb { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--text3); }
+.breadcrumb em { color:var(--accent2); font-style:normal; }
+.topbar-title { font-size:17px; font-weight:700; letter-spacing:-0.4px; }
+.avatar {
+  width:34px; height:34px; border-radius:50%;
+  background: linear-gradient(135deg, var(--accent), var(--pink));
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; font-weight:700; color:#fff; cursor:pointer;
+  transition: transform .2s; box-shadow: 0 0 0 2px rgba(124,108,252,.3);
+}
+.avatar:hover { transform:scale(1.08); }
+
+/* ═══════════════════════════════════════
+   HERO
+═══════════════════════════════════════ */
+.hero { padding:24px 20px 16px; }
+.live-badge {
+  display:inline-flex; align-items:center; gap:6px;
+  background: rgba(124,108,252,.12); border:1px solid rgba(124,108,252,.28);
+  color:var(--accent2); font-size:11px; font-weight:600;
+  padding:4px 10px; border-radius:100px; letter-spacing:.4px;
+  text-transform:uppercase; margin-bottom:10px;
+}
+.live-dot { width:6px;height:6px;border-radius:50%;background:var(--accent); animation:blink 2s ease infinite; }
+@keyframes blink { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+
+.hero-date {
+  font-size:30px; font-weight:800; letter-spacing:-1.2px; line-height:1.1;
+  background: linear-gradient(135deg, #fff 0%, #9090b0 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+}
+.hero-sub { font-size:12px; color:var(--text3); margin-top:5px; }
+
+.hero-stats { display:flex; gap:8px; margin-top:16px; }
+.stat-chip {
+  display:flex; align-items:center; gap:6px;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:100px; padding:6px 12px;
+  font-size:12px; color:var(--text2); cursor:pointer;
+  transition: all .2s;
+}
+.stat-chip:hover { background:var(--surface2); color:var(--text); }
+.stat-chip .dot { width:6px;height:6px;border-radius:50%; }
+
+/* ═══════════════════════════════════════
+   SECTION SHELL
+═══════════════════════════════════════ */
+.section {
+  margin:0 14px 12px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  overflow:hidden;
+  transition: box-shadow .3s;
+}
+.section:hover { box-shadow:0 8px 40px rgba(0,0,0,.35); }
+
+.sec-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:15px 16px; cursor:pointer; user-select:none;
+}
+.sec-header-left { display:flex; align-items:center; gap:10px; }
+.sec-icon {
+  width:34px; height:34px; border-radius:10px;
+  display:flex; align-items:center; justify-content:center; font-size:16px;
+}
+.ic-voice { background:rgba(245,200,66,.14); }
+.ic-todo  { background:rgba(74,222,128,.13); }
+.ic-photo { background:rgba(244,114,182,.13); }
+
+.sec-title { font-size:15px; font-weight:600; letter-spacing:-.2px; }
+.sec-badge {
+  background:var(--surface3); color:var(--text2);
+  font-size:11px; font-weight:600; padding:2px 8px;
+  border-radius:100px; margin-left:6px;
+}
+.chevron { color:var(--text3); font-size:13px; transition: transform .25s cubic-bezier(.34,1.56,.64,1); }
+.section.closed .chevron { transform:rotate(-90deg); }
+.section.closed .sec-body { display:none; }
+
+.sec-divider { height:1px; background:var(--border); margin:0 16px; }
+.sec-body { padding:14px 16px 16px; animation:fadeSlide .2s ease; }
+@keyframes fadeSlide { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+
+
+/* ═══════════════════════════════════════
+   VOICE NOTES
+═══════════════════════════════════════ */
+.record-btn {
+  width:100%; display:flex; align-items:center; justify-content:center; gap:10px;
+  padding:14px; border-radius:var(--radius-sm); cursor:pointer;
+  background:linear-gradient(135deg, rgba(124,108,252,.12), rgba(167,139,250,.07));
+  border:1px solid rgba(124,108,252,.28); color:var(--accent2);
+  font-size:14px; font-weight:600; font-family:inherit;
+  transition: all .25s; margin-bottom:12px;
+}
+.record-btn:hover {
+  background:linear-gradient(135deg, rgba(124,108,252,.22), rgba(167,139,250,.14));
+  border-color:rgba(124,108,252,.5); transform:translateY(-1px);
+  box-shadow:0 6px 22px rgba(124,108,252,.22);
+}
+.record-btn:active { transform:translateY(0); }
+.record-btn.recording {
+  background:linear-gradient(135deg, rgba(248,113,113,.14), rgba(248,113,113,.07));
+  border-color:rgba(248,113,113,.4); color:var(--red);
+  animation: recPulse 1.4s ease infinite;
+}
+@keyframes recPulse {
+  0%,100% { box-shadow:0 0 0 0 rgba(248,113,113,.3); }
+  50%      { box-shadow:0 0 0 8px rgba(248,113,113,.0); }
+}
+.rec-dot {
+  width:10px;height:10px;border-radius:50%;background:currentColor;
+  animation: blink .9s ease infinite;
+}
+
+/* voice note card */
+.vn-card {
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:var(--radius-sm); overflow:hidden; margin-bottom:8px;
+  transition: border-color .2s;
+}
+.vn-card:hover { border-color:var(--border2); }
+.vn-card:last-child { margin-bottom:0; }
+
+.vn-top-bar {
+  height:3px;
+  background:linear-gradient(90deg, var(--accent), var(--pink));
+}
+
+.vn-inner { padding:13px 14px; }
+.vn-meta-row { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:12px; }
+.vn-title { font-size:13px; font-weight:600; color:var(--text); }
+.vn-sub { font-size:11px; color:var(--text3); margin-top:2px; }
+.vn-del {
+  background:none; border:none; color:var(--text3); cursor:pointer;
+  padding:4px 5px; border-radius:7px; font-size:13px; font-family:inherit;
+  transition:all .2s;
+}
+.vn-del:hover { color:var(--red); background:rgba(248,113,113,.1); }
+
+/* player */
+.player { display:flex; align-items:center; gap:10px; }
+.play-btn {
+  width:38px;height:38px;border-radius:50%; flex-shrink:0;
+  background:linear-gradient(135deg, var(--accent), var(--accent2));
+  border:none; color:#fff; font-size:13px; cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 14px rgba(124,108,252,.45); font-family:inherit;
+  transition:all .2s;
+}
+.play-btn:hover { transform:scale(1.1); box-shadow:0 6px 22px rgba(124,108,252,.55); }
+.play-btn.playing { background:linear-gradient(135deg,var(--pink),var(--accent)); }
+
+.waveform {
+  flex:1; height:32px; display:flex; align-items:center; gap:2px; cursor:pointer;
+}
+.wbar {
+  flex:1; border-radius:2px; background:var(--surface3);
+  transition:background .15s, transform .15s;
+  min-height:4px;
+}
+.wbar.played { background:var(--accent); }
+.wbar.active { background:var(--accent2); transform:scaleY(1.35); }
+.vn-time { font-size:11px;font-weight:600;color:var(--text3);min-width:28px;text-align:right; }
+
+/* voice note list label */
+.vn-list-label {
+  font-size:11px; font-weight:600; color:var(--text3);
+  text-transform:uppercase; letter-spacing:.6px; margin-bottom:8px;
+}
+
+
+/* ═══════════════════════════════════════
+   TODO LIST
+═══════════════════════════════════════ */
+.todo-add-row { display:flex; gap:8px; margin-bottom:12px; }
+.todo-input {
+  flex:1; background:var(--surface2); border:1px solid var(--border);
+  border-radius:var(--radius-sm); padding:11px 14px;
+  color:var(--text); font-size:14px; font-family:inherit; outline:none;
+  transition:border-color .2s, box-shadow .2s;
+}
+.todo-input::placeholder { color:var(--text3); }
+.todo-input:focus { border-color:rgba(124,108,252,.5); box-shadow:0 0 0 3px rgba(124,108,252,.1); }
+
+.add-btn {
+  width:44px;height:44px; border-radius:var(--radius-sm); flex-shrink:0;
+  background:var(--accent); border:none; color:#fff; font-size:22px;
+  cursor:pointer; display:flex;align-items:center;justify-content:center;
+  font-family:inherit; transition:all .2s;
+}
+.add-btn:hover { background:var(--accent2); transform:scale(1.06); }
+.add-btn:active { transform:scale(.96); }
+
+/* filter tabs */
+.todo-tabs { display:flex; gap:6px; margin-bottom:12px; }
+.todo-tab {
+  padding:5px 12px; border-radius:100px; font-size:12px; font-weight:600;
+  background:var(--surface2); border:1px solid var(--border); color:var(--text3);
+  cursor:pointer; font-family:inherit; transition:all .2s;
+}
+.todo-tab.active {
+  background:rgba(124,108,252,.18); border-color:rgba(124,108,252,.35);
+  color:var(--accent2);
+}
+
+/* progress */
+.progress-row { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+.pbar { flex:1; height:5px; background:var(--surface3); border-radius:100px; overflow:hidden; }
+.pfill {
+  height:100%; width:0%; border-radius:100px;
+  background:linear-gradient(90deg, var(--accent), var(--green));
+  transition:width .6s cubic-bezier(.34,1.56,.64,1);
+}
+.ptext { font-size:12px;color:var(--text3);font-weight:500;white-space:nowrap; }
+
+/* todo items */
+.todo-list { display:flex; flex-direction:column; gap:8px; }
+
+.todo-item {
+  display:flex; align-items:flex-start; gap:11px;
+  padding:13px 14px; background:var(--surface2);
+  border:1px solid var(--border); border-radius:var(--radius-sm);
+  transition: all .25s; cursor:pointer; position:relative; overflow:hidden;
+}
+.todo-item:hover { border-color:var(--border2); background:var(--surface3); }
+
+.todo-item.done { opacity:.5; }
+.todo-item.done .todo-text { text-decoration:line-through; color:var(--text3); }
+
+/* left priority stripe */
+.todo-item::before {
+  content:''; position:absolute; left:0; top:8px; bottom:8px;
+  width:3px; border-radius:0 3px 3px 0;
+  background:transparent; transition:background .2s;
+}
+.todo-item.prio-high::before  { background:var(--red); }
+.todo-item.prio-med::before   { background:var(--gold); }
+.todo-item.prio-low::before   { background:var(--green); }
+
+.check {
+  width:21px;height:21px; border-radius:50%;
+  border:2px solid var(--text3); flex-shrink:0; margin-top:1px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px; font-weight:700;
+  transition:all .3s cubic-bezier(.34,1.56,.64,1);
+}
+.todo-item.done .check {
+  background:var(--green); border-color:var(--green); color:#0a1f14;
+}
+
+.todo-body { flex:1; min-width:0; }
+.todo-text { font-size:14px; font-weight:500; line-height:1.4; transition:color .2s; }
+.todo-meta { display:flex; align-items:center; gap:8px; margin-top:5px; flex-wrap:wrap; }
+.todo-reminder { display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text3); }
+.todo-reminder.set { color:var(--gold); }
+.todo-tag {
+  padding:2px 7px; border-radius:100px; font-size:10px; font-weight:600;
+  background:var(--surface3); color:var(--text3);
+}
+
+.todo-right { display:flex; align-items:center; gap:3px; opacity:0; transition:opacity .2s; }
+.todo-item:hover .todo-right { opacity:1; }
+.icon-btn {
+  width:26px;height:26px;border-radius:7px;background:none;border:none;
+  color:var(--text3);cursor:pointer;font-size:12px;display:flex;
+  align-items:center;justify-content:center;font-family:inherit;transition:all .2s;
+}
+.icon-btn:hover.del  { color:var(--red);background:rgba(248,113,113,.12); }
+.icon-btn:hover.bell { color:var(--gold);background:rgba(245,200,66,.12); }
+.icon-btn:hover.flag { color:var(--pink);background:rgba(244,114,182,.12); }
+
+/* empty state */
+.empty-todos {
+  text-align:center; padding:28px 20px; color:var(--text3);
+  font-size:13px; display:none;
+}
+.empty-todos.show { display:block; }
+.empty-icon { font-size:28px; margin-bottom:8px; opacity:.5; }
+
+
+/* ═══════════════════════════════════════
+   PHOTO
+═══════════════════════════════════════ */
+.photo-drop {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:30px 20px; background:var(--surface2);
+  border:2px dashed var(--border); border-radius:var(--radius-sm);
+  cursor:pointer; transition:all .2s; text-align:center;
+}
+.photo-drop:hover {
+  border-color:rgba(244,114,182,.4); background:rgba(244,114,182,.04);
+}
+.photo-drop-icon { font-size:30px;opacity:.45;margin-bottom:10px; }
+.photo-drop-title { font-size:14px;font-weight:600;color:var(--text2);margin-bottom:3px; }
+.photo-drop-sub   { font-size:12px;color:var(--text3); }
+
+
+/* ═══════════════════════════════════════
+   BOTTOM NAV
+═══════════════════════════════════════ */
+.bottom-nav {
+  position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+  width:390px; padding:12px 28px 28px;
+  backdrop-filter:blur(28px) saturate(200%);
+  background:rgba(15,15,19,.92); border-top:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-around; z-index:200;
+}
+.nav-item {
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  cursor:pointer;padding:5px 14px;border-radius:12px;transition:all .2s;
+}
+.nav-item:hover { background:var(--surface); }
+.nav-icon { font-size:20px; transition:transform .2s; }
+.nav-item:hover .nav-icon { transform:translateY(-2px); }
+.nav-label { font-size:10px;font-weight:500;color:var(--text3);letter-spacing:.3px; }
+.nav-item.active .nav-label { color:var(--accent2); }
+.nav-item.active .nav-icon { filter:drop-shadow(0 0 8px var(--accent)); }
+
+.fab {
+  width:52px;height:52px;border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),var(--pink));
+  border:none;color:#fff;font-size:24px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 24px rgba(124,108,252,.5), 0 0 0 4px rgba(124,108,252,.1);
+  transition:all .3s cubic-bezier(.34,1.56,.64,1);font-family:inherit;
+}
+.fab:hover { transform:scale(1.1) rotate(45deg); box-shadow:0 8px 32px rgba(124,108,252,.6),0 0 0 7px rgba(124,108,252,.14); }
+
+/* ═══════════════════════════════════════
+   UTILITIES
+═══════════════════════════════════════ */
+.ripple { position:absolute;border-radius:50%;background:rgba(255,255,255,.07);transform:scale(0);animation:ripp .5s linear;pointer-events:none; }
+@keyframes ripp { to{transform:scale(5);opacity:0} }
+
+::-webkit-scrollbar { width:3px; }
+::-webkit-scrollbar-thumb { background:var(--surface3);border-radius:10px; }
+</style>
+</head>
+<body>
+<div class="phone">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="breadcrumb"><em>Notepad</em><span style="color:var(--text3)">›</span><span>Today</span></div>
+      <div class="topbar-title">Daily Capture</div>
+    </div>
+    <div class="avatar">A</div>
+  </div>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="live-badge"><span class="live-dot"></span>Today · Page 3</div>
+    <div class="hero-date">Saturday,<br>April 11</div>
+    <div class="hero-sub">2026 · Capture every thought</div>
+    <div class="hero-stats">
+      <div class="stat-chip"><span class="dot" style="background:var(--gold)"></span>1 voice</div>
+      <div class="stat-chip"><span class="dot" style="background:var(--green)"></span>0/2 tasks</div>
+      <div class="stat-chip"><span class="dot" style="background:var(--pink)"></span>0 photos</div>
+    </div>
+  </div>
+
+  <!-- ══ VOICE NOTES ══ -->
+  <div class="section" id="sec-voice">
+    <div class="sec-header" onclick="toggleSec('sec-voice')">
+      <div class="sec-header-left">
+        <div class="sec-icon ic-voice">🎙</div>
+        <div>
+          <span class="sec-title">Voice Notes</span>
+          <span class="sec-badge" id="vn-count">1</span>
+        </div>
+      </div>
+      <span class="chevron">⌄</span>
+    </div>
+    <div class="sec-divider"></div>
+    <div class="sec-body">
+
+      <!-- Record Button -->
+      <button class="record-btn" id="rec-btn" onclick="toggleRecord()">
+        <span id="rec-icon">🎤</span>
+        <span id="rec-label">Hold to Record</span>
+      </button>
+
+      <!-- Voice Note Cards -->
+      <div class="vn-list-label">Recorded</div>
+      <div id="vn-list">
+
+        <div class="vn-card">
+          <div class="vn-top-bar"></div>
+          <div class="vn-inner">
+            <div class="vn-meta-row">
+              <div>
+                <div class="vn-title">Apr 11, 2026 · 2:10 AM</div>
+                <div class="vn-sub">0:06 · 237 KB</div>
+              </div>
+              <button class="vn-del">🗑</button>
+            </div>
+            <div class="player">
+              <button class="play-btn" onclick="togglePlay(this, 'wf0')">▶</button>
+              <div class="waveform" id="wf0"></div>
+              <div class="vn-time">0:06</div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /vn-list -->
+    </div>
+  </div><!-- /voice section -->
+
+
+  <!-- ══ TO-DO LIST ══ -->
+  <div class="section" id="sec-todo">
+    <div class="sec-header" onclick="toggleSec('sec-todo')">
+      <div class="sec-header-left">
+        <div class="sec-icon ic-todo">✅</div>
+        <div>
+          <span class="sec-title">To-Do List</span>
+          <span class="sec-badge" id="todo-count">2</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span id="done-label" style="font-size:12px;color:var(--text3)">0 / 2</span>
+        <span class="chevron">⌄</span>
+      </div>
+    </div>
+    <div class="sec-divider"></div>
+    <div class="sec-body">
+
+      <!-- Add Row -->
+      <div class="todo-add-row">
+        <input class="todo-input" id="todo-input" placeholder="What needs to be done?"
+               onkeydown="if(event.key==='Enter')addTodo()">
+        <button class="add-btn" onclick="addTodo()">+</button>
+      </div>
+
+      <!-- Filter Tabs -->
+      <div class="todo-tabs">
+        <button class="todo-tab active" onclick="setFilter('all',this)">All</button>
+        <button class="todo-tab" onclick="setFilter('active',this)">Active</button>
+        <button class="todo-tab" onclick="setFilter('done',this)">Done</button>
+      </div>
+
+      <!-- Progress -->
+      <div class="progress-row">
+        <div class="pbar"><div class="pfill" id="pfill"></div></div>
+        <div class="ptext" id="ptext">0 of 2</div>
+      </div>
+
+      <!-- Items -->
+      <div class="todo-list" id="todo-list"></div>
+      <div class="empty-todos" id="empty-todos">
+        <div class="empty-icon">🎉</div>
+        All tasks complete!
+      </div>
+
+    </div>
+  </div><!-- /todo section -->
+
+
+  <!-- ══ PHOTO GALLERY ══ -->
+  <div class="section" id="sec-photo">
+    <div class="sec-header" onclick="toggleSec('sec-photo')">
+      <div class="sec-header-left">
+        <div class="sec-icon ic-photo">🖼</div>
+        <div>
+          <span class="sec-title">Photo Gallery</span>
+          <span class="sec-badge">0</span>
+        </div>
+      </div>
+      <span class="chevron">⌄</span>
+    </div>
+    <div class="sec-divider"></div>
+    <div class="sec-body">
+      <div class="photo-drop">
+        <div class="photo-drop-icon">📷</div>
+        <div class="photo-drop-title">No photos yet</div>
+        <div class="photo-drop-sub">Tap to upload — keep today visually complete</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <div class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></div>
+    <div class="nav-item"><span class="nav-icon">📓</span><span class="nav-label">Notebook</span></div>
+    <button class="fab">+</button>
+    <div class="nav-item active"><span class="nav-icon">📌</span><span class="nav-label">Notepad</span></div>
+    <div class="nav-item"><span class="nav-icon">⚙️</span><span class="nav-label">Settings</span></div>
+  </div>
+</div><!-- /phone -->
+
+
+<script>
+/* ══════════════════════════════════════
+   SECTION TOGGLE
+══════════════════════════════════════ */
+function toggleSec(id) {
+  document.getElementById(id).classList.toggle('closed');
+}
+
+/* ══════════════════════════════════════
+   WAVEFORM BUILDER
+══════════════════════════════════════ */
+function buildWaveform(containerId, seed) {
+  const el = document.getElementById(containerId);
+  if(!el) return;
+  el.innerHTML = '';
+  const bars = 34;
+  for(let i=0;i<bars;i++){
+    const h = 20 + Math.abs(Math.sin((i+seed)*0.55)*65);
+    const b = document.createElement('div');
+    b.className = 'wbar' + (i < 4 ? ' played' : '');
+    b.style.height = h + '%';
+    el.appendChild(b);
+  }
+  el.addEventListener('click', e=>{
+    const r = el.getBoundingClientRect();
+    const ratio = (e.clientX - r.left) / r.width;
+    const all = el.querySelectorAll('.wbar');
+    all.forEach((b,i)=> b.classList.toggle('played', i/all.length <= ratio));
+  });
+}
+buildWaveform('wf0', 3);
+
+/* ══════════════════════════════════════
+   PLAY / PAUSE
+══════════════════════════════════════ */
+let playInterval = null;
+let currentWf = null;
+let currentBtn = null;
+let playPos = 4;
+
+function togglePlay(btn, wfId) {
+  const wf = document.getElementById(wfId);
+  const playing = btn.classList.contains('playing');
+
+  if(playInterval){ clearInterval(playInterval); playInterval=null; }
+  if(currentBtn && currentBtn !== btn){ currentBtn.textContent='▶'; currentBtn.classList.remove('playing'); }
+  if(currentWf && currentWf !== wf){ currentWf.querySelectorAll('.wbar.active').forEach(b=>b.classList.remove('active')); }
+
+  if(playing){
+    btn.textContent = '▶'; btn.classList.remove('playing');
+  } else {
+    btn.textContent = '⏸'; btn.classList.add('playing');
+    currentBtn = btn; currentWf = wf;
+    const bars = wf.querySelectorAll('.wbar');
+    playPos = Math.max(4, Array.from(bars).filter(b=>b.classList.contains('played')).length);
+
+    playInterval = setInterval(()=>{
+      if(playPos >= bars.length){ clearInterval(playInterval); btn.textContent='▶'; btn.classList.remove('playing'); playPos=0; return; }
+      bars.forEach((b,i)=>{ b.classList.toggle('played', i<playPos); b.classList.toggle('active', i===playPos); });
+      playPos++;
+    }, 180);
+  }
+}
+
+/* ══════════════════════════════════════
+   RECORD TOGGLE
+══════════════════════════════════════ */
+let isRecording = false;
+let recTimer = null;
+let recSec = 0;
+
+function toggleRecord(){
+  const btn = document.getElementById('rec-btn');
+  const iconEl = document.getElementById('rec-icon');
+  const labelEl = document.getElementById('rec-label');
+  isRecording = !isRecording;
+
+  if(isRecording){
+    btn.classList.add('recording');
+    iconEl.outerHTML = '<span id="rec-icon" class="rec-dot"></span>';
+    recSec = 0;
+    recTimer = setInterval(()=>{
+      recSec++;
+      document.getElementById('rec-label').textContent = `Recording… ${recSec}s — tap to stop`;
+    },1000);
+    labelEl.textContent = 'Recording… 0s — tap to stop';
+  } else {
+    clearInterval(recTimer);
+    btn.classList.remove('recording');
+    document.getElementById('rec-icon').outerHTML = '<span id="rec-icon">🎤</span>';
+    document.getElementById('rec-label').textContent = 'Hold to Record';
+    if(recSec >= 1) saveRecording(recSec);
+  }
+}
+
+function saveRecording(dur){
+  const now = new Date();
+  const label = now.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
+  const kb = Math.round(dur * 39);
+  const id = 'wf' + Date.now();
+  const list = document.getElementById('vn-list');
+  const mins = String(Math.floor(dur/60)).padStart(1,'0');
+  const secs = String(dur%60).padStart(2,'0');
+
+  const card = document.createElement('div');
+  card.className = 'vn-card';
+  card.innerHTML = `
+    <div class="vn-top-bar"></div>
+    <div class="vn-inner">
+      <div class="vn-meta-row">
+        <div>
+          <div class="vn-title">${label}</div>
+          <div class="vn-sub">${mins}:${secs} · ${kb} KB</div>
+        </div>
+        <button class="vn-del" onclick="this.closest('.vn-card').remove();updateVnCount()">🗑</button>
+      </div>
+      <div class="player">
+        <button class="play-btn" onclick="togglePlay(this,'${id}')">▶</button>
+        <div class="waveform" id="${id}"></div>
+        <div class="vn-time">${mins}:${secs}</div>
+      </div>
+    </div>`;
+  list.prepend(card);
+  buildWaveform(id, Math.random()*10);
+  updateVnCount();
+}
+
+function updateVnCount(){
+  document.getElementById('vn-count').textContent =
+    document.getElementById('vn-list').querySelectorAll('.vn-card').length;
+}
+
+/* ══════════════════════════════════════
+   TODOS
+══════════════════════════════════════ */
+let todos = [
+  { id:1, text:'Help me achieve this',   done:false, reminder:null,        prio:'low' },
+  { id:2, text:'Help me achieve this 2', done:false, reminder:'Apr 11 · 10:26 AM', prio:'med' },
+];
+let nextId = 3;
+let filter = 'all';
+
+function setFilter(f, el){
+  filter = f;
+  document.querySelectorAll('.todo-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderTodos();
+}
+
+function renderTodos(){
+  const list = document.getElementById('todo-list');
+  const empty = document.getElementById('empty-todos');
+  const done = todos.filter(t=>t.done).length;
+  const total = todos.length;
+
+  document.getElementById('todo-count').textContent = total;
+  document.getElementById('done-label').textContent = `${done} / ${total}`;
+  document.getElementById('pfill').style.width = total ? (done/total*100)+'%' : '0%';
+  document.getElementById('ptext').textContent = `${done} of ${total}`;
+
+  const visible = todos.filter(t =>
+    filter==='all' ? true : filter==='done' ? t.done : !t.done
+  );
+
+  list.innerHTML = '';
+  if(!visible.length){
+    empty.classList.add('show');
+    empty.querySelector('.empty-icon').textContent = filter==='done' ? '😌' : '🎉';
+    empty.lastChild.textContent = filter==='done' ? 'No completed tasks yet' : ' All tasks complete!';
+  } else {
+    empty.classList.remove('show');
+  }
+
+  visible.forEach(t => {
+    const el = document.createElement('div');
+    el.className = `todo-item prio-${t.prio}${t.done?' done':''}`;
+    el.innerHTML = `
+      <div class="check">${t.done?'✓':''}</div>
+      <div class="todo-body">
+        <div class="todo-text">${esc(t.text)}</div>
+        <div class="todo-meta">
+          <div class="todo-reminder${t.reminder?' set':''}">
+            ${t.reminder ? '🔔 '+t.reminder : '⏰ No reminder'}
+          </div>
+          ${t.prio==='high'?'<span class="todo-tag" style="color:var(--red);background:rgba(248,113,113,.1)">High</span>':''}
+          ${t.prio==='med'?'<span class="todo-tag" style="color:var(--gold);background:rgba(245,200,66,.1)">Medium</span>':''}
+        </div>
+      </div>
+      <div class="todo-right">
+        <button class="icon-btn bell" title="Reminder">🔔</button>
+        <button class="icon-btn flag" title="Priority" onclick="cyclePrio(${t.id},event)">🚩</button>
+        <button class="icon-btn del" title="Delete" onclick="deleteTodo(${t.id},event)">🗑</button>
+      </div>`;
+    el.querySelector('.check').addEventListener('click', e=>{ e.stopPropagation(); toggleTodo(t.id); });
+    el.querySelector('.todo-body').addEventListener('click', ()=>toggleTodo(t.id));
+    // ripple
+    el.addEventListener('click', function(e){
+      const r=document.createElement('span'); r.className='ripple';
+      const rect=this.getBoundingClientRect();
+      const s=Math.max(rect.width,rect.height);
+      r.style.cssText=`width:${s}px;height:${s}px;top:${e.clientY-rect.top-s/2}px;left:${e.clientX-rect.left-s/2}px`;
+      this.appendChild(r); setTimeout(()=>r.remove(),600);
+    });
+    list.appendChild(el);
+  });
+}
+
+function toggleTodo(id){ const t=todos.find(x=>x.id===id); if(t){ t.done=!t.done; renderTodos(); } }
+function deleteTodo(id,e){ e.stopPropagation(); todos=todos.filter(x=>x.id!==id); renderTodos(); }
+function cyclePrio(id,e){
+  e.stopPropagation();
+  const t=todos.find(x=>x.id===id); if(!t) return;
+  const cycle={low:'med',med:'high',high:'low'};
+  t.prio=cycle[t.prio]; renderTodos();
+}
+function addTodo(){
+  const inp=document.getElementById('todo-input');
+  const txt=inp.value.trim(); if(!txt) return;
+  todos.unshift({id:nextId++,text:txt,done:false,reminder:null,prio:'low'});
+  inp.value=''; renderTodos();
+}
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+renderTodos();
+</script>
+</body>
+</html>

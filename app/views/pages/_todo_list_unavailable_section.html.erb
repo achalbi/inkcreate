@@ -1,0 +1,15 @@
+<section class="ibox float-e-margins">
+  <div class="ibox-title">
+    <div class="detail-photo-gallery-heading">
+      <h5 class="detail-photo-gallery-title">To-do list</h5>
+      <span class="label label-default">Unavailable</span>
+    </div>
+  </div>
+
+  <div class="ibox-content">
+    <%= render "shared/inline_alert",
+      type: :warning,
+      title: "To-do list is not ready yet",
+      message: "Run the latest database migrations to enable checklist items on pages." %>
+  </div>
+</section>

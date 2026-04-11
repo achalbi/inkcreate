@@ -24,6 +24,15 @@
             <i class="ti ti-calendar-event" aria-hidden="true"></i>
             <strong><%= entry.entry_date.strftime("%b %-d, %Y") %></strong>
           </span>
+
+          <% if TodoList.schema_ready? && TodoItem.schema_ready? && entry.todo_list&.enabled? %>
+            <span class="notebook-list-card__meta-dot" aria-hidden="true">&middot;</span>
+            <span class="notebook-list-card__meta-item">
+              <i class="ti ti-list-check" aria-hidden="true"></i>
+              <%= entry.todo_list.progress_label %>
+            </span>
+          <% end %>
+
           <span class="notebook-list-card__meta-dot" aria-hidden="true">&middot;</span>
           <span class="notebook-list-card__meta-item">
             <i class="ti ti-clock-hour-4" aria-hidden="true"></i>

@@ -195,6 +195,11 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
 
   test "notebook and page views still render when page enhancement tables are unavailable" do
     sign_in!
+    notepad_entry = @user.notepad_entries.create!(
+      title: "Daily page",
+      notes: "Quick note",
+      entry_date: Date.current
+    )
 
     VoiceNote.stub(:schema_ready?, false) do
       TodoList.stub(:schema_ready?, false) do
@@ -205,9 +210,23 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
 
             get notebook_chapter_page_path(@notebook, @chapter, @page)
             assert_response :success
+            assert_match "To-do list", response.body
+            assert_match "To-do list is not ready yet", response.body
 
             get edit_notebook_chapter_page_path(@notebook, @chapter, @page)
             assert_response :success
+            assert_match "To-do list", response.body
+            assert_match "To-do list is not ready yet", response.body
+
+            get notepad_entry_path(notepad_entry)
+            assert_response :success
+            assert_match "To-do list", response.body
+            assert_match "To-do list is not ready yet", response.body
+
+            get edit_notepad_entry_path(notepad_entry)
+            assert_response :success
+            assert_match "To-do list", response.body
+            assert_match "To-do list is not ready yet", response.body
           end
         end
       end

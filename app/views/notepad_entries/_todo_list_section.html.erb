@@ -1,5 +1,5 @@
 <%
-  todo_list = page.todo_list
+  todo_list = notepad_entry.todo_list
   todo_items = todo_list&.todo_items&.ordered&.to_a || []
   reminders_available = Reminder.schema_ready?
   completed_count = todo_items.count(&:completed?)
@@ -8,12 +8,12 @@
 %>
 
 <section
-  id="<%= dom_id(page, :todo_list_section) %>"
+  id="<%= dom_id(notepad_entry, :todo_list_section) %>"
   class="ibox float-e-margins"
   data-controller="todo-list"
   data-todo-list-mode-value="persisted"
   data-todo-list-filter-value="<%= initial_filter %>"
-  data-todo-list-storage-key-value="<%= dom_id(page, :todo_list_section) %>"
+  data-todo-list-storage-key-value="<%= dom_id(notepad_entry, :todo_list_section) %>"
 >
   <div class="ibox-title">
     <div class="detail-photo-gallery-heading">
@@ -24,16 +24,16 @@
       <% if todo_list&.enabled? && todo_items.any? %>
         <span class="label label-default"><%= todo_list.progress_label %></span>
       <% end %>
-      <%= render "shared/ibox_toggle_button", target_id: dom_id(page, :todo_list_content) %>
+      <%= render "shared/ibox_toggle_button", target_id: dom_id(notepad_entry, :todo_list_content) %>
     </div>
   </div>
 
-  <div id="<%= dom_id(page, :todo_list_content) %>" class="ibox-content collapse show">
+  <div id="<%= dom_id(notepad_entry, :todo_list_content) %>" class="ibox-content collapse show">
     <% if todo_list.blank? || !todo_list.enabled? %>
       <div class="vstack gap-3">
         <%= render "shared/empty_state", title: "To-do list disabled", description: "Enable a checklist on this page to track action items and attach reminders." %>
 
-        <form action="<%= notebook_chapter_page_todo_list_path(notebook, chapter, page) %>" method="post" data-action="submit->todo-list#submit">
+        <form action="<%= notepad_entry_todo_list_path(notepad_entry) %>" method="post" data-action="submit->todo-list#submit">
           <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
           <input type="hidden" name="todo_list[enabled]" value="true">
           <button type="submit" class="btn btn-primary">Enable to-do list</button>
@@ -44,7 +44,7 @@
         <div class="todo-list-section__hint">Drag to reorder. Tap the circle to complete.</div>
       </div>
 
-      <form action="<%= notebook_chapter_page_todo_items_path(notebook, chapter, page) %>" method="post" data-action="submit->todo-list#submit" class="todo-list-composer todo-list-composer--prompt">
+      <form action="<%= notepad_entry_todo_items_path(notepad_entry) %>" method="post" data-action="submit->todo-list#submit" class="todo-list-composer todo-list-composer--prompt">
         <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
         <div class="todo-list-composer__field">
           <textarea name="todo_item[content]" class="form-control todo-list-composer__input" placeholder="What needs to be done?" aria-label="Add a to-do item" rows="1" data-action="input->todo-list#resizeTextarea"></textarea>
@@ -77,12 +77,12 @@
             draggable="true"
             data-item-id="<%= todo_item.id %>"
             data-position="<%= index + 1 %>"
-            data-reorder-url="<%= reorder_notebook_chapter_page_todo_item_path(notebook, chapter, page, todo_item) %>"
+            data-reorder-url="<%= reorder_notepad_entry_todo_item_path(notepad_entry, todo_item) %>"
             data-action="dragstart->todo-list#dragStart dragover->todo-list#dragOver drop->todo-list#drop dragend->todo-list#dragEnd"
           >
             <div class="todo-list-item__header">
               <div class="todo-list-item__lead">
-                <form action="<%= toggle_notebook_chapter_page_todo_item_path(notebook, chapter, page, todo_item) %>" method="post" data-action="submit->todo-list#submit" class="todo-list-item__toggle-form">
+                <form action="<%= toggle_notepad_entry_todo_item_path(notepad_entry, todo_item) %>" method="post" data-action="submit->todo-list#submit" class="todo-list-item__toggle-form">
                   <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
                   <input type="hidden" name="_method" value="patch">
                   <button type="submit" class="btn btn-white btn-sm todo-list-item__check <%= "is-completed" if todo_item.completed? %>" aria-label="<%= todo_item.completed? ? "Mark incomplete" : "Mark complete" %>">
@@ -90,7 +90,7 @@
                   </button>
                 </form>
 
-                <form action="<%= notebook_chapter_page_todo_item_path(notebook, chapter, page, todo_item) %>" method="post" data-action="submit->todo-list#submit" class="todo-list-item__edit">
+                <form action="<%= notepad_entry_todo_item_path(notepad_entry, todo_item) %>" method="post" data-action="submit->todo-list#submit" class="todo-list-item__edit">
                   <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
                   <input type="hidden" name="_method" value="patch">
                   <textarea
@@ -106,13 +106,13 @@
               </div>
 
               <div class="todo-list-item__tools">
-                <form action="<%= notebook_chapter_page_todo_item_path(notebook, chapter, page, todo_item) %>" method="post" class="todo-list-item__delete-form">
+                <form action="<%= notepad_entry_todo_item_path(notepad_entry, todo_item) %>" method="post" class="todo-list-item__delete-form">
                   <button
                     type="button"
                     class="btn btn-white btn-sm todo-list-item__icon-button todo-list-item__delete-button"
                     aria-label="Delete to-do item"
                     data-action="click->todo-list#confirmDelete"
-                    data-todo-list-delete-url="<%= notebook_chapter_page_todo_item_path(notebook, chapter, page, todo_item) %>"
+                    data-todo-list-delete-url="<%= notepad_entry_todo_item_path(notepad_entry, todo_item) %>"
                     data-todo-list-item-content="<%= todo_item.content %>"
                   >
                     <i class="ti ti-trash" aria-hidden="true"></i>
@@ -170,7 +170,7 @@
     <% end %>
 
     <%= render "shared/todo_item_delete_confirm_modal",
-      modal_id: dom_id(page, :todo_item_delete_confirm_modal),
-      form_id: dom_id(page, :todo_item_delete_confirm_form) %>
+      modal_id: dom_id(notepad_entry, :todo_item_delete_confirm_modal),
+      form_id: dom_id(notepad_entry, :todo_item_delete_confirm_form) %>
   </div>
 </section>

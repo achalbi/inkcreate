@@ -1,5 +1,5 @@
 <%
-  current_todo_list = page.todo_list
+  current_todo_list = notepad_entry.todo_list
   current_items = current_todo_list&.todo_items&.ordered&.to_a || []
   todo_list_enabled = current_todo_list&.enabled?
   hide_completed = current_todo_list&.hide_completed?
@@ -9,7 +9,7 @@
   class="ibox float-e-margins"
   data-controller="todo-list"
   data-todo-list-mode-value="draft"
-  data-todo-list-draft-field-name-value="page[todo_item_contents][]"
+  data-todo-list-draft-field-name-value="notepad_entry[todo_item_contents][]"
 >
   <div class="ibox-title">
     <div class="detail-photo-gallery-heading">
@@ -23,11 +23,11 @@
       <% unless todo_list_enabled %>
         <button type="button" class="btn btn-white btn-sm todo-list-draft__toggle" data-action="todo-list#toggleDraftEnabled" data-todo-list-target="toggleButton">Enable list</button>
       <% end %>
-      <%= render "shared/ibox_toggle_button", target_id: dom_id(page, :todo_form_list_content) %>
+      <%= render "shared/ibox_toggle_button", target_id: dom_id(notepad_entry, :todo_form_list_content) %>
     </div>
   </div>
 
-  <div id="<%= dom_id(page, :todo_form_list_content) %>" class="ibox-content collapse show">
+  <div id="<%= dom_id(notepad_entry, :todo_form_list_content) %>" class="ibox-content collapse show">
     <%= form.hidden_field :todo_list_enabled, value: todo_list_enabled ? "true" : "false", data: { todo_list_target: "enabledField" } %>
     <%= form.hidden_field :todo_list_hide_completed, value: hide_completed ? "true" : "false", data: { todo_list_target: "hideCompletedField" } %>
     <div data-todo-list-target="draftFields"></div>

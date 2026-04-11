@@ -14,6 +14,7 @@ class Reminder < ApplicationRecord
 
   validates :title, presence: true
   validates :fire_at, presence: true
+  validate :single_todo_item_reminder, if: :todo_item_target?
 
   scope :scheduled, -> { where(status: [statuses[:pending], statuses[:snoozed]]) }
   scope :upcoming_first, ->(time = Time.current) {
@@ -30,6 +31,7 @@ class Reminder < ApplicationRecord
   }
   scope :due, ->(time = Time.current) { scheduled.where(fire_at: ..time).order(fire_at: :asc, created_at: :asc) }
 
+  before_validation :rearm_if_rescheduled
   after_commit :schedule_dispatch, on: %i[create update]
 
   def standalone?
@@ -51,8 +53,15 @@ class Reminder < ApplicationRecord
     return Rails.application.routes.url_helpers.edit_reminder_path(self) if standalone?
 
     if target.is_a?(TodoItem)
-      page = target.todo_list.page
-      return Rails.application.routes.url_helpers.notebook_chapter_page_path(page.notebook, page.chapter, page)
+      owner = target.todo_list.owner
+
+      if owner.is_a?(Page)
+        return Rails.application.routes.url_helpers.notebook_chapter_page_path(owner.notebook, owner.chapter, owner)
+      end
+
+      if owner.is_a?(NotepadEntry)
+        return Rails.application.routes.url_helpers.notepad_entry_path(owner)
+      end
     end
 
     Rails.application.routes.url_helpers.edit_reminder_path(self)
@@ -71,6 +80,28 @@ class Reminder < ApplicationRecord
   end
 
   private
+
+  def todo_item_target?
+    target_type == "TodoItem" && target_id.present?
+  end
+
+  def single_todo_item_reminder
+    existing_scope = self.class.where(target_type: target_type, target_id: target_id)
+    existing_scope = existing_scope.where.not(id: id) if persisted?
+
+    if existing_scope.exists?
+      errors.add(:base, "This to-do item already has a reminder.")
+    end
+  end
+
+  def rearm_if_rescheduled
+    return unless persisted?
+    return unless will_save_change_to_fire_at?
+
+    self.status = :pending
+    self.snooze_until = nil
+    self.last_triggered_at = nil
+  end
 
   def schedule_dispatch
     return unless dispatchable?

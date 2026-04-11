@@ -12,13 +12,13 @@ class NotepadEntryTest < ActiveSupport::TestCase
     )
   end
 
-  test "requires notes, a photo, or a voice note" do
+  test "requires notes, a photo, a voice note, or a to-do item" do
     user = build_user(email: "notes@example.com")
 
     entry = user.notepad_entries.new(entry_date: Date.current)
 
     assert_not entry.valid?
-    assert_includes entry.errors.full_messages, "Add notes, a photo, or a voice note."
+    assert_includes entry.errors.full_messages, "Add notes, a photo, a voice note, or a to-do item."
   end
 
   test "generated title alone does not satisfy content validation" do
@@ -31,7 +31,7 @@ class NotepadEntryTest < ActiveSupport::TestCase
 
     assert_not entry.valid?
     assert_equal "Sunday, Apr 5 - Page 1", entry.title
-    assert_includes entry.errors.full_messages, "Add notes, a photo, or a voice note."
+    assert_includes entry.errors.full_messages, "Add notes, a photo, a voice note, or a to-do item."
   end
 
   test "generates a title from notes when blank" do
@@ -67,6 +67,16 @@ class NotepadEntryTest < ActiveSupport::TestCase
 
     entry = user.notepad_entries.new(entry_date: Date.current, title: "")
     entry.pending_voice_note_uploads = [Object.new]
+
+    assert entry.valid?
+  end
+
+  test "is valid with pending to-do items and no notes, photos, or voice notes" do
+    user = build_user(email: "retained-todo-item@example.com")
+
+    entry = user.notepad_entries.new(entry_date: Date.current, title: "")
+    entry.pending_todo_list_enabled = true
+    entry.pending_todo_item_contents = ["Draft checklist item"]
 
     assert entry.valid?
   end

@@ -14,11 +14,13 @@ class RemindersController < BrowserController
   def edit; end
 
   def create
-    @reminder = current_user.reminders.new(reminder_attributes)
+    @reminder = reminder_for_create
+    new_record = @reminder.new_record?
+    @reminder.assign_attributes(reminder_attributes)
     add_invalid_target_error(@reminder)
 
     if @reminder.errors.empty? && @reminder.save
-      redirect_to reminder_return_path(@reminder), notice: "Reminder created."
+      redirect_to reminder_return_path(@reminder), notice: (new_record ? "Reminder created." : "Reminder updated.")
     else
       render_failed_create
     end
@@ -77,10 +79,19 @@ class RemindersController < BrowserController
     return if reminder_params[:target_type].blank? || reminder_params[:target_id].blank?
     return unless reminder_params[:target_type] == "TodoItem"
 
-    @resolved_target ||= TodoItem
-      .joins(todo_list: { page: { chapter: :notebook } })
-      .where(id: reminder_params[:target_id], notebooks: { user_id: current_user.id })
-      .first
+    @resolved_target ||= begin
+      candidate = TodoItem
+        .includes(todo_list: [:page, :notepad_entry])
+        .find_by(id: reminder_params[:target_id])
+
+      candidate if candidate&.user == current_user
+    end
+  end
+
+  def reminder_for_create
+    return current_user.reminders.new unless resolved_target.present?
+
+    current_user.reminders.find_or_initialize_by(target: resolved_target)
   end
 
   def add_invalid_target_error(reminder)

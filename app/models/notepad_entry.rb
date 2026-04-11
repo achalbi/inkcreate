@@ -4,11 +4,16 @@ class NotepadEntry < ApplicationRecord
 
   attr_accessor :pending_voice_note_uploads,
     :pending_voice_note_duration_seconds,
-    :pending_voice_note_recorded_ats
+    :pending_voice_note_recorded_ats,
+    :pending_todo_item_contents,
+    :pending_todo_list_enabled,
+    :pending_todo_list_hide_completed
 
   belongs_to :user
   has_many_attached :photos
   has_many :voice_notes, -> { order(recorded_at: :asc, created_at: :asc) }, dependent: :destroy
+  has_one :todo_list, dependent: :destroy
+  has_many :todo_items, through: :todo_list
   has_one :google_drive_export, as: :exportable, dependent: :destroy
 
   validates :entry_date, presence: true
@@ -32,6 +37,18 @@ class NotepadEntry < ApplicationRecord
 
   def pending_voice_note_recorded_ats
     Array(@pending_voice_note_recorded_ats).map(&:presence)
+  end
+
+  def pending_todo_item_contents
+    Array(@pending_todo_item_contents).filter_map { |content| content.to_s.squish.presence }
+  end
+
+  def pending_todo_list_enabled?
+    ActiveModel::Type::Boolean.new.cast(@pending_todo_list_enabled) == true
+  end
+
+  def pending_todo_list_hide_completed?
+    ActiveModel::Type::Boolean.new.cast(@pending_todo_list_hide_completed) == true
   end
 
   private
@@ -72,11 +89,26 @@ class NotepadEntry < ApplicationRecord
     return if plain_notes.present?
     return if photos.attached? || pending_photo_blobs.any?
     return if voice_notes_available? && (voice_notes.exists? || pending_voice_note_uploads.any?)
+    return if todo_items_present?
 
-    errors.add(:base, "Add notes, a photo, or a voice note.")
+    errors.add(:base, "Add notes, a photo, a voice note, or a to-do item.")
   end
 
   def voice_notes_available?
     VoiceNote.notepad_entries_supported?
+  end
+
+  def todo_items_present?
+    return false unless todo_lists_available?
+
+    if todo_list&.enabled? && todo_list.todo_items.exists?
+      return true
+    end
+
+    pending_todo_list_enabled? && pending_todo_item_contents.any?
+  end
+
+  def todo_lists_available?
+    TodoList.schema_ready? && TodoItem.schema_ready?
   end
 end

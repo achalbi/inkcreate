@@ -1,3 +1,7 @@
+<%
+  todo_lists_available = TodoList.schema_ready? && TodoItem.schema_ready?
+%>
+
 <%= form_with model: notepad_entry, data: { photo_capture_auto_save: notepad_entry.persisted? } do |form| %>
   <% if notepad_entry.errors.any? %>
     <% error_body = capture do %>
@@ -162,6 +166,18 @@
       </div>
     </div>
   <% end %>
+
+  <div class="row g-3 m-t-md">
+    <% if todo_lists_available %>
+      <div class="col-12">
+        <%= render "notepad_entries/todo_list_form_section", notepad_entry: notepad_entry, form: form %>
+      </div>
+    <% else %>
+      <div class="col-12">
+        <%= render "pages/todo_list_unavailable_section" %>
+      </div>
+    <% end %>
+  </div>
 
   <% if notepad_entry.persisted? %>
     <div class="row">

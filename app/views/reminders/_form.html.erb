@@ -1,6 +1,7 @@
 <%
   show_open_source = local_assigns.fetch(:show_open_source, reminder.persisted? && !reminder.standalone?)
   show_actions = local_assigns.fetch(:show_actions, true)
+  actions_classes = local_assigns.fetch(:actions_classes, "d-flex flex-wrap gap-2")
   form_html_options = {}
   form_html_options[:id] = local_assigns[:form_id] if local_assigns[:form_id].present?
 %>
@@ -48,7 +49,7 @@
   </div>
 
   <% if show_actions %>
-    <div class="d-flex flex-wrap gap-2">
+    <div class="<%= actions_classes %>">
       <%= form.submit reminder.persisted? ? "Save reminder" : "Create reminder", class: "btn btn-primary" %>
       <% if show_open_source %>
         <%= link_to "Open source", reminder.destination_path, class: "btn btn-outline-secondary" %>

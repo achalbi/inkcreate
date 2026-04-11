@@ -1,3 +1,7 @@
+<%
+  todo_lists_available = TodoList.schema_ready? && TodoItem.schema_ready?
+%>
+
 <div class="wrapper wrapper-content animated fadeInRight">
   <%= render "shared/workspace_breadcrumbs",
     items: [["Home", dashboard_path], ["Notepad", notepad_entries_path], @notepad_entry.display_title] %>
@@ -43,6 +47,16 @@
     <% if VoiceNote.notepad_entries_supported? %>
       <div class="col-12">
         <%= render "notepad_entries/voice_notes_section", notepad_entry: @notepad_entry %>
+      </div>
+    <% end %>
+
+    <% if todo_lists_available %>
+      <div class="col-12">
+        <%= render "notepad_entries/todo_list_section", notepad_entry: @notepad_entry %>
+      </div>
+    <% else %>
+      <div class="col-12">
+        <%= render "pages/todo_list_unavailable_section" %>
       </div>
     <% end %>
 

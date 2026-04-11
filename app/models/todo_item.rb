@@ -13,8 +13,8 @@ class TodoItem < ApplicationRecord
   before_validation :assign_position, on: :create
   before_save :sync_completed_at
 
-  delegate :page, to: :todo_list
-  delegate :user, to: :page
+  delegate :owner, to: :todo_list
+  delegate :user, to: :owner
 
   def toggle_completion!
     update!(completed: !completed)

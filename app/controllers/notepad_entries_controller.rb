@@ -9,6 +9,7 @@ class NotepadEntriesController < BrowserController
     @view_mode = index_view_mode
     @selected_entry_date = selected_entry_date
     entries = current_user.notepad_entries.with_attached_photos.recent_first
+    entries = entries.includes(todo_list: :todo_items) if TodoList.schema_ready? && TodoItem.schema_ready?
     entries = entries.where(entry_date: @selected_entry_date) if @selected_entry_date.present?
     @entries_by_date = entries.group_by(&:entry_date)
     prepare_gallery(entries)
@@ -24,11 +25,12 @@ class NotepadEntriesController < BrowserController
   def create
     @notepad_entry = current_user.notepad_entries.new(notepad_entry_attributes)
     preserve_pending_photos(@notepad_entry, notepad_entry_params)
-    assign_pending_voice_notes_from_params(@notepad_entry, notepad_entry_params, raw_notepad_entry_attributes)
+    assign_pending_content_from_params(@notepad_entry, notepad_entry_params, raw_notepad_entry_attributes)
 
     if @notepad_entry.save
       attach_pending_photos(@notepad_entry)
       persist_pending_voice_notes(@notepad_entry)
+      persist_pending_todo_list(@notepad_entry, notepad_entry_params)
       schedule_drive_export(@notepad_entry)
       redirect_to create_redirect_path(@notepad_entry), notice: create_notice_message
     else
@@ -40,7 +42,7 @@ class NotepadEntriesController < BrowserController
 
   def update
     preserve_pending_photos(@notepad_entry, notepad_entry_params)
-    assign_pending_voice_notes_from_params(@notepad_entry, notepad_entry_params, raw_notepad_entry_attributes)
+    assign_pending_content_from_params(@notepad_entry, notepad_entry_params, raw_notepad_entry_attributes)
 
     if moving_to_notebook_chapter?
       @notepad_entry.assign_attributes(notepad_entry_attributes)
@@ -50,6 +52,7 @@ class NotepadEntriesController < BrowserController
     if @notepad_entry.update(notepad_entry_attributes)
       attach_pending_photos(@notepad_entry)
       persist_pending_voice_notes(@notepad_entry)
+      persist_pending_todo_list(@notepad_entry, notepad_entry_params)
       schedule_drive_export(@notepad_entry)
       redirect_to notepad_entry_path(@notepad_entry), notice: "Notepad entry updated."
     else
@@ -73,7 +76,8 @@ class NotepadEntriesController < BrowserController
 
   def set_notepad_entry
     scope = current_user.notepad_entries.with_attached_photos
-    scope = scope.includes(voice_notes: [audio_attachment: :blob]) if VoiceNote.notepad_entries_supported?
+    includes = notepad_entry_detail_includes
+    scope = scope.includes(*includes) if includes.any?
     @notepad_entry = scope.find(params[:id])
   end
 
@@ -90,11 +94,14 @@ class NotepadEntriesController < BrowserController
       :title,
       :notes,
       :entry_date,
+      :todo_list_enabled,
+      :todo_list_hide_completed,
       retained_photo_signed_ids: [],
       photos: [],
       voice_note_uploads: [],
       voice_note_duration_seconds: [],
-      voice_note_recorded_ats: []
+      voice_note_recorded_ats: [],
+      todo_item_contents: []
     )
   end
 
@@ -104,7 +111,10 @@ class NotepadEntriesController < BrowserController
       :retained_photo_signed_ids,
       :voice_note_uploads,
       :voice_note_duration_seconds,
-      :voice_note_recorded_ats
+      :voice_note_recorded_ats,
+      :todo_list_enabled,
+      :todo_list_hide_completed,
+      :todo_item_contents
     )
   end
 
@@ -140,10 +150,13 @@ class NotepadEntriesController < BrowserController
     params.fetch(:notepad_entry, {})
   end
 
-  def assign_pending_voice_notes_from_params(entry, attrs, raw_attrs)
+  def assign_pending_content_from_params(entry, attrs, raw_attrs)
     entry.pending_voice_note_uploads = raw_voice_note_uploads(raw_attrs)
     entry.pending_voice_note_duration_seconds = Array(attrs[:voice_note_duration_seconds])
     entry.pending_voice_note_recorded_ats = Array(attrs[:voice_note_recorded_ats])
+    entry.pending_todo_list_enabled = attrs[:todo_list_enabled]
+    entry.pending_todo_list_hide_completed = attrs[:todo_list_hide_completed]
+    entry.pending_todo_item_contents = Array(attrs[:todo_item_contents])
   end
 
   def raw_voice_note_uploads(raw_attrs)
@@ -175,6 +188,26 @@ class NotepadEntriesController < BrowserController
     end
 
     entry.pending_voice_note_uploads = []
+  end
+
+  def persist_pending_todo_list(entry, attrs)
+    return unless TodoList.schema_ready? && TodoItem.schema_ready?
+
+    item_contents = Array(attrs[:todo_item_contents]).filter_map { |content| content.to_s.squish.presence }
+    should_enable = ActiveModel::Type::Boolean.new.cast(attrs[:todo_list_enabled]) || item_contents.any?
+    should_hide_completed = ActiveModel::Type::Boolean.new.cast(attrs[:todo_list_hide_completed]) == true
+    return unless should_enable || entry.todo_list.present?
+
+    todo_list = entry.todo_list || entry.build_todo_list
+    todo_list.enabled = should_enable
+    todo_list.hide_completed = should_hide_completed
+    todo_list.save! if todo_list.new_record? || todo_list.changed?
+
+    item_contents.each do |content|
+      todo_list.todo_items.create!(content: content)
+    end
+
+    entry.pending_todo_item_contents = []
   end
 
   def normalized_voice_note_duration(entry, index)
@@ -222,12 +255,14 @@ class NotepadEntriesController < BrowserController
       captured_on: @notepad_entry.entry_date
     )
     page.retained_photo_signed_ids = photo_signed_ids_for_move
+    assign_pending_page_content_for_move(page)
 
     NotepadEntry.transaction do
       page.save!
       attach_pending_photos(page)
       move_pending_voice_notes_to_page(page)
       move_voice_notes_to_page(page)
+      move_todo_list_to_page(page)
       @notepad_entry.photos.detach
       @notepad_entry.destroy!
     end
@@ -272,6 +307,64 @@ class NotepadEntriesController < BrowserController
     end
   end
 
+  def assign_pending_page_content_for_move(page)
+    page.pending_voice_note_uploads = Array(@notepad_entry.pending_voice_note_uploads)
+    page.pending_voice_note_uploads += [Object.new] if VoiceNote.notepad_entries_supported? && @notepad_entry.voice_notes.exists?
+
+    todo_state = pending_todo_move_state
+    page.pending_todo_list_enabled = todo_state[:enabled]
+    page.pending_todo_list_hide_completed = todo_state[:hide_completed]
+    page.pending_todo_item_contents = todo_state[:validation_item_contents]
+  end
+
+  def move_todo_list_to_page(page)
+    return unless TodoList.schema_ready? && TodoItem.schema_ready?
+
+    source_list = @notepad_entry.todo_list
+    todo_state = pending_todo_move_state(source_list)
+    return unless source_list.present? || todo_state[:enabled] || todo_state[:pending_item_contents].any?
+
+    target_list = page.todo_list || page.build_todo_list
+    target_list.enabled = todo_state[:enabled]
+    target_list.hide_completed = todo_state[:hide_completed]
+    target_list.save! if target_list.new_record? || target_list.changed?
+
+    if source_list.present?
+      source_list.todo_items.update_all(todo_list_id: target_list.id, updated_at: Time.current)
+      source_list.destroy!
+    end
+
+    todo_state[:pending_item_contents].each do |content|
+      target_list.todo_items.create!(content: content)
+    end
+  end
+
+  def pending_todo_move_state(source_list = @notepad_entry.todo_list)
+    pending_item_contents = @notepad_entry.pending_todo_item_contents
+    enabled = todo_state_value_from_params(:todo_list_enabled) { source_list&.enabled? } || pending_item_contents.any?
+    hide_completed = todo_state_value_from_params(:todo_list_hide_completed) { source_list&.hide_completed? } == true
+
+    validation_item_contents = pending_item_contents.dup
+    if enabled && source_list.present?
+      validation_item_contents = source_list.todo_items.ordered.pluck(:content) + validation_item_contents
+    end
+
+    {
+      enabled: enabled,
+      hide_completed: hide_completed,
+      pending_item_contents: pending_item_contents,
+      validation_item_contents: validation_item_contents
+    }
+  end
+
+  def todo_state_value_from_params(key)
+    raw_attrs = raw_notepad_entry_attributes
+    return ActiveModel::Type::Boolean.new.cast(raw_attrs[key]) if raw_attrs.key?(key)
+    return ActiveModel::Type::Boolean.new.cast(raw_attrs[key.to_s]) if raw_attrs.key?(key.to_s)
+
+    yield
+  end
+
   def move_destination_label(chapter)
     return if chapter.blank?
 
@@ -292,6 +385,21 @@ class NotepadEntriesController < BrowserController
 
   def redirect_to_edit_after_create?
     params[:after_create].to_s == "edit"
+  end
+
+  def notepad_entry_detail_includes
+    includes = []
+    includes << { voice_notes: [audio_attachment: :blob] } if VoiceNote.notepad_entries_supported?
+
+    if TodoList.schema_ready? && TodoItem.schema_ready?
+      includes << if Reminder.schema_ready?
+        { todo_list: { todo_items: :reminder } }
+      else
+        { todo_list: :todo_items }
+      end
+    end
+
+    includes
   end
 
   def index_view_mode

@@ -108,6 +108,39 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
     upload&.tempfile&.close!
   end
 
+  test "user can create a notepad entry with only a to-do list item" do
+    user = User.create!(
+      email: "notepad-todo@example.com",
+      password: "Password123!",
+      password_confirmation: "Password123!",
+      time_zone: "UTC",
+      locale: "en",
+      role: :user
+    )
+
+    sign_in_browser_user(user)
+    get new_notepad_entry_path
+
+    assert_difference -> { user.notepad_entries.count }, +1 do
+      post notepad_entries_path, params: {
+        authenticity_token: authenticity_token_for(notepad_entries_path),
+        notepad_entry: {
+          title: "",
+          notes: "",
+          entry_date: Date.current,
+          todo_list_enabled: "true",
+          todo_item_contents: ["Draft checklist item"]
+        }
+      }
+    end
+
+    entry = user.notepad_entries.order(:created_at).last
+
+    assert_redirected_to notepad_entry_path(entry)
+    assert entry.todo_list.enabled?
+    assert_equal ["Draft checklist item"], entry.todo_list.todo_items.ordered.pluck(:content)
+  end
+
   test "user cannot access another users notebook" do
     owner = User.create!(
       email: "owner@example.com",
@@ -194,6 +227,63 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
     assert_equal "Move this into the project notebook with its photo.", page.notes
     assert_equal Date.new(2026, 4, 11), page.captured_on
     assert_equal 1, page.photos.count
+  end
+
+  test "moving a notepad entry into a notebook chapter preserves its to-do list and reminders" do
+    user = User.create!(
+      email: "todo-mover@example.com",
+      password: "Password123!",
+      password_confirmation: "Password123!",
+      time_zone: "UTC",
+      locale: "en",
+      role: :user
+    )
+
+    notebook = user.notebooks.create!(
+      title: "Research notebook",
+      description: "Project notes",
+      status: :active
+    )
+    chapter = notebook.chapters.create!(title: "Interviews", description: "Conversation logs")
+
+    entry = user.notepad_entries.create!(
+      title: "Checklist capture",
+      notes: "Temporary notes",
+      entry_date: Date.new(2026, 4, 10)
+    )
+    todo_list = entry.create_todo_list!(enabled: true, hide_completed: true)
+    first_item = todo_list.todo_items.create!(content: "Follow up with supplier")
+    todo_list.todo_items.create!(content: "Share recap")
+    reminder = user.reminders.create!(
+      title: "Follow up reminder",
+      fire_at: 1.day.from_now,
+      target: first_item
+    )
+
+    sign_in_browser_user(user)
+    get edit_notepad_entry_path(entry)
+
+    patch notepad_entry_path(entry), params: {
+      authenticity_token: authenticity_token_for(notepad_entry_path(entry)),
+      intent: "move_to_notebook",
+      move_to_chapter_id: chapter.id,
+      notepad_entry: {
+        title: "Checklist capture",
+        notes: "",
+        entry_date: Date.new(2026, 4, 11),
+        todo_list_enabled: "true",
+        todo_list_hide_completed: "true"
+      }
+    }
+
+    page = chapter.pages.order(:created_at).last
+
+    assert_redirected_to notebook_chapter_page_path(notebook, chapter, page)
+    assert_nil user.notepad_entries.find_by(id: entry.id)
+    assert page.todo_list.enabled?
+    assert page.todo_list.hide_completed?
+    assert_equal ["Follow up with supplier", "Share recap"], page.todo_list.todo_items.ordered.pluck(:content)
+    assert_equal page, reminder.reload.target.todo_list.page
   end
 
   test "notebooks index supports search and six-per-page pagination for current and archived views" do

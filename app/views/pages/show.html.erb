@@ -1,3 +1,7 @@
+<%
+  todo_lists_available = TodoList.schema_ready? && TodoItem.schema_ready?
+%>
+
 <div class="wrapper wrapper-content animated fadeInRight">
   <%= render "shared/workspace_breadcrumbs",
     items: [["Home", dashboard_path], ["Notebook", notebooks_path], [@notebook.title, notebook_path(@notebook)], [@chapter.title, notebook_chapter_path(@notebook, @chapter)], @page.display_title] %>
@@ -50,9 +54,13 @@
       </div>
     <% end %>
 
-    <% if TodoList.schema_ready? && TodoItem.schema_ready? %>
+    <% if todo_lists_available %>
       <div class="col-12">
         <%= render "pages/todo_list_section", notebook: @notebook, chapter: @chapter, page: @page %>
+      </div>
+    <% else %>
+      <div class="col-12">
+        <%= render "pages/todo_list_unavailable_section" %>
       </div>
     <% end %>
 
