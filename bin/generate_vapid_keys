@@ -1,0 +1,26 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "base64"
+require "openssl"
+
+subject = ARGV.first.to_s.strip
+subject = "mailto:support@example.com" if subject.empty?
+
+key = OpenSSL::PKey::EC.generate("prime256v1")
+
+public_key = Base64.urlsafe_encode64(key.public_key.to_bn.to_s(2), padding: false)
+private_key = Base64.urlsafe_encode64(key.private_key.to_s(2), padding: false)
+
+puts <<~OUTPUT
+  # Keep this keypair stable for a given environment.
+  VAPID_PUBLIC_KEY=#{public_key}
+  VAPID_PRIVATE_KEY=#{private_key}
+  VAPID_SUBJECT=#{subject}
+
+  # Rails credentials alternative:
+  vapid:
+    public_key: #{public_key}
+    private_key: #{private_key}
+    subject: #{subject}
+OUTPUT

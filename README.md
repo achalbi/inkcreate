@@ -29,6 +29,18 @@ bundle exec rails server
 bundle exec sidekiq -C config/sidekiq.yml
 ```
 
+## Web Push Setup
+
+Reminder notifications need a VAPID keypair. Generate one once per environment:
+
+```bash
+ruby bin/generate_vapid_keys
+```
+
+Add `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` to `.env` for local development, or store the same values in your deployment secret manager. You can also store them in Rails credentials under `vapid.public_key`, `vapid.private_key`, and `vapid.subject`.
+
+Keep the same keypair for a given environment after users subscribe, otherwise existing device subscriptions may stop working until they re-enable notifications.
+
 ## Docker Compose deploy
 
 1. Create runtime env:

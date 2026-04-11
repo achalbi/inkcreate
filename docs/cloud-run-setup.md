@@ -181,6 +181,9 @@ The current [cloudbuild.yaml](/Users/achalindiresh/workspace/inkcreate/cloudbuil
 - `inkcreate-active-record-encryption-deterministic-key`
 - `inkcreate-active-record-encryption-key-derivation-salt`
 - `inkcreate-internal-task-token`
+- optional but recommended for reminder notifications: `inkcreate-vapid-public-key`
+- optional but recommended for reminder notifications: `inkcreate-vapid-private-key`
+- optional but recommended for reminder notifications: `inkcreate-vapid-subject`
 - optional: `inkcreate-sentry-dsn`
 
 Create them once:
@@ -196,7 +199,10 @@ for SECRET in \
   inkcreate-active-record-encryption-primary-key \
   inkcreate-active-record-encryption-deterministic-key \
   inkcreate-active-record-encryption-key-derivation-salt \
-  inkcreate-internal-task-token
+  inkcreate-internal-task-token \
+  inkcreate-vapid-public-key \
+  inkcreate-vapid-private-key \
+  inkcreate-vapid-subject
 do
   gcloud secrets create "$SECRET" \
     --project=$PROJECT_ID \
@@ -216,6 +222,23 @@ printf '%s' 'your-active-record-encryption-deterministic-key' | gcloud secrets v
 printf '%s' 'your-active-record-encryption-key-derivation-salt' | gcloud secrets versions add inkcreate-active-record-encryption-key-derivation-salt --project=$PROJECT_ID --data-file=-
 printf '%s' 'replace-with-random-internal-task-token' | gcloud secrets versions add inkcreate-internal-task-token --project=$PROJECT_ID --data-file=-
 ```
+
+For reminder notifications, generate a VAPID keypair once per environment:
+
+```bash
+cd /Users/achalindiresh/workspace/inkcreate
+ruby bin/generate_vapid_keys mailto:support@your-domain.example
+```
+
+Then store the printed values:
+
+```bash
+printf '%s' 'your-vapid-public-key' | gcloud secrets versions add inkcreate-vapid-public-key --project=$PROJECT_ID --data-file=-
+printf '%s' 'your-vapid-private-key' | gcloud secrets versions add inkcreate-vapid-private-key --project=$PROJECT_ID --data-file=-
+printf '%s' 'mailto:support@your-domain.example' | gcloud secrets versions add inkcreate-vapid-subject --project=$PROJECT_ID --data-file=-
+```
+
+Keep the same VAPID keypair for a given production environment. Rotating it later can invalidate existing browser push subscriptions until users enable notifications again.
 
 Generate the three Active Record encryption values once with Rails from the app root:
 
@@ -256,7 +279,10 @@ for SECRET in \
   inkcreate-active-record-encryption-primary-key \
   inkcreate-active-record-encryption-deterministic-key \
   inkcreate-active-record-encryption-key-derivation-salt \
-  inkcreate-internal-task-token
+  inkcreate-internal-task-token \
+  inkcreate-vapid-public-key \
+  inkcreate-vapid-private-key \
+  inkcreate-vapid-subject
 do
   gcloud secrets add-iam-policy-binding "$SECRET" \
     --project=$PROJECT_ID \
@@ -316,6 +342,11 @@ The secret-name substitutions should usually stay at their defaults unless you r
 - `_ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY_SECRET=inkcreate-active-record-encryption-deterministic-key`
 - `_ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT_SECRET=inkcreate-active-record-encryption-key-derivation-salt`
 - `_INTERNAL_TASK_TOKEN_SECRET=inkcreate-internal-task-token`
+- `_VAPID_PUBLIC_KEY_SECRET=inkcreate-vapid-public-key`
+- `_VAPID_PRIVATE_KEY_SECRET=inkcreate-vapid-private-key`
+- `_VAPID_SUBJECT_SECRET=inkcreate-vapid-subject`
+
+Leave the three `_VAPID_*_SECRET` substitutions blank only if you intentionally want Web Push unavailable in that environment. When all three are set, the deploy pipeline now injects them into the migration job, API service, and worker service automatically.
 
 ## 7. Notes
 

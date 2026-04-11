@@ -16,7 +16,7 @@
       <%= render "shared/inline_alert",
         type: :warning,
         title: "Web Push is not configured yet",
-        message: "Add the VAPID public key, private key, and subject in Rails credentials before device push can be enabled.",
+        message: "Add the VAPID public key, private key, and subject via env vars or Rails credentials before device push can be enabled.",
         extra_classes: "mb-4" %>
     <% end %>
 
