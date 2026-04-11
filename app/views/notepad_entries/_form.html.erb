@@ -160,14 +160,14 @@
   </div>
 
   <% if VoiceNote.notepad_entries_supported? %>
-    <div class="row g-3 m-t-md">
+    <div class="row m-t-md">
       <div class="col-12">
         <%= render "notepad_entries/voice_notes_section", notepad_entry: notepad_entry, form: form %>
       </div>
     </div>
   <% end %>
 
-  <div class="row g-3 m-t-md">
+  <div class="row m-t-md">
     <% if todo_lists_available %>
       <div class="col-12">
         <%= render "notepad_entries/todo_list_form_section", notepad_entry: notepad_entry, form: form %>
@@ -180,7 +180,7 @@
   </div>
 
   <% if notepad_entry.persisted? %>
-    <div class="row">
+    <div class="row m-t-md">
       <div class="col-12">
         <% move_modal_id = dom_id(notepad_entry, :move_destination_modal) %>
         <% move_destination_input_id = "#{move_modal_id}_input" %>

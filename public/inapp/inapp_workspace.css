@@ -2433,7 +2433,7 @@ body.workspace-body {
 
 .workspace-body .entry-photos-form-row {
   --bs-gutter-x: 0.75rem;
-  --bs-gutter-y: 0.75rem;
+  --bs-gutter-y: 1rem;
 }
 
 .workspace-body .entry-details-fields-row {
@@ -2598,7 +2598,6 @@ body.workspace-body {
 }
 
 .workspace-body .notepad-entry-move-shell {
-  margin-top: 1rem;
 }
 
 .workspace-body .notepad-entry-move-shell .ibox-content {
@@ -5073,6 +5072,47 @@ body.workspace-body {
   color: var(--inapp-muted);
   font-size: 0.78rem;
   line-height: 1.45;
+}
+
+.workspace-body .quick-capture-todo-panel {
+  margin-top: 0.8rem;
+  padding: 1rem 1.05rem;
+  border: 1px solid var(--inapp-border);
+  border-radius: var(--inapp-radius-lg);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(252, 247, 240, 0.94));
+  box-shadow: var(--inapp-card-shadow-soft);
+}
+
+.workspace-body .quick-capture-todo-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.workspace-body .quick-capture-todo-panel__header > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.workspace-body .quick-capture-todo-panel__header strong {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--inapp-ink);
+}
+
+.workspace-body .quick-capture-todo-panel__header span {
+  color: var(--inapp-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.workspace-body .quick-capture-todo-panel__button {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .workspace-body .workspace-header .text-uppercase.fw-semibold,

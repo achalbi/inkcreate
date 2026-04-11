@@ -105,7 +105,7 @@ class NotepadEntry < ApplicationRecord
       return true
     end
 
-    pending_todo_list_enabled? && pending_todo_item_contents.any?
+    pending_todo_list_enabled?
   end
 
   def todo_lists_available?

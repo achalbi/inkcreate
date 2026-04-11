@@ -75,6 +75,26 @@
           <% end %>
         <% end %>
 
+        <% if TodoList.schema_ready? && TodoItem.schema_ready? %>
+          <section class="quick-capture-todo-panel">
+            <div class="quick-capture-todo-panel__header">
+              <div>
+                <strong>Start a to-do list</strong>
+                <span>Create today's daily page with a checklist ready to fill in.</span>
+              </div>
+              <%= form_with url: notepad_entries_path, scope: :notepad_entry do |todo_form| %>
+                <%= hidden_field_tag :after_create, "edit" %>
+                <%= todo_form.hidden_field :entry_date, value: @entry_date %>
+                <%= todo_form.hidden_field :todo_list_enabled, value: "true" %>
+                <button type="submit" class="btn btn-white btn-sm quick-capture-todo-panel__button">
+                  <i class="ti ti-circle-check" aria-hidden="true"></i>
+                  Add
+                </button>
+              <% end %>
+            </div>
+          </section>
+        <% end %>
+
         <p class="quick-capture-status text-muted" data-quick-capture-target="status" hidden></p>
       </div>
     </div>
