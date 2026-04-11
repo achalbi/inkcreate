@@ -31,4 +31,20 @@ class TodoItemTest < ActiveSupport::TestCase
     assert_not todo_item.completed?
     assert_nil todo_item.completed_at
   end
+
+  test "prepends new items by default but respects explicit positions" do
+    page = build_page(email: "todo-item-order@example.com")
+    todo_list = page.create_todo_list!
+
+    todo_list.todo_items.create!(content: "First")
+    todo_list.todo_items.create!(content: "Second")
+    todo_list.todo_items.create!(content: "Third")
+
+    assert_equal [["Third", 1], ["Second", 2], ["First", 3]], todo_list.todo_items.ordered.pluck(:content, :position)
+
+    explicit_item = todo_list.todo_items.create!(content: "Pinned", position: 4)
+
+    assert_equal 4, explicit_item.position
+    assert_equal [["Third", 1], ["Second", 2], ["First", 3], ["Pinned", 4]], todo_list.todo_items.ordered.pluck(:content, :position)
+  end
 end

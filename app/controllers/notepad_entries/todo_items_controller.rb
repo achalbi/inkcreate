@@ -53,7 +53,7 @@ module NotepadEntries
     end
 
     def move_to_position!(item, requested_position)
-      items = @todo_list.todo_items.ordered.to_a
+      items = @todo_list.display_todo_items.to_a
       requested_position = requested_position.clamp(1, items.size)
 
       TodoItem.transaction do
@@ -63,6 +63,8 @@ module NotepadEntries
         remaining_items.each_with_index do |todo_item, index|
           todo_item.update!(position: index + 1)
         end
+
+        @todo_list.track_manual_reordering!
       end
     end
 

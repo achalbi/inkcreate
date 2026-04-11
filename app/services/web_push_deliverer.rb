@@ -23,7 +23,7 @@ class WebPushDeliverer
           public_key: public_key,
           private_key: private_key
         },
-        ttl: 60
+        ttl: 86_400
       )
     rescue WebPush::ExpiredSubscription, WebPush::InvalidSubscription
       device.disable_push!

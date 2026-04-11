@@ -525,8 +525,11 @@ export default class extends Controller {
       return;
     }
 
+    const computedMinHeight = Number.parseFloat(window.getComputedStyle(element).minHeight);
+    const minHeight = Number.isFinite(computedMinHeight) ? computedMinHeight : 0;
+
     element.style.height = "0px";
-    element.style.height = `${Math.max(element.scrollHeight, 30)}px`;
+    element.style.height = `${Math.max(element.scrollHeight, minHeight)}px`;
   }
 
   csrfToken() {

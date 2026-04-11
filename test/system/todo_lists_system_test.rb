@@ -16,11 +16,16 @@ class TodoListsSystemTest < ApplicationSystemTestCase
     add_todo_item("Confirm venue")
     add_todo_item("Email recap")
 
+    assert_equal ["Email recap", "Confirm venue", "Pack microphones"], all(".todo-list-item__input").map(&:value)
+
     assert_no_text "3 / 3 done"
     assert_text "0 / 3 done"
     assert_no_button "Disable list"
+    assert_selector(".todo-list-filters__button.is-active", text: "All")
 
-    find("button[aria-label='Mark complete']", match: :first).click
+    within todo_item_card("Pack microphones") do
+      find("button[aria-label='Mark complete']").click
+    end
 
     assert_text "1 / 3 done"
 
@@ -38,7 +43,7 @@ class TodoListsSystemTest < ApplicationSystemTestCase
       assert_text "Email recap"
     end
 
-    within all(".todo-list-item").last do
+    within todo_item_card("Email recap") do
       click_button "Add reminder"
     end
 
@@ -83,6 +88,12 @@ class TodoListsSystemTest < ApplicationSystemTestCase
 
     within ".todo-list-items" do
       assert_text content
+    end
+  end
+
+  def todo_item_card(content)
+    all(".todo-list-item").find do |item|
+      item.find(".todo-list-item__input", visible: :all).value == content
     end
   end
 end

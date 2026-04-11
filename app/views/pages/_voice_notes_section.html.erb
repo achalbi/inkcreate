@@ -1,6 +1,6 @@
 <%
   form = local_assigns[:form]
-  voice_notes = page.voice_notes.chronological.includes(audio_attachment: :blob)
+  voice_notes = page.voice_notes.recent_first.includes(audio_attachment: :blob)
   recorder_mode = page.persisted? ? :persisted : :form
   recorder_url = page.persisted? ? notebook_chapter_page_voice_notes_path(notebook, chapter, page) : nil
 %>
@@ -29,39 +29,14 @@
       create_url: recorder_url %>
 
     <% if voice_notes.any? %>
-      <div class="vstack gap-3 m-t-md">
-        <% voice_notes.each do |voice_note| %>
-          <article class="border rounded-4 p-3 bg-light-subtle">
-            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
-              <div>
-                <div class="fw-semibold">Recorded <%= voice_note.recorded_at.in_time_zone.strftime("%b %-d, %Y at %-I:%M %p") %></div>
-                <div class="text-secondary small">
-                  <span><%= voice_note_duration_label(voice_note.duration_seconds) %></span>
-                  <span>·</span>
-                  <span><%= number_to_human_size(voice_note.byte_size) %></span>
-                </div>
-              </div>
-
-              <% if voice_note.persisted? %>
-                <button
-                  type="button"
-                  class="btn btn-white btn-sm btn-icon"
-                  title="Delete voice note"
-                  aria-label="Delete voice note recorded <%= voice_note.recorded_at.in_time_zone.strftime("%b %-d, %Y at %-I:%M %p") %>"
-                  data-controller="voice-note-delete"
-                  data-action="voice-note-delete#destroy"
-                  data-voice-note-delete-delete-url-value="<%= notebook_chapter_page_voice_note_path(notebook, chapter, page, voice_note) %>"
-                >
-                  <i class="ti ti-trash" aria-hidden="true"></i>
-                </button>
-              <% end %>
-            </div>
-
-            <audio controls preload="metadata" class="w-100">
-              <source src="<%= url_for(voice_note.audio) %>" type="<%= voice_note.mime_type %>">
-            </audio>
-          </article>
-        <% end %>
+      <div class="m-t-md voice-note-list-content">
+        <div class="notebook-list-stack notebook-list-stack--separated">
+          <% voice_notes.each do |voice_note| %>
+            <%= render "shared/voice_note_list_item",
+              voice_note: voice_note,
+              delete_path: notebook_chapter_page_voice_note_path(notebook, chapter, page, voice_note) %>
+          <% end %>
+        </div>
       </div>
     <% elsif !form.present? %>
       <div class="m-t-md">

@@ -1,4 +1,4 @@
-const SHELL_CACHE = "inkcreate-shell-v7";
+const SHELL_CACHE = "inkcreate-shell-v9";
 const OFFLINE_URL = "/offline.html";
 const DB_NAME = "inkcreate-pwa";
 const DB_VERSION = 3;
@@ -25,6 +25,7 @@ self.addEventListener("install", (event) => {
       "/scripts/indexed-db.js",
       "/scripts/notification_preferences.js",
       "/scripts/vendor/stimulus.js",
+      "/scripts/vendor/wavesurfer.js",
       "/scripts/controllers/offline_status_controller.js",
       "/scripts/controllers/install_prompt_controller.js",
       "/scripts/controllers/camera_controller.js",
@@ -33,6 +34,7 @@ self.addEventListener("install", (event) => {
       "/scripts/controllers/notification_preferences_controller.js"
       ,
       "/scripts/controllers/voice_recorder_controller.js",
+      "/scripts/controllers/voice_note_player_controller.js",
       "/scripts/controllers/todo_list_controller.js",
       "/scripts/controllers/reminder_form_controller.js",
       "/scripts/controllers/device_push_controller.js"

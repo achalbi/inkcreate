@@ -1,6 +1,6 @@
 <%
   todo_list = notepad_entry.todo_list
-  todo_items = todo_list&.todo_items&.ordered&.to_a || []
+  todo_items = todo_list&.display_todo_items&.to_a || []
   reminders_available = Reminder.schema_ready?
   completed_count = todo_items.count(&:completed?)
   progress_percent = todo_items.any? ? ((completed_count.to_f / todo_items.size) * 100).round : 0
@@ -9,7 +9,7 @@
 
 <section
   id="<%= dom_id(notepad_entry, :todo_list_section) %>"
-  class="ibox float-e-margins"
+  class="ibox"
   data-controller="todo-list"
   data-todo-list-mode-value="persisted"
   data-todo-list-filter-value="<%= initial_filter %>"
@@ -50,15 +50,15 @@
           <textarea name="todo_item[content]" class="form-control todo-list-composer__input" placeholder="What needs to be done?" aria-label="Add a to-do item" rows="1" data-action="input->todo-list#resizeTextarea"></textarea>
         </div>
         <button type="submit" class="btn btn-primary todo-list-composer__submit todo-list-composer__submit--icon" aria-label="Add to-do item">
-          <i class="ti ti-plus" aria-hidden="true"></i>
+          <i class="ti ti-arrow-right" aria-hidden="true"></i>
         </button>
       </form>
 
       <div class="todo-list-filters" role="toolbar" aria-label="To-do list filters">
         <div class="todo-list-filters__group" role="tablist" aria-label="Filter to-do items">
-          <button type="button" class="todo-list-filters__button" data-action="todo-list#setFilter" data-todo-list-filter-param="all" data-filter="all" data-todo-list-target="filterButton">All</button>
-          <button type="button" class="todo-list-filters__button" data-action="todo-list#setFilter" data-todo-list-filter-param="active" data-filter="active" data-todo-list-target="filterButton">Active</button>
-          <button type="button" class="todo-list-filters__button" data-action="todo-list#setFilter" data-todo-list-filter-param="done" data-filter="done" data-todo-list-target="filterButton">Done</button>
+          <button type="button" class="todo-list-filters__button <%= "is-active" if initial_filter == "all" %>" data-action="todo-list#setFilter" data-todo-list-filter-param="all" data-filter="all" data-todo-list-target="filterButton" aria-pressed="<%= initial_filter == "all" %>">All</button>
+          <button type="button" class="todo-list-filters__button <%= "is-active" if initial_filter == "active" %>" data-action="todo-list#setFilter" data-todo-list-filter-param="active" data-filter="active" data-todo-list-target="filterButton" aria-pressed="<%= initial_filter == "active" %>">Active</button>
+          <button type="button" class="todo-list-filters__button <%= "is-active" if initial_filter == "done" %>" data-action="todo-list#setFilter" data-todo-list-filter-param="done" data-filter="done" data-todo-list-target="filterButton" aria-pressed="<%= initial_filter == "done" %>">Done</button>
         </div>
       </div>
 
@@ -105,28 +105,10 @@
                 </form>
               </div>
 
-              <div class="todo-list-item__tools">
-                <form action="<%= notepad_entry_todo_item_path(notepad_entry, todo_item) %>" method="post" class="todo-list-item__delete-form">
-                  <button
-                    type="button"
-                    class="btn btn-white btn-sm todo-list-item__icon-button todo-list-item__delete-button"
-                    aria-label="Delete to-do item"
-                    data-action="click->todo-list#confirmDelete"
-                    data-todo-list-delete-url="<%= notepad_entry_todo_item_path(notepad_entry, todo_item) %>"
-                    data-todo-list-item-content="<%= todo_item.content %>"
-                  >
-                    <i class="ti ti-trash" aria-hidden="true"></i>
-                  </button>
-                </form>
-
-                <button type="button" class="todo-list-item__handle btn btn-white btn-sm todo-list-item__icon-button" aria-label="Reorder item">
-                  <i class="ti ti-grip-vertical" aria-hidden="true"></i>
-                </button>
-              </div>
             </div>
 
-            <% if reminders_available %>
-              <div class="todo-list-item__meta">
+            <div class="todo-list-item__meta">
+              <% if reminders_available %>
                 <% if todo_item.reminder.present? %>
                   <div class="todo-list-item__reminder todo-list-item__reminder--scheduled">
                     <i class="ti ti-bell" aria-hidden="true"></i>
@@ -138,21 +120,44 @@
                     <span>No reminder</span>
                   </div>
                 <% end %>
+              <% else %>
+                <div class="todo-list-item__meta-spacer" aria-hidden="true"></div>
+              <% end %>
 
-                <div class="todo-list-item__reminder-form">
+              <div class="todo-list-item__actions">
+                <% if reminders_available %>
                   <button
                     type="button"
-                    class="btn btn-white btn-sm todo-list-item__reminder-toggle"
+                    class="btn btn-white btn-sm btn-icon todo-list-item__action-button todo-list-item__reminder-toggle"
                     data-bs-toggle="modal"
                     data-bs-target="#<%= reminder_modal_id %>"
                     aria-controls="<%= reminder_modal_id %>"
                     aria-haspopup="dialog"
+                    aria-label="<%= todo_item.reminder.present? ? "Edit reminder" : "Add reminder" %>"
+                    title="<%= todo_item.reminder.present? ? "Edit reminder" : "Add reminder" %>"
                   >
-                    <span><%= todo_item.reminder.present? ? "Edit reminder" : "Add reminder" %></span>
+                    <i class="ti <%= todo_item.reminder.present? ? "ti-bell-ringing" : "ti-bell" %>" aria-hidden="true"></i>
                   </button>
-                </div>
+                <% end %>
+
+                <form action="<%= notepad_entry_todo_item_path(notepad_entry, todo_item) %>" method="post" class="todo-list-item__delete-form">
+                  <button
+                    type="button"
+                    class="btn btn-white btn-sm btn-icon todo-list-item__action-button todo-list-item__delete-button"
+                    aria-label="Delete to-do item"
+                    data-action="click->todo-list#confirmDelete"
+                    data-todo-list-delete-url="<%= notepad_entry_todo_item_path(notepad_entry, todo_item) %>"
+                    data-todo-list-item-content="<%= todo_item.content %>"
+                  >
+                    <i class="ti ti-trash" aria-hidden="true"></i>
+                  </button>
+                </form>
+
+                <button type="button" class="btn btn-white btn-sm btn-icon todo-list-item__action-button todo-list-item__handle" aria-label="Reorder item">
+                  <i class="ti ti-grip-vertical" aria-hidden="true"></i>
+                </button>
               </div>
-            <% end %>
+            </div>
 
             <% if reminders_available %>
               <%= render "shared/todo_item_reminder_modal",

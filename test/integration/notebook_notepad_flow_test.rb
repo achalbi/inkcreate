@@ -282,7 +282,7 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
     assert_nil user.notepad_entries.find_by(id: entry.id)
     assert page.todo_list.enabled?
     assert page.todo_list.hide_completed?
-    assert_equal ["Follow up with supplier", "Share recap"], page.todo_list.todo_items.ordered.pluck(:content)
+    assert_equal ["Share recap", "Follow up with supplier"], page.todo_list.todo_items.ordered.pluck(:content)
     assert_equal page, reminder.reload.target.todo_list.page
   end
 

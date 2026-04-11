@@ -21,6 +21,17 @@ class TodoList < ApplicationRecord
     "#{completed_count} / #{total_count} done"
   end
 
+  def display_todo_items
+    todo_items.ordered
+  end
+
+  def track_manual_reordering!
+    return unless manual_reordering_column?
+    return if self[:manually_reordered]
+
+    update!(manually_reordered: true)
+  end
+
   def owner
     page || notepad_entry
   end
@@ -30,6 +41,11 @@ class TodoList < ApplicationRecord
   def normalize_booleans
     self.enabled = true if enabled.nil?
     self.hide_completed = false if hide_completed.nil?
+    self[:manually_reordered] = false if manual_reordering_column? && self[:manually_reordered].nil?
+  end
+
+  def manual_reordering_column?
+    has_attribute?(:manually_reordered)
   end
 
   def exactly_one_owner

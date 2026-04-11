@@ -1,0 +1,66 @@
+<%
+  render_buttons = local_assigns.fetch(:render_buttons, true)
+  render_field = local_assigns.fetch(:render_field, true)
+  include_camera_input = local_assigns.fetch(:include_camera_input, true)
+  photo_gallery_hint_text = local_assigns[:hint_text].presence || "Use these actions to capture a photo or upload one from the gallery."
+%>
+
+<% if include_camera_input %>
+  <input
+    type="file"
+    accept="image/*"
+    capture="environment"
+    tabindex="-1"
+    aria-hidden="true"
+    class="photo-section-camera-input"
+    data-photo-capture-target="cameraInput"
+    data-action="change->photo-capture#acceptCameraCapture"
+  >
+<% end %>
+
+<% if render_buttons %>
+  <div class="detail-photo-gallery-actions__row">
+    <button
+      type="button"
+      class="btn btn-white btn-sm btn-icon photo-section-camera-button"
+      data-action="photo-capture#openCameraApp"
+      data-photo-capture-target="cameraToggle"
+      aria-pressed="false"
+      title="Open camera"
+      aria-label="Open camera"
+    >
+      <i class="ti ti-camera" aria-hidden="true"></i>
+    </button>
+    <button
+      type="button"
+      class="btn btn-white btn-sm btn-icon photo-section-upload-button"
+      data-action="photo-capture#chooseFromGallery"
+      title="Upload from gallery"
+      aria-label="Upload from gallery"
+    >
+      <i class="ti ti-photo-plus" aria-hidden="true"></i>
+    </button>
+    <button
+      type="button"
+      class="btn btn-white btn-sm btn-icon photo-section-info-button"
+      data-bs-toggle="collapse"
+      data-bs-target="#<%= tips_target_id %>"
+      aria-expanded="false"
+      aria-controls="<%= tips_target_id %>"
+      title="Capture tips"
+      aria-label="Capture tips"
+    >
+      <i class="ti ti-info-circle" aria-hidden="true"></i>
+    </button>
+  </div>
+<% end %>
+
+<% if render_field %>
+  <div class="detail-photo-gallery-actions__body">
+    <%= render "shared/photo_capture_field",
+      form:,
+      field_name: :photos,
+      tips_target_id:,
+      hint_text: photo_gallery_hint_text %>
+  </div>
+<% end %>

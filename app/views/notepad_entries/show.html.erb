@@ -1,5 +1,10 @@
 <%
   todo_lists_available = TodoList.schema_ready? && TodoItem.schema_ready?
+  voice_notes_available = VoiceNote.notepad_entries_supported?
+  voice_note_count = voice_notes_available ? @notepad_entry.voice_notes.size : 0
+  todo_progress_label = if todo_lists_available && @notepad_entry.todo_list&.enabled?
+    "#{@notepad_entry.todo_list.completed_count}/#{@notepad_entry.todo_list.total_count} to-dos"
+  end
 %>
 
 <div class="wrapper wrapper-content animated fadeInRight">
@@ -35,8 +40,14 @@
             <p class="detail-overview-notes detail-overview-notes--empty">No notes added yet.</p>
           <% end %>
           <p class="m-b-none detail-overview-meta">
-            <span class="label label-info"><%= @notepad_entry.entry_date.strftime("%b %-d, %Y") %></span>
             <span class="label label-default"><%= pluralize(@notepad_entry.photos.count, "photo") %></span>
+            <% if voice_notes_available %>
+              <span class="label label-default"><%= pluralize(voice_note_count, "voice note") %></span>
+            <% end %>
+            <% if todo_progress_label.present? %>
+              <span class="label label-default"><%= todo_progress_label %></span>
+            <% end %>
+            <span class="label label-info"><%= @notepad_entry.entry_date.strftime("%b %-d, %Y") %></span>
           </p>
         </div>
       </div>
@@ -44,7 +55,7 @@
   </section>
 
   <section class="row notes-gallery-row">
-    <% if VoiceNote.notepad_entries_supported? %>
+    <% if voice_notes_available %>
       <div class="col-12">
         <%= render "notepad_entries/voice_notes_section", notepad_entry: @notepad_entry %>
       </div>
@@ -62,33 +73,56 @@
 
     <div class="col-12">
       <div class="ibox">
-        <div class="ibox-title">
-          <div class="detail-photo-gallery-heading">
-            <h5 class="detail-photo-gallery-title">Photo gallery</h5>
-            <span class="label label-info detail-photo-gallery-count"><%= @notepad_entry.photos.count %></span>
-          </div>
-          <div class="ibox-tools">
-            <%= link_to "Manage photos", edit_notepad_entry_path(@notepad_entry), class: "btn btn-white btn-sm" %>
-            <%= render "shared/ibox_toggle_button", target_id: dom_id(@notepad_entry, :gallery_content) %>
-          </div>
-        </div>
-        <div id="<%= dom_id(@notepad_entry, :gallery_content) %>" class="ibox-content collapse show">
+        <%= form_with model: @notepad_entry,
+          data: { photo_capture_auto_save: true, controller: "photo-capture" },
+          html: { class: "detail-photo-gallery-actions-form" } do |form| %>
+          <%= render "shared/photo_gallery_actions",
+            form:,
+            tips_target_id: dom_id(@notepad_entry, :gallery_capture_tips),
+            render_buttons: false,
+            render_field: false %>
 
-          <% if @notepad_entry.photos.attached? %>
-            <div class="detail-photo-grid detail-photo-grid--gallery">
-              <% @notepad_entry.photos.attachments.sort_by(&:created_at).reverse_each do |attachment| %>
-                <% photo = attachment.blob %>
-                <div class="detail-photo-grid__item">
-                  <div class="thumbnail">
-                    <%= render "shared/photo_lightbox", photo:, alt: @notepad_entry.display_title, image_style: "width: 100%; height: 240px; object-fit: cover;" %>
-                  </div>
-                </div>
-              <% end %>
+          <div class="ibox-title">
+            <div class="detail-photo-gallery-heading">
+              <h5 class="detail-photo-gallery-title">Photo gallery</h5>
+              <span class="label label-info detail-photo-gallery-count"><%= @notepad_entry.photos.count %></span>
             </div>
-          <% else %>
-            <%= render "shared/empty_state", title: "No photos yet", description: "Upload one or more photos to keep this daily page visually complete." %>
-          <% end %>
-        </div>
+            <div class="ibox-tools d-flex align-items-center gap-2">
+              <%= render "shared/photo_gallery_actions",
+                form:,
+                tips_target_id: dom_id(@notepad_entry, :gallery_capture_tips),
+                include_camera_input: false,
+                render_field: false %>
+              <%= render "shared/ibox_toggle_button", target_id: dom_id(@notepad_entry, :gallery_content) %>
+            </div>
+          </div>
+          <div id="<%= dom_id(@notepad_entry, :gallery_content) %>" class="ibox-content collapse show">
+            <%= render "shared/photo_gallery_actions",
+              form:,
+              tips_target_id: dom_id(@notepad_entry, :gallery_capture_tips),
+              include_camera_input: false,
+              render_buttons: false %>
+
+            <% if @notepad_entry.photos.attached? %>
+              <div class="detail-photo-grid detail-photo-grid--gallery">
+                <% @notepad_entry.photos.attachments.sort_by(&:created_at).reverse_each do |attachment| %>
+                  <div class="detail-photo-grid__item">
+                    <div class="thumbnail">
+                      <%= render "shared/photo_lightbox",
+                        photo: attachment,
+                        alt: @notepad_entry.display_title,
+                        image_style: "width: 100%; height: 240px; object-fit: cover;",
+                        removal_path: photo_notepad_entry_path(@notepad_entry, attachment),
+                        removal_message: "This photo will be removed from the daily page." %>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            <% else %>
+              <%= render "shared/empty_state", title: "No photos yet", description: "Upload one or more photos to keep this daily page visually complete." %>
+            <% end %>
+          </div>
+        <% end %>
       </div>
     </div>
   </section>

@@ -162,7 +162,11 @@ class PageEnhancementsFlowTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to notebook_chapter_page_path(notebook, chapter, entry_page)
     assert entry_page.todo_list.enabled?
-    assert_equal ["Confirm venue", "Send recap"], entry_page.todo_list.todo_items.ordered.pluck(:content)
+    assert_equal ["Send recap", "Confirm venue"], entry_page.todo_list.todo_items.ordered.pluck(:content)
+
+    get notebook_chapter_page_path(notebook, chapter, entry_page)
+
+    assert_operator response.body.index("Send recap"), :<, response.body.index("Confirm venue")
   end
 
   test "todo item reorder persists across reloads" do
@@ -172,25 +176,31 @@ class PageEnhancementsFlowTest < ActionDispatch::IntegrationTest
     page = chapter.pages.create!(title: "Launch tasks", notes: "Prep items")
     todo_list = page.create_todo_list!(enabled: true, hide_completed: false)
     first_item = todo_list.todo_items.create!(content: "Confirm venue")
-    todo_list.todo_items.create!(content: "Email recap")
-    third_item = todo_list.todo_items.create!(content: "Pack microphones")
+    second_item = todo_list.todo_items.create!(content: "Email recap")
+    todo_list.todo_items.create!(content: "Pack microphones")
 
     sign_in_browser_user(user)
 
     get notebook_chapter_page_path(notebook, chapter, page)
 
-    patch reorder_notebook_chapter_page_todo_item_path(notebook, chapter, page, third_item), params: {
-      authenticity_token: authenticity_token_for(notebook_chapter_page_todo_list_path(notebook, chapter, page)),
+    assert_operator response.body.index("Pack microphones"), :<, response.body.index("Email recap")
+    assert_operator response.body.index("Email recap"), :<, response.body.index("Confirm venue")
+
+    patch reorder_notebook_chapter_page_todo_item_path(notebook, chapter, page, first_item), params: {
+      authenticity_token: authenticity_token_for(notebook_chapter_page_todo_items_path(notebook, chapter, page)),
       todo_item: { position: 1 }
     }
 
     assert_redirected_to notebook_chapter_page_path(notebook, chapter, page)
-    assert_equal ["Pack microphones", "Confirm venue", "Email recap"], todo_list.reload.todo_items.ordered.pluck(:content)
-    assert_equal 2, first_item.reload.position
+    assert_equal ["Confirm venue", "Pack microphones", "Email recap"], todo_list.reload.todo_items.ordered.pluck(:content)
+    assert_equal 1, first_item.reload.position
+    assert_equal 3, second_item.reload.position
+    assert todo_list.reload.manually_reordered?
 
     get notebook_chapter_page_path(notebook, chapter, page)
 
-    assert_operator response.body.index("Pack microphones"), :<, response.body.index("Confirm venue")
+    assert_operator response.body.index("Confirm venue"), :<, response.body.index("Pack microphones")
+    assert_operator response.body.index("Pack microphones"), :<, response.body.index("Email recap")
   end
 
   private

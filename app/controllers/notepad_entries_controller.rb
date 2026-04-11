@@ -346,7 +346,7 @@ class NotepadEntriesController < BrowserController
 
     validation_item_contents = pending_item_contents.dup
     if enabled && source_list.present?
-      validation_item_contents = source_list.todo_items.ordered.pluck(:content) + validation_item_contents
+      validation_item_contents = source_list.display_todo_items.pluck(:content) + validation_item_contents
     end
 
     {

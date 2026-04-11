@@ -28,7 +28,7 @@ class VoiceNotesSystemTest < ApplicationSystemTestCase
 
     assert_current_path notebook_chapter_page_path(notebook, chapter, entry_page)
     assert_text "Voice notes"
-    assert_selector "audio[controls]", minimum: 1
+    assert_selector ".voice-note-player", minimum: 1
 
     assert_equal 1, entry_page.reload.voice_notes.count
     assert entry_page.voice_notes.first.audio.attached?
@@ -55,7 +55,7 @@ class VoiceNotesSystemTest < ApplicationSystemTestCase
     assert_not_nil entry
     assert_current_path edit_notepad_entry_path(entry)
     assert_text "Voice notes"
-    assert_selector "audio[controls]", minimum: 1
+    assert_selector ".voice-note-player", minimum: 1
 
     assert_equal 1, entry.reload.voice_notes.count
     assert entry.voice_notes.first.audio.attached?
@@ -80,11 +80,58 @@ class VoiceNotesSystemTest < ApplicationSystemTestCase
     click_button "Save voice note"
 
     assert_current_path edit_notepad_entry_path(entry), wait: 10
-    assert_selector "audio[controls]", minimum: 1
+    assert_selector ".voice-note-player", minimum: 1
     assert_no_text "Voice note added to this form."
 
     assert_equal 1, entry.reload.voice_notes.count
     assert entry.voice_notes.first.audio.attached?
+  end
+
+  test "user confirms voice note deletion from a modal" do
+    user = build_user(email: "voice-delete@example.com")
+    entry = user.notepad_entries.create!(
+      title: "Voice note entry",
+      notes: "Has an audio note.",
+      entry_date: Date.current
+    )
+    voice_note = entry.voice_notes.new(
+      duration_seconds: 18,
+      recorded_at: Time.current.change(sec: 0),
+      byte_size: 128,
+      mime_type: "audio/webm"
+    )
+    voice_note.audio.attach(
+      io: StringIO.new("voice"),
+      filename: "note.webm",
+      content_type: "audio/webm"
+    )
+    voice_note.save!
+    delete_label = "Delete voice note recorded #{voice_note.recorded_at.in_time_zone.strftime('%b %-d, %Y at %-I:%M %p')}"
+
+    sign_in_as(user)
+    visit edit_notepad_entry_path(entry)
+
+    assert_selector ".voice-note-player", count: 1
+
+    click_button delete_label
+
+    within ".voice-note-delete-confirm-modal.show" do
+      assert_text "Delete voice note?"
+      click_button "Cancel"
+    end
+
+    assert_selector ".voice-note-player", count: 1
+
+    click_button delete_label
+
+    within ".voice-note-delete-confirm-modal.show" do
+      click_button "Delete voice note"
+    end
+
+    assert_current_path edit_notepad_entry_path(entry), wait: 10
+    assert_text "Voice note deleted."
+    assert_no_selector ".voice-note-player", wait: 10
+    assert_equal 0, entry.reload.voice_notes.count
   end
 
   private

@@ -1,5 +1,6 @@
 <%
   todo_lists_available = TodoList.schema_ready? && TodoItem.schema_ready?
+  persisted_page = page.persisted?
 %>
 
 <%= form_with model: [notebook, chapter, page], data: { photo_capture_auto_save: true } do |form| %>
@@ -144,23 +145,25 @@
       </div>
     </div>
 
-    <div class="row g-3 m-t-md">
-      <% if VoiceNote.schema_ready? %>
-        <div class="col-12">
-          <%= render "pages/voice_notes_section", notebook: notebook, chapter: chapter, page: page, form: form %>
-        </div>
-      <% end %>
+    <% unless persisted_page %>
+      <div class="row g-3 m-t-md">
+        <% if VoiceNote.schema_ready? %>
+          <div class="col-12">
+            <%= render "pages/voice_notes_section", notebook: notebook, chapter: chapter, page: page, form: form %>
+          </div>
+        <% end %>
 
-      <% if todo_lists_available %>
-        <div class="col-12">
-          <%= render "pages/todo_list_form_section", notebook: notebook, chapter: chapter, page: page, form: form %>
-        </div>
-      <% else %>
-        <div class="col-12">
-          <%= render "pages/todo_list_unavailable_section" %>
-        </div>
-      <% end %>
-    </div>
+        <% if todo_lists_available %>
+          <div class="col-12">
+            <%= render "pages/todo_list_form_section", notebook: notebook, chapter: chapter, page: page, form: form %>
+          </div>
+        <% else %>
+          <div class="col-12">
+            <%= render "pages/todo_list_unavailable_section" %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
 
     <button
       type="button"
@@ -173,5 +176,25 @@
     >
       <i class="ti ti-camera" aria-hidden="true"></i>
     </button>
+  </div>
+<% end %>
+
+<% if persisted_page %>
+  <div class="row g-3 m-t-md">
+    <% if VoiceNote.schema_ready? %>
+      <div class="col-12">
+        <%= render "pages/voice_notes_section", notebook: notebook, chapter: chapter, page: page %>
+      </div>
+    <% end %>
+
+    <% if todo_lists_available %>
+      <div class="col-12">
+        <%= render "pages/todo_list_section", notebook: notebook, chapter: chapter, page: page %>
+      </div>
+    <% else %>
+      <div class="col-12">
+        <%= render "pages/todo_list_unavailable_section" %>
+      </div>
+    <% end %>
   </div>
 <% end %>

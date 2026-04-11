@@ -168,7 +168,17 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     get edit_notepad_entry_path(entry)
 
     assert_response :success
-    assert_select "button[data-controller='voice-note-delete'][data-voice-note-delete-delete-url-value='#{notepad_entry_voice_note_path(entry, voice_note)}']", count: 1
+    modal_id = ActionView::RecordIdentifier.dom_id(voice_note, :delete_confirm_modal)
+    document = Nokogiri::HTML.parse(response.body)
+    button = document.at_xpath("//button[@data-bs-toggle='modal' and @data-bs-target='##{modal_id}']")
+    modal = document.at_xpath("//*[@id='#{modal_id}']")
+    form = modal&.at_xpath(".//form[@method='post']")
+
+    assert button.present?, "Expected delete trigger button for voice note modal"
+    assert modal.present?, "Expected delete confirmation modal to be rendered"
+    assert form.present?, "Expected delete confirmation form inside the voice note modal"
+    assert_equal notepad_entry_voice_note_path(entry, voice_note), URI.parse(form["action"]).path
+    assert_equal "delete", form.at_xpath(".//input[@name='_method']")&.[]("value")
   end
 
   test "page edit page shows delete controls for existing voice notes" do
@@ -190,7 +200,163 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     get edit_notebook_chapter_page_path(@notebook, @chapter, @page)
 
     assert_response :success
-    assert_select "button[data-controller='voice-note-delete'][data-voice-note-delete-delete-url-value='#{notebook_chapter_page_voice_note_path(@notebook, @chapter, @page, voice_note)}']", count: 1
+    modal_id = ActionView::RecordIdentifier.dom_id(voice_note, :delete_confirm_modal)
+    document = Nokogiri::HTML.parse(response.body)
+    button = document.at_xpath("//button[@data-bs-toggle='modal' and @data-bs-target='##{modal_id}']")
+    modal = document.at_xpath("//*[@id='#{modal_id}']")
+    form = modal&.at_xpath(".//form[@method='post']")
+
+    assert button.present?, "Expected delete trigger button for voice note modal"
+    assert modal.present?, "Expected delete confirmation modal to be rendered"
+    assert form.present?, "Expected delete confirmation form inside the voice note modal"
+    assert_equal notebook_chapter_page_voice_note_path(@notebook, @chapter, @page, voice_note), URI.parse(form["action"]).path
+    assert_equal "delete", form.at_xpath(".//input[@name='_method']")&.[]("value")
+  end
+
+  test "page edit page renders the live to-do list section for persisted pages" do
+    sign_in!
+
+    todo_list = @page.create_todo_list!(enabled: true, hide_completed: false)
+    todo_list.todo_items.create!(content: "Pack charger", position: 1, completed: false)
+    todo_list.todo_items.create!(content: "Review notes", position: 2, completed: true)
+
+    get edit_notebook_chapter_page_path(@notebook, @chapter, @page)
+
+    assert_response :success
+    assert_select "form[action='#{notebook_chapter_page_todo_items_path(@notebook, @chapter, @page)}'] textarea[name='todo_item[content]']", count: 1
+    assert_select ".todo-list-filters__button", text: "All"
+    assert_select ".todo-list-filters__button", text: "Active"
+    assert_select ".todo-list-filters__button", text: "Done"
+    assert_select ".todo-list-item__input[title='Pack charger']", count: 1
+    assert_select ".todo-list-item__input[title='Review notes']", count: 1
+    assert_select ".todo-list-section__hint", text: /Drag to reorder/
+    assert_no_match "Enable the checklist and queue items before saving this page.", response.body
+    assert_no_match "Saved items on this page", response.body
+  end
+
+  test "notepad edit page renders the live to-do list section for persisted entries" do
+    sign_in!
+
+    entry = @user.notepad_entries.create!(
+      title: "Checklist page",
+      notes: "Needs the live checklist UI.",
+      entry_date: Date.current
+    )
+    todo_list = entry.create_todo_list!(enabled: true, hide_completed: false)
+    todo_list.todo_items.create!(content: "Pack charger", position: 1, completed: false)
+    todo_list.todo_items.create!(content: "Review notes", position: 2, completed: true)
+
+    get edit_notepad_entry_path(entry)
+
+    assert_response :success
+    assert_select "form[action='#{notepad_entry_todo_items_path(entry)}'] textarea[name='todo_item[content]']", count: 1
+    assert_select ".todo-list-filters__button", text: "All"
+    assert_select ".todo-list-filters__button", text: "Active"
+    assert_select ".todo-list-filters__button", text: "Done"
+    assert_select ".todo-list-item__input[title='Pack charger']", count: 1
+    assert_select ".todo-list-item__input[title='Review notes']", count: 1
+    assert_select ".todo-list-section__hint", text: /Drag to reorder/
+    assert_no_match "Enable the checklist and queue items before saving this page.", response.body
+    assert_no_match "Saved items on this page", response.body
+    assert_operator response.body.index("To-do list"), :<, response.body.index("Move to notebook")
+  end
+
+  test "page overview shows voice note and to-do progress labels" do
+    sign_in!
+
+    page_voice_note = @page.voice_notes.new(
+      duration_seconds: 24,
+      recorded_at: Time.current,
+      byte_size: 128,
+      mime_type: "audio/webm"
+    )
+    page_voice_note.audio.attach(
+      io: StringIO.new("voice"),
+      filename: "page-note.webm",
+      content_type: "audio/webm"
+    )
+    page_voice_note.save!
+
+    page_todo_list = @page.create_todo_list!(enabled: true, hide_completed: false)
+    page_todo_list.todo_items.create!(content: "Pack charger", position: 1, completed: true)
+    page_todo_list.todo_items.create!(content: "Share notes", position: 2, completed: false)
+
+    entry = @user.notepad_entries.create!(
+      title: "Voice note entry",
+      notes: "Has overview chips.",
+      entry_date: Date.current
+    )
+    entry_voice_note = entry.voice_notes.new(
+      duration_seconds: 18,
+      recorded_at: Time.current,
+      byte_size: 128,
+      mime_type: "audio/webm"
+    )
+    entry_voice_note.audio.attach(
+      io: StringIO.new("voice"),
+      filename: "entry-note.webm",
+      content_type: "audio/webm"
+    )
+    entry_voice_note.save!
+
+    entry_todo_list = entry.create_todo_list!(enabled: true, hide_completed: false)
+    entry_todo_list.todo_items.create!(content: "Review audio", position: 1, completed: true)
+    entry_todo_list.todo_items.create!(content: "Follow up", position: 2, completed: false)
+
+    get notebook_chapter_page_path(@notebook, @chapter, @page)
+
+    assert_response :success
+    assert_match "1 voice note", response.body
+    assert_match "1/2 to-dos", response.body
+
+    get notepad_entry_path(entry)
+
+    assert_response :success
+    assert_match "1 voice note", response.body
+    assert_match "1/2 to-dos", response.body
+  end
+
+  test "page and notepad photo galleries expose inline photo actions on show pages" do
+    sign_in!
+
+    @page.photos.attach(
+      io: StringIO.new("page photo"),
+      filename: "page-photo.jpg",
+      content_type: "image/jpeg"
+    )
+    page_attachment = @page.photos.attachments.last
+
+    entry = @user.notepad_entries.create!(
+      title: "Photo entry",
+      notes: "Has gallery actions.",
+      entry_date: Date.current
+    )
+    entry.photos.attach(
+      io: StringIO.new("entry photo"),
+      filename: "entry-photo.jpg",
+      content_type: "image/jpeg"
+    )
+    entry_attachment = entry.photos.attachments.last
+
+    get notebook_chapter_page_path(@notebook, @chapter, @page)
+
+    assert_response :success
+    assert_no_match "Manage photos", response.body
+    assert_select ".detail-photo-gallery-actions-form", count: 1
+    assert_select ".ibox-title .ibox-tools button.photo-section-camera-button", count: 1
+    assert_select ".ibox-title .ibox-tools button.photo-section-upload-button", count: 1
+    assert_select ".ibox-title .ibox-tools button.photo-section-info-button", count: 1
+    assert_select "a[data-pswp-remove-path='#{photo_notebook_chapter_page_path(@notebook, @chapter, @page, page_attachment)}']", count: 1
+
+    get notepad_entry_path(entry)
+
+    assert_response :success
+    assert_no_match "Manage photos", response.body
+    assert_select ".detail-photo-gallery-actions-form", count: 1
+    assert_select ".ibox-title .ibox-tools button.photo-section-camera-button", count: 1
+    assert_select ".ibox-title .ibox-tools button.photo-section-upload-button", count: 1
+    assert_select ".ibox-title .ibox-tools button.photo-section-info-button", count: 1
+    assert_select "a[data-pswp-remove-path='#{photo_notepad_entry_path(entry, entry_attachment)}']", count: 1
   end
 
   test "notebook and page views still render when page enhancement tables are unavailable" do

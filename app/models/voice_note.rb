@@ -14,7 +14,8 @@ class VoiceNote < ApplicationRecord
 
   before_validation :sync_audio_metadata
 
-  scope :chronological, -> { order(recorded_at: :asc, created_at: :asc) }
+  scope :chronological, -> { reorder(recorded_at: :asc, created_at: :asc) }
+  scope :recent_first, -> { reorder(created_at: :desc, recorded_at: :desc) }
 
   def self.notepad_entries_supported?
     schema_ready? && column_names.include?("notepad_entry_id")

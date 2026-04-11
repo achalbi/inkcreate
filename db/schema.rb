@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_11_153000) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_11_170000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -474,6 +474,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_11_153000) do
     t.datetime "created_at", null: false
     t.boolean "enabled", default: true, null: false
     t.boolean "hide_completed", default: false, null: false
+    t.boolean "manually_reordered", default: false, null: false
     t.uuid "notepad_entry_id"
     t.uuid "page_id"
     t.datetime "updated_at", null: false

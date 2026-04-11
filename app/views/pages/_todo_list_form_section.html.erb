@@ -1,6 +1,6 @@
 <%
   current_todo_list = page.todo_list
-  current_items = current_todo_list&.todo_items&.ordered&.to_a || []
+  current_items = current_todo_list&.display_todo_items&.to_a || []
   todo_list_enabled = current_todo_list&.enabled?
   hide_completed = current_todo_list&.hide_completed?
 %>
@@ -40,7 +40,7 @@
           <textarea class="form-control todo-list-composer__input" placeholder="What needs to be done?" rows="1" data-todo-list-target="draftInput" data-action="input->todo-list#resizeTextarea"></textarea>
         </div>
         <button type="button" class="btn btn-primary todo-list-composer__submit todo-list-composer__submit--icon" data-action="todo-list#addDraftItem" aria-label="Add draft to-do item">
-          <i class="ti ti-plus" aria-hidden="true"></i>
+          <i class="ti ti-arrow-right" aria-hidden="true"></i>
         </button>
       </div>
 
