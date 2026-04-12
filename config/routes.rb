@@ -39,7 +39,8 @@ Rails.application.routes.draw do
               patch :reorder
             end
           end
-          resources :voice_notes, only: %i[create destroy]
+          resources :voice_notes,       only: %i[create destroy]
+          resources :scanned_documents, only: %i[create destroy]
         end
       end
     end
@@ -58,7 +59,8 @@ Rails.application.routes.draw do
           patch :reorder
         end
       end
-      resources :voice_notes, only: %i[create destroy]
+      resources :voice_notes,       only: %i[create destroy]
+      resources :scanned_documents, only: %i[create destroy]
     end
   end
 

@@ -1,7 +1,13 @@
 <%
-  done_sub, total_sub = task.subtask_progress
   overdue = task.overdue?
   due_soon = !overdue && task.due_date.present? && task.due_date == Date.current
+  reminder_label = if task.reminder_at?
+    if task.due_date.present? && task.reminder_at.to_date == task.due_date
+      task.reminder_at.strftime("%-I:%M %p")
+    else
+      task.reminder_at.strftime("%-d %b · %-I:%M %p")
+    end
+  end
 %>
 <article class="task-card task-card--<%= task.priority %> <%= "task-card--done" if task.completed? %>"
          id="task-<%= task.id %>"
@@ -28,65 +34,38 @@
     <div class="task-card-content" data-action="click->task-manager#openDetail" data-task-id="<%= task.id %>">
       <div class="task-card-title-row">
         <span class="task-card-title"><%= task.title %></span>
-        <span class="task-severity-badge task-severity-badge--<%= task.severity %>"><%= task.severity.upcase %></span>
-        <% task.tags_array.each do |tag| %>
-          <%= link_to tasks_path(filter: filter, sort: sort, group: group, tag: tag),
-            class: "task-tag-chip",
-            aria: { label: "Filter by ##{tag}" } do %>
-            #<%= tag %>
-          <% end %>
-        <% end %>
       </div>
 
-      <%# ── Meta pills ────────────────────────────────────────────────── %>
-      <% has_meta = task.reminder_at? || task.due_date? || task.has_link? || total_sub > 0 %>
+      <% if task.description.present? %>
+        <p class="task-card-notes"><%= task.description %></p>
+      <% end %>
+
+      <% has_meta = task.severity.present? || task.tags_array.any? || task.reminder_at? || task.due_date? %>
       <% if has_meta %>
-        <div class="task-card-meta">
-          <%# Reminder pill %>
+        <div class="task-card-meta task-card-meta--compact">
+          <span class="task-severity-badge task-severity-badge--<%= task.severity %>"><%= task.severity.upcase %></span>
+
+          <% task.tags_array.each do |tag| %>
+            <% normalized_tag = tag.to_s.delete_prefix("#") %>
+            <%= link_to tasks_path(filter: filter, sort: sort, group: group, tag: normalized_tag),
+              class: "task-tag-chip",
+              aria: { label: "Filter by ##{normalized_tag}" } do %>
+              #<%= normalized_tag %>
+            <% end %>
+          <% end %>
+
           <% if task.reminder_at? %>
             <span class="task-pill task-pill--reminder">
               <i class="ti ti-bell" aria-hidden="true"></i>
-              <%= task.reminder_at.strftime("%-d %b · %-I:%M %p") %>
-              <% if task.reminder_recurrence != "none" %>
-                · <%= task.reminder_recurrence %>
-              <% end %>
+              <%= reminder_label %>
             </span>
           <% end %>
 
-          <%# Due date pill %>
           <% if task.due_date? %>
             <span class="task-pill <%= overdue ? "task-pill--overdue" : (due_soon ? "task-pill--soon" : "") %>">
               <i class="ti ti-calendar" aria-hidden="true"></i>
               <%= task.due_date.strftime("%-d %b") %>
               <% if overdue %><span class="sr-only">(overdue)</span><% end %>
-            </span>
-          <% end %>
-
-          <%# Link pill — clickable when IDs are stored %>
-          <% if task.has_link? %>
-            <% lp = task_link_path(task) %>
-            <% if lp %>
-              <%= link_to lp,
-                class: "task-pill task-pill--link task-pill--link-nav",
-                title: task.link_label,
-                aria: { label: "Open linked resource" } do %>
-                <i class="ti ti-link" aria-hidden="true"></i>
-                <%= truncate(task.link_label.to_s, length: 36) %>
-                <i class="ti ti-arrow-up-right task-pill-nav-icon" aria-hidden="true"></i>
-              <% end %>
-            <% else %>
-              <span class="task-pill task-pill--link" title="<%= task.link_label %>">
-                <i class="ti ti-link" aria-hidden="true"></i>
-                <%= truncate(task.link_label.to_s, length: 40) %>
-              </span>
-            <% end %>
-          <% end %>
-
-          <%# Subtask progress %>
-          <% if total_sub > 0 %>
-            <span class="task-pill">
-              <i class="ti ti-list-check" aria-hidden="true"></i>
-              <%= done_sub %>/<%= total_sub %>
             </span>
           <% end %>
         </div>

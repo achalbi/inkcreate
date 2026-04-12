@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_12_180100) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_12_200000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -408,6 +408,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_12_180100) do
     t.index ["user_id"], name: "index_reminders_on_user_id"
   end
 
+  create_table "scanned_documents", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "enhancement_filter", default: "auto"
+    t.text "extracted_text"
+    t.uuid "notepad_entry_id"
+    t.float "ocr_confidence"
+    t.string "ocr_engine", default: "tesseract"
+    t.string "ocr_language", default: "eng"
+    t.uuid "page_id"
+    t.text "tags", default: "[]"
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.uuid "user_id", null: false
+    t.index ["notepad_entry_id"], name: "index_scanned_documents_on_notepad_entry_id"
+    t.index ["page_id"], name: "index_scanned_documents_on_page_id"
+    t.index ["user_id"], name: "index_scanned_documents_on_user_id"
+  end
+
   create_table "sync_jobs", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.integer "attempts", default: 0, null: false
     t.datetime "created_at", null: false
@@ -582,6 +600,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_12_180100) do
   add_foreign_key "reference_links", "captures", column: "target_capture_id"
   add_foreign_key "reference_links", "users"
   add_foreign_key "reminders", "users"
+  add_foreign_key "scanned_documents", "notepad_entries"
+  add_foreign_key "scanned_documents", "pages"
+  add_foreign_key "scanned_documents", "users"
   add_foreign_key "sync_jobs", "users"
   add_foreign_key "tags", "users"
   add_foreign_key "task_subtasks", "tasks"

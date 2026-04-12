@@ -20,6 +20,7 @@ import ReminderFormController from "/scripts/controllers/reminder_form_controlle
 import DevicePushController from "/scripts/controllers/device_push_controller.js";
 import ReminderDismissConfirmController from "/scripts/controllers/reminder_dismiss_confirm_controller.js";
 import TaskManagerController from "/scripts/controllers/task_manager_controller.js";
+import DocumentCaptureController from "/scripts/controllers/document_capture_controller.js";
 import { enableNotificationsForInstall } from "/scripts/notification_preferences.js";
 
 const AUTO_DISMISS_DELAY_MS = 5000;
@@ -85,6 +86,7 @@ application.register("reminder-form", ReminderFormController);
 application.register("device-push", DevicePushController);
 application.register("reminder-dismiss-confirm", ReminderDismissConfirmController);
 application.register("task-manager", TaskManagerController);
+application.register("document-capture", DocumentCaptureController);
 
 document.addEventListener("DOMContentLoaded", () => scheduleTimedMessages());
 document.addEventListener("turbo:load", () => scheduleTimedMessages());

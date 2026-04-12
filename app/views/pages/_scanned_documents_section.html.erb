@@ -1,0 +1,287 @@
+<%
+  docs = page.scanned_documents.includes(:enhanced_image_attachment).recent_first
+  post_url = notebook_chapter_page_scanned_documents_path(notebook, chapter, page)
+%>
+
+<section
+  id="<%= dom_id(page, :scanned_documents_section) %>"
+  class="ibox float-e-margins"
+  data-controller="document-capture"
+  data-document-capture-post-url-value="<%= post_url %>"
+  data-document-capture-csrf-value="<%= form_authenticity_token %>"
+>
+  <div class="ibox-title">
+    <div class="detail-photo-gallery-heading">
+      <h5 class="detail-photo-gallery-title">📄 Scanned Documents</h5>
+      <span class="label label-info detail-photo-gallery-count"><%= docs.size %></span>
+    </div>
+    <div class="ibox-tools d-flex align-items-center gap-2">
+      <button
+        type="button"
+        class="btn btn-primary btn-sm"
+        data-action="click->document-capture#open"
+        aria-label="Scan a document"
+      >
+        <i class="ti ti-scan"></i> Scan
+      </button>
+      <%= render "shared/ibox_toggle_button", target_id: dom_id(page, :scanned_documents_content) %>
+    </div>
+  </div>
+
+  <div id="<%= dom_id(page, :scanned_documents_content) %>" class="ibox-content collapse show">
+    <% if docs.any? %>
+      <div class="sdoc-list">
+        <% docs.each do |doc| %>
+          <div class="sdoc-card" id="<%= dom_id(doc) %>">
+            <div class="sdoc-accent-bar"></div>
+            <div class="sdoc-inner">
+              <div class="sdoc-header">
+                <div class="sdoc-title"><%= doc.title.presence || "Untitled scan" %></div>
+                <div class="sdoc-meta">
+                  <span class="sdoc-conf-badge <%= doc.confidence_class %>">
+                    <%= doc.confidence_label %> confidence
+                  </span>
+                  <span class="sdoc-engine-label"><%= doc.ocr_engine %> · <%= doc.created_at.strftime("%-d %b") %></span>
+                </div>
+              </div>
+
+              <div class="sdoc-body">
+                <% if doc.enhanced_image.attached? %>
+                  <%= image_tag doc.enhanced_image, class: "sdoc-thumb", alt: doc.title %>
+                <% else %>
+                  <div class="sdoc-thumb sdoc-thumb--placeholder">📄</div>
+                <% end %>
+                <p class="sdoc-excerpt">
+                  <%= truncate(doc.extracted_text.to_s.strip, length: 220) %>
+                </p>
+              </div>
+
+              <div class="sdoc-actions">
+                <button
+                  type="button"
+                  class="btn btn-white btn-sm"
+                  data-action="click->document-capture#copyText"
+                  data-text="<%= j doc.extracted_text.to_s %>"
+                  title="Copy extracted text"
+                >📋 Copy</button>
+
+                <button
+                  type="button"
+                  class="btn btn-white btn-sm"
+                  data-action="click->document-capture#viewFull"
+                  data-text="<%= j doc.extracted_text.to_s %>"
+                  data-title="<%= j doc.title.to_s %>"
+                  title="View full text"
+                >🔍 View</button>
+
+                <%= button_to notebook_chapter_page_scanned_document_path(notebook, chapter, page, doc),
+                    method: :delete,
+                    form: { data: { turbo_confirm: "Delete this scan?" } },
+                    class: "btn btn-white btn-sm sdoc-delete-btn",
+                    title: "Delete" do %>
+                  🗑
+                <% end %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="sdoc-empty-state">
+        <div class="sdoc-empty-icon">📄</div>
+        <div class="sdoc-empty-title">No scanned documents yet</div>
+        <div class="sdoc-empty-sub">Photograph a physical document and extract its text automatically.</div>
+        <button
+          type="button"
+          class="btn btn-primary btn-sm"
+          data-action="click->document-capture#open"
+        >📷 Scan your first document</button>
+      </div>
+    <% end %>
+  </div>
+
+  <%# ─── Document Capture Overlay (5-stage pipeline, shown when active) ─── %>
+  <div class="dcap-overlay" data-document-capture-target="overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Document capture">
+
+    <%# Stage indicator %>
+    <div class="dcap-stage-bar" data-document-capture-target="stageBar">
+      <% ["Capture","Detect","Enhance","OCR","Save"].each_with_index do |s,i| %>
+        <div class="dcap-stage-pill" data-stage="<%= i+1 %>"><%= s %></div>
+      <% end %>
+    </div>
+
+    <%# ── Stage 1: Camera ─────────────────────────────────────────────── %>
+    <div class="dcap-screen" data-screen="1" data-document-capture-target="screen1">
+      <div class="dcap-topbar">
+        <button class="dcap-icon-btn" data-action="click->document-capture#close" aria-label="Cancel">✕</button>
+        <span class="dcap-topbar-title">Scan Document</span>
+        <button class="dcap-icon-btn" data-action="click->document-capture#toggleFlash" data-document-capture-target="flashBtn" aria-label="Flash">⚡</button>
+      </div>
+      <div class="dcap-cam-container" data-document-capture-target="camContainer">
+        <video class="dcap-video" data-document-capture-target="video" autoplay playsinline muted></video>
+        <canvas class="dcap-draw-canvas" data-document-capture-target="drawCanvas"></canvas>
+        <div class="dcap-flash-overlay" data-document-capture-target="flashOverlay"></div>
+        <div class="dcap-cam-frame">
+          <div class="dcap-corner dcap-corner--tl"></div>
+          <div class="dcap-corner dcap-corner--tr"></div>
+          <div class="dcap-corner dcap-corner--bl"></div>
+          <div class="dcap-corner dcap-corner--br"></div>
+        </div>
+        <div class="dcap-status" data-document-capture-target="camStatus" aria-live="polite">Align document within the frame</div>
+        <div class="dcap-auto-badge" data-document-capture-target="autoBadge">
+          <div class="dcap-auto-dot" data-document-capture-target="autoDot"></div>
+          <span data-document-capture-target="autoLabel">Auto</span>
+        </div>
+      </div>
+      <div class="dcap-cam-bottom">
+        <div class="dcap-side-btn" data-action="click->document-capture#pickGallery" aria-label="Gallery">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>
+          <span>Gallery</span>
+        </div>
+        <button class="dcap-shutter" data-action="click->document-capture#captureFrame" aria-label="Capture"></button>
+        <div class="dcap-side-btn" data-action="click->document-capture#toggleAuto" aria-label="Auto-capture">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+          <span data-document-capture-target="autoCapLabel">Auto ✓</span>
+        </div>
+      </div>
+      <input type="file" accept="image/*" class="dcap-file-input" data-document-capture-target="fileInput" data-action="change->document-capture#handleFile" />
+    </div>
+
+    <%# ── Stage 2: Detect & Adjust ────────────────────────────────────── %>
+    <div class="dcap-screen dcap-screen--dark" data-screen="2" data-document-capture-target="screen2" hidden>
+      <div class="dcap-topbar">
+        <button class="dcap-icon-btn" data-action="click->document-capture#goToScreen1" aria-label="Back">←</button>
+        <span class="dcap-topbar-title">Adjust Corners</span>
+        <button class="dcap-icon-btn" data-action="click->document-capture#resetCorners" aria-label="Reset">↺</button>
+      </div>
+      <div class="dcap-detect-hint" data-document-capture-target="detectHint">Drag corners to select the document area</div>
+      <div class="dcap-detect-container" data-document-capture-target="detectContainer">
+        <canvas data-document-capture-target="detectCanvas"></canvas>
+        <svg class="dcap-quad-svg" data-document-capture-target="quadSvg" viewBox="0 0 1 1" preserveAspectRatio="none"></svg>
+        <% 4.times do |i| %>
+          <div class="dcap-corner-handle" data-document-capture-target="cornerHandle" data-idx="<%= i %>"></div>
+        <% end %>
+        <canvas class="dcap-loupe" data-document-capture-target="loupeCanvas"></canvas>
+      </div>
+      <div class="dcap-detect-footer">
+        <button class="btn btn-white dcap-btn" data-action="click->document-capture#goToScreen1">↺ Retake</button>
+        <button class="btn btn-primary dcap-btn" data-action="click->document-capture#cropAndEnhance">✓ Crop</button>
+      </div>
+    </div>
+
+    <%# ── Stage 3: Enhance ────────────────────────────────────────────── %>
+    <div class="dcap-screen" data-screen="3" data-document-capture-target="screen3" hidden>
+      <div class="dcap-topbar">
+        <button class="dcap-icon-btn" data-action="click->document-capture#goToScreen2" aria-label="Back">←</button>
+        <span class="dcap-topbar-title">Enhance</span>
+        <button class="dcap-icon-btn dcap-icon-btn--accent" data-action="click->document-capture#goToScreen4" aria-label="Next">→</button>
+      </div>
+      <div class="dcap-enhance-preview">
+        <canvas data-document-capture-target="enhanceCanvas"></canvas>
+      </div>
+      <div class="dcap-filter-label">Filter</div>
+      <div class="dcap-filter-strip" data-document-capture-target="filterStrip"></div>
+      <div class="dcap-rotate-row">
+        <button class="btn btn-white btn-sm" data-action="click->document-capture#rotateLeft">↺ 90°</button>
+        <button class="btn btn-white btn-sm" data-action="click->document-capture#rotateRight">↻ 90°</button>
+        <button class="btn btn-white btn-sm" data-action="click->document-capture#flip">⇄ Flip</button>
+      </div>
+      <div class="dcap-slider-row">
+        <label>Brightness</label>
+        <input type="range" min="-100" max="100" value="0" data-document-capture-target="brightness" data-action="input->document-capture#applyManual" />
+        <span data-document-capture-target="brightnessVal">0</span>
+      </div>
+      <div class="dcap-slider-row">
+        <label>Contrast</label>
+        <input type="range" min="-100" max="100" value="0" data-document-capture-target="contrast" data-action="input->document-capture#applyManual" />
+        <span data-document-capture-target="contrastVal">0</span>
+      </div>
+      <div class="dcap-footer-row">
+        <button class="btn btn-white dcap-btn" data-action="click->document-capture#goToScreen2">← Back</button>
+        <button class="btn btn-primary dcap-btn" data-action="click->document-capture#goToScreen4">Extract text →</button>
+      </div>
+    </div>
+
+    <%# ── Stage 4: OCR ────────────────────────────────────────────────── %>
+    <div class="dcap-screen" data-screen="4" data-document-capture-target="screen4" hidden>
+      <div class="dcap-topbar">
+        <button class="dcap-icon-btn" data-action="click->document-capture#goToScreen3" aria-label="Back">←</button>
+        <span class="dcap-topbar-title">Extract Text</span>
+        <button class="dcap-icon-btn dcap-icon-btn--accent" data-action="click->document-capture#goToScreen5" aria-label="Next">→</button>
+      </div>
+      <div class="dcap-ocr-engine-bar" data-document-capture-target="engineBar">
+        <div class="dcap-engine-dot" data-document-capture-target="engineDot"></div>
+        <span data-document-capture-target="engineName">Tesseract.js</span>
+        <span class="dcap-engine-stub-badge" data-document-capture-target="engineStubBadge" hidden>Stub</span>
+        <button class="btn btn-sm btn-white" style="margin-left:auto;padding:4px 10px;font-size:.7rem" data-action="click->document-capture#switchEngine">Switch</button>
+        <select class="dcap-lang-select" data-document-capture-target="langSelect" data-action="change->document-capture#rerunOCR">
+          <option value="eng">English</option>
+          <option value="fra">French</option>
+          <option value="deu">German</option>
+          <option value="spa">Spanish</option>
+          <option value="hin">Hindi</option>
+          <option value="jpn">Japanese</option>
+          <option value="chi_sim">Chinese</option>
+        </select>
+      </div>
+      <div class="dcap-ocr-image-pane" data-document-capture-target="ocrImagePane">
+        <canvas data-document-capture-target="ocrCanvas"></canvas>
+        <div class="dcap-scan-bar" data-document-capture-target="scanBar"></div>
+      </div>
+      <div class="dcap-ocr-progress">
+        <div class="dcap-ocr-progress-row">
+          <span data-document-capture-target="ocrProgressText" aria-live="polite">Ready…</span>
+          <span data-document-capture-target="ocrProgressPct" class="dcap-ocr-pct"></span>
+        </div>
+        <div class="dcap-ocr-track"><div class="dcap-ocr-bar" data-document-capture-target="ocrBar"></div></div>
+      </div>
+      <div class="dcap-conf-row">
+        <span class="dcap-conf-badge" data-document-capture-target="confBadge" hidden></span>
+        <button class="btn btn-white btn-sm" data-action="click->document-capture#rerunOCR">↻ Re-run</button>
+      </div>
+      <textarea class="dcap-ocr-textarea" data-document-capture-target="ocrTextarea" placeholder="Extracted text will appear here…" spellcheck="false"></textarea>
+      <div class="dcap-footer-row">
+        <button class="btn btn-white dcap-btn" data-action="click->document-capture#goToScreen3">← Re-enhance</button>
+        <button class="btn btn-primary dcap-btn" data-action="click->document-capture#goToScreen5">Save ✓</button>
+      </div>
+    </div>
+
+    <%# ── Stage 5: Review & Save ──────────────────────────────────────── %>
+    <div class="dcap-screen" data-screen="5" data-document-capture-target="screen5" hidden>
+      <div class="dcap-topbar">
+        <button class="dcap-icon-btn" data-action="click->document-capture#goToScreen4" aria-label="Back">←</button>
+        <span class="dcap-topbar-title">Review & Save</span>
+      </div>
+      <div class="dcap-review-scroll">
+        <canvas class="dcap-review-thumb" data-document-capture-target="reviewCanvas"></canvas>
+        <div class="dcap-review-stats" data-document-capture-target="reviewStats"></div>
+        <div class="dcap-review-field">
+          <label class="dcap-review-label">Title</label>
+          <input type="text" class="dcap-review-input" data-document-capture-target="reviewTitle" placeholder="Scan — Apr 11, 2026" />
+        </div>
+        <div class="dcap-review-field">
+          <label class="dcap-review-label">Tags</label>
+          <input type="text" class="dcap-review-input" data-document-capture-target="reviewTags" placeholder="meeting, notes, q1…" />
+        </div>
+        <div class="dcap-footer-row" style="padding-bottom:32px">
+          <button class="btn btn-white dcap-btn" data-action="click->document-capture#goToScreen4">← Edit</button>
+          <button class="btn btn-primary dcap-btn" data-document-capture-target="saveBtn" data-action="click->document-capture#save">
+            Save ✓
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <%# ── Full-text viewer (inline modal) ────────────────────────────── %>
+    <div class="dcap-viewer" data-document-capture-target="viewer" hidden>
+      <div class="dcap-topbar">
+        <button class="dcap-icon-btn" data-action="click->document-capture#closeViewer" aria-label="Close">✕</button>
+        <span class="dcap-topbar-title" data-document-capture-target="viewerTitle">Extracted text</span>
+        <button class="dcap-icon-btn" data-action="click->document-capture#copyViewer" aria-label="Copy">📋</button>
+      </div>
+      <textarea class="dcap-viewer-text" data-document-capture-target="viewerText" readonly spellcheck="false"></textarea>
+    </div>
+
+  </div><%# end .dcap-overlay %>
+
+</section>

@@ -14,6 +14,7 @@ class Page < ApplicationRecord
   has_many :voice_notes, -> { order(recorded_at: :asc, created_at: :asc) }, dependent: :destroy
   has_one :todo_list, dependent: :destroy
   has_many :todo_items, through: :todo_list
+  has_many :scanned_documents, dependent: :destroy
   has_one :google_drive_export, as: :exportable, dependent: :destroy
 
   # Titles stay required because pages appear in nested notebook lists,

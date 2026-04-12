@@ -1,0 +1,1746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Document Capture — InkCreate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script async src="https://docs.opencv.org/4.x/opencv.js" onload="window.__opencvReady=true;document.dispatchEvent(new Event('opencvReady'))"></script>
+<style>
+/* ── Reset & tokens ───────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --cream:#faf6ef;
+  --surface:#fffaf1;
+  --border:#e8e2d8;
+  --ink:#1b1b1d;
+  --muted:#7a7670;
+  --accent:#ff5f4e;
+  --accent-light:rgba(255,95,78,.1);
+  --accent-dim:rgba(255,95,78,.06);
+  --green:#2eaa60;
+  --amber:#e0a92a;
+  --red:#e4534a;
+  --radius:22px;
+  --radius-sm:12px;
+  --shadow:0 4px 24px rgba(0,0,0,.08);
+  --shadow-lg:0 12px 48px rgba(0,0,0,.14);
+  --font:'Inter',system-ui,sans-serif;
+  --cam-bg:#0d0d0e;
+}
+html,body{height:100%;background:var(--cream);font-family:var(--font);color:var(--ink);font-size:16px}
+
+/* ── Dotted background ───────────────────────────────────────────────── */
+body{
+  background-color:var(--cream);
+  background-image:radial-gradient(circle,rgba(120,100,70,.18) 1px,transparent 1px);
+  background-size:22px 22px;
+}
+
+/* ── Layout shell ────────────────────────────────────────────────────── */
+.app{max-width:480px;margin:0 auto;min-height:100vh;position:relative;overflow:hidden}
+.screen{display:none;flex-direction:column;min-height:100vh;position:absolute;inset:0;background:var(--cream);background-image:radial-gradient(circle,rgba(120,100,70,.18) 1px,transparent 1px);background-size:22px 22px}
+.screen.active{display:flex}
+
+/* ── Slide transitions ───────────────────────────────────────────────── */
+.screen{transform:translateX(100%);transition:transform .32s cubic-bezier(.32,.72,0,1)}
+.screen.active{transform:translateX(0)}
+.screen.slide-out{transform:translateX(-40%)}
+
+/* ── Top bar ─────────────────────────────────────────────────────────── */
+.topbar{display:flex;align-items:center;gap:10px;padding:16px 20px 12px;flex-shrink:0}
+.topbar-title{font-size:.9375rem;font-weight:700;flex:1}
+.topbar-sub{font-size:.75rem;color:var(--muted)}
+.btn-icon{width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--surface);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink);font-size:1.125rem;flex-shrink:0;transition:background .15s,transform .12s}
+.btn-icon:active{transform:scale(.92)}
+.btn-icon.accent{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* ── Stage pills ─────────────────────────────────────────────────────── */
+.stage-pills{display:flex;gap:6px;padding:0 20px 14px;overflow-x:auto;flex-shrink:0}
+.stage-pill{flex-shrink:0;padding:5px 12px;border-radius:999px;font-size:.6875rem;font-weight:700;letter-spacing:.04em;background:var(--surface);border:1px solid var(--border);color:var(--muted);white-space:nowrap}
+.stage-pill.done{background:var(--green);color:#fff;border-color:var(--green)}
+.stage-pill.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* ── Cards ───────────────────────────────────────────────────────────── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin:0 20px 16px}
+.card-accent-bar{height:3px;background:linear-gradient(90deg,var(--accent),#ff9a6c)}
+
+/* ── Buttons ─────────────────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 20px;border-radius:var(--radius-sm);font-size:.875rem;font-weight:600;border:1px solid transparent;cursor:pointer;transition:background .15s,transform .12s,box-shadow .15s;font-family:var(--font)}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 4px 16px rgba(255,95,78,.3)}
+.btn-primary:hover{background:#e84e3d}
+.btn-white{background:var(--surface);color:var(--ink);border-color:var(--border)}
+.btn-white:hover{background:var(--cream)}
+.btn-sm{padding:8px 14px;font-size:.8125rem;border-radius:10px}
+.btn-full{width:100%}
+.btn-row{display:flex;gap:10px;padding:0 20px 20px}
+.btn-row .btn{flex:1}
+
+/* ── ═══════════════════════════════════════════════════════════════════ */
+/* ── SCREEN 0 — HOME (Scanned Documents section demo) ──────────────── */
+/* ── ═══════════════════════════════════════════════════════════════════ */
+#screen-home .page-header{padding:24px 20px 10px}
+#screen-home .page-title{font-size:1.375rem;font-weight:700}
+#screen-home .page-sub{font-size:.8125rem;color:var(--muted);margin-top:2px}
+.section-header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 10px}
+.section-label{font-size:.6875rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.scan-doc-card{margin:0 20px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.scan-doc-card .card-accent-bar{background:linear-gradient(90deg,#ff5f4e,#ff9a6c)}
+.scan-doc-inner{padding:14px 16px}
+.scan-doc-meta{display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap}
+.scan-doc-title{font-size:.9375rem;font-weight:700;margin-bottom:6px}
+.conf-badge{display:inline-flex;align-items:center;gap:4px;font-size:.6875rem;font-weight:700;padding:3px 8px;border-radius:999px}
+.conf-high{background:rgba(46,170,96,.12);color:#1d7a45}
+.conf-mid{background:rgba(224,169,42,.12);color:#8a640e}
+.conf-low{background:rgba(228,83,74,.12);color:#a0251d}
+.scan-doc-body{display:flex;gap:12px;align-items:flex-start}
+.scan-doc-thumb{width:64px;height:80px;border-radius:8px;object-fit:cover;border:1px solid var(--border);flex-shrink:0;background:var(--cream)}
+.scan-doc-excerpt{font-size:.8125rem;color:var(--muted);line-height:1.55;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.scan-doc-actions{display:flex;gap:6px;padding:10px 16px 14px;border-top:1px solid var(--border);margin-top:10px}
+.scan-doc-actions .btn{flex:1;font-size:.75rem;padding:7px 10px}
+.scan-btn{display:flex;align-items:center;gap:10px;margin:0 20px 24px;padding:14px 18px;background:var(--surface);border:1px dashed var(--border);border-radius:var(--radius);cursor:pointer;transition:background .15s,border-color .15s}
+.scan-btn:hover{background:var(--accent-dim);border-color:var(--accent)}
+.scan-btn-icon{width:40px;height:40px;border-radius:50%;background:var(--accent-light);display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:1.25rem;flex-shrink:0}
+.scan-btn-text{font-size:.875rem;font-weight:600}
+.scan-btn-sub{font-size:.75rem;color:var(--muted)}
+
+/* ── ═══════════════════════════════════════════════════════════════════ */
+/* ── SCREEN 1 — CAMERA CAPTURE ──────────────────────────────────────── */
+/* ── ═══════════════════════════════════════════════════════════════════ */
+#screen-capture{background:var(--cam-bg)!important;background-image:none!important}
+#screen-capture .topbar{background:rgba(0,0,0,.6);backdrop-filter:blur(10px);padding:20px 20px 14px}
+#screen-capture .topbar .btn-icon{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.2);color:#fff}
+#screen-capture .topbar-title{color:#fff}
+.cam-container{position:relative;flex:1;overflow:hidden}
+.cam-video{width:100%;height:100%;object-fit:cover}
+.cam-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.cam-overlay-frame{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.cam-doc-zone{width:82%;height:72%;border:2px solid rgba(255,255,255,.4);border-radius:14px;position:relative}
+.cam-corner{position:absolute;width:22px;height:22px;border-color:#fff;border-style:solid;opacity:.9}
+.cam-corner.tl{top:-2px;left:-2px;border-width:3px 0 0 3px;border-radius:5px 0 0 0}
+.cam-corner.tr{top:-2px;right:-2px;border-width:3px 3px 0 0;border-radius:0 5px 0 0}
+.cam-corner.bl{bottom:-2px;left:-2px;border-width:0 0 3px 3px;border-radius:0 0 0 5px}
+.cam-corner.br{bottom:-2px;right:-2px;border-width:0 3px 3px 0;border-radius:0 0 5px 0}
+.cam-status{position:absolute;top:16px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);color:#fff;font-size:.8125rem;font-weight:600;padding:7px 16px;border-radius:999px;white-space:nowrap;transition:background .3s}
+.cam-status.detected{background:rgba(46,170,96,.85)}
+.cam-detected-outline{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.cam-bottom{position:absolute;bottom:0;left:0;right:0;padding:24px 24px 36px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(transparent,rgba(0,0,0,.6))}
+.cam-shutter{width:72px;height:72px;border-radius:50%;background:var(--accent);border:4px solid rgba(255,255,255,.9);cursor:pointer;box-shadow:0 4px 24px rgba(255,95,78,.5);transition:transform .12s,box-shadow .12s}
+.cam-shutter:active{transform:scale(.88);box-shadow:0 2px 12px rgba(255,95,78,.3)}
+.cam-side-btn{display:flex;flex-direction:column;align-items:center;gap:5px;color:#fff;cursor:pointer;opacity:.85}
+.cam-side-btn span{font-size:.625rem;font-weight:600}
+.cam-side-btn svg{width:28px;height:28px}
+.cam-flash-anim{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .08s}
+.cam-flash-anim.flash{opacity:.7}
+.cam-auto-badge{position:absolute;top:50px;right:16px;background:rgba(0,0,0,.6);color:#fff;font-size:.6875rem;font-weight:700;padding:4px 10px;border-radius:999px;display:flex;align-items:center;gap:5px}
+.cam-auto-dot{width:7px;height:7px;border-radius:50%;background:var(--green)}
+.cam-auto-dot.off{background:var(--muted)}
+.cam-gallery-preview{width:48px;height:48px;border-radius:10px;overflow:hidden;border:2px solid rgba(255,255,255,.5);cursor:pointer}
+.cam-gallery-preview img{width:100%;height:100%;object-fit:cover}
+
+/* ── ═══════════════════════════════════════════════════════════════════ */
+/* ── SCREEN 2 — EDGE DETECT & CORNER ADJUST ─────────────────────────── */
+/* ── ═══════════════════════════════════════════════════════════════════ */
+#screen-detect{background:var(--cam-bg)!important;background-image:none!important}
+#screen-detect .topbar{background:rgba(0,0,0,.5);backdrop-filter:blur(10px)}
+#screen-detect .topbar .btn-icon,#screen-detect .topbar-title{color:#fff!important;border-color:rgba(255,255,255,.2)!important;background:rgba(255,255,255,.12)!important}
+.detect-container{position:relative;flex:1;overflow:hidden;display:flex;align-items:center;justify-content:center}
+#detect-canvas{max-width:100%;max-height:100%;display:block}
+#detect-overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+.corner-handle{position:absolute;width:32px;height:32px;border-radius:50%;background:var(--accent);border:3px solid #fff;box-shadow:0 0 0 4px rgba(255,95,78,.35),0 2px 12px rgba(0,0,0,.4);transform:translate(-50%,-50%);cursor:grab;touch-action:none;transition:box-shadow .15s,transform .15s}
+.corner-handle:active,.corner-handle.dragging{cursor:grabbing;transform:translate(-50%,-50%) scale(1.3);box-shadow:0 0 0 8px rgba(255,95,78,.25),0 4px 20px rgba(0,0,0,.5)}
+.loupe{position:absolute;width:80px;height:80px;border-radius:50%;border:3px solid var(--accent);overflow:hidden;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.5);display:none}
+.detect-hint{position:absolute;top:16px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);color:#fff;font-size:.8125rem;font-weight:600;padding:7px 16px;border-radius:999px;white-space:nowrap}
+.detect-bottom{background:rgba(0,0,0,.55);backdrop-filter:blur(10px);padding:16px 20px 32px;display:flex;gap:10px;flex-shrink:0}
+.detect-bottom .btn{flex:1}
+
+/* ── ═══════════════════════════════════════════════════════════════════ */
+/* ── SCREEN 3 — ENHANCE ─────────────────────────────────────────────── */
+/* ── ═══════════════════════════════════════════════════════════════════ */
+.enhance-preview{padding:20px 20px 0;flex-shrink:0}
+.enhance-preview-img{width:100%;border-radius:var(--radius-sm);border:1px solid var(--border);display:block;max-height:260px;object-fit:contain;background:#f0ece4}
+.filter-strip-wrap{padding:16px 0 4px;overflow:hidden}
+.filter-strip-label{font-size:.6875rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);padding:0 20px 10px}
+.filter-strip{display:flex;gap:10px;padding:0 20px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.filter-strip::-webkit-scrollbar{display:none}
+.filter-chip{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
+.filter-thumb{width:64px;height:80px;border-radius:10px;border:2px solid var(--border);overflow:hidden;position:relative;transition:border-color .15s,transform .12s}
+.filter-thumb canvas,.filter-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.filter-check{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(255,95,78,.4);border-radius:9px}
+.filter-check svg{filter:drop-shadow(0 1px 3px rgba(0,0,0,.4))}
+.filter-chip.active .filter-thumb{border-color:var(--accent);transform:scale(1.05)}
+.filter-chip.active .filter-check{display:flex}
+.filter-name{font-size:.6875rem;font-weight:600;color:var(--muted);text-align:center}
+.filter-chip.active .filter-name{color:var(--accent)}
+.manual-adjust{margin:0 20px;border-radius:var(--radius-sm);border:1px solid var(--border);overflow:hidden;margin-bottom:12px}
+.manual-adjust-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer;background:var(--surface)}
+.manual-adjust-header span{font-size:.8125rem;font-weight:600}
+.manual-adjust-body{padding:0 16px 14px;background:var(--surface);display:none}
+.manual-adjust-body.open{display:block}
+.slider-row{display:flex;align-items:center;gap:10px;margin-top:10px}
+.slider-row label{font-size:.75rem;font-weight:600;color:var(--muted);width:70px;flex-shrink:0}
+.slider-row input[type=range]{flex:1;accent-color:var(--accent)}
+.slider-row .slider-val{font-size:.75rem;font-weight:700;width:32px;text-align:right}
+.rotate-row{display:flex;gap:8px;padding:10px 20px 0}
+.rotate-row .btn{flex:1;font-size:.8125rem}
+
+/* ── ═══════════════════════════════════════════════════════════════════ */
+/* ── SCREEN 4 — OCR ──────────────────────────────────────────────────── */
+/* ── ═══════════════════════════════════════════════════════════════════ */
+.ocr-layout{display:flex;flex-direction:column;flex:1;overflow:hidden}
+.ocr-image-pane{position:relative;height:220px;background:#111;flex-shrink:0;overflow:hidden}
+.ocr-image-pane canvas,.ocr-image-pane img{width:100%;height:100%;object-fit:contain;display:block}
+.ocr-scan-bar{position:absolute;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,var(--accent),transparent);top:0;display:none;animation:scanBar 1.6s ease-in-out infinite}
+@keyframes scanBar{0%{top:0}100%{top:100%}}
+.ocr-scan-bar.active{display:block}
+.word-highlight-overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+.word-box{position:absolute;border:2px solid var(--accent);border-radius:3px;background:rgba(255,95,78,.15);transition:opacity .2s;opacity:0}
+.word-box.lit{opacity:1}
+.ocr-text-pane{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.ocr-progress{padding:14px 20px 0;flex-shrink:0}
+.ocr-progress-label{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.ocr-progress-text{font-size:.8125rem;font-weight:600}
+.ocr-progress-pct{font-size:.8125rem;font-weight:700;color:var(--accent)}
+.ocr-bar-track{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.ocr-bar-fill{height:100%;background:var(--accent);border-radius:2px;width:0%;transition:width .3s ease}
+.ocr-meta-row{display:flex;align-items:center;gap:8px;padding:10px 20px 6px;flex-wrap:wrap;flex-shrink:0}
+.ocr-engine-pill{background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:4px 10px;font-size:.6875rem;font-weight:700;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:5px;transition:border-color .15s}
+.ocr-engine-pill:hover{border-color:var(--accent)}
+.ocr-engine-dot{width:7px;height:7px;border-radius:50%;background:var(--green)}
+.ocr-lang-select{background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:4px 10px;font-size:.6875rem;font-weight:700;color:var(--ink);cursor:pointer;outline:none;font-family:var(--font)}
+.ocr-textarea{flex:1;border:none;background:transparent;resize:none;padding:10px 20px;font-size:.875rem;font-family:var(--font);color:var(--ink);line-height:1.7;outline:none;overflow-y:auto;min-height:0}
+.ocr-textarea::placeholder{color:var(--muted)}
+
+/* ── ═══════════════════════════════════════════════════════════════════ */
+/* ── SCREEN 5 — REVIEW & SAVE ───────────────────────────────────────── */
+/* ── ═══════════════════════════════════════════════════════════════════ */
+.review-thumb{margin:0 20px 16px;border-radius:var(--radius-sm);overflow:hidden;height:160px;border:1px solid var(--border)}
+.review-thumb img,.review-thumb canvas{width:100%;height:100%;object-fit:contain;background:var(--cream)}
+.review-field{margin:0 20px 12px}
+.review-label{font-size:.6875rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.review-input{width:100%;border:1px solid var(--border);background:var(--surface);border-radius:10px;padding:9px 12px;font-size:.875rem;font-family:var(--font);color:var(--ink);outline:none;transition:border-color .15s}
+.review-input:focus{border-color:var(--accent)}
+.review-save-options{margin:0 20px 16px;display:flex;flex-direction:column;gap:6px}
+.save-option{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;transition:border-color .15s,background .15s}
+.save-option.selected{border-color:var(--accent);background:var(--accent-dim)}
+.save-option-icon{width:36px;height:36px;border-radius:10px;background:var(--accent-light);display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:1.1rem;flex-shrink:0}
+.save-option-text{font-size:.875rem;font-weight:600}
+.save-option-sub{font-size:.75rem;color:var(--muted)}
+.save-option input[type=radio]{display:none}
+.review-stats{margin:0 20px 16px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-chip{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px}
+.stat-chip-label{font-size:.6875rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+.stat-chip-value{font-size:.875rem;font-weight:700}
+
+/* ── ═══════════════════════════════════════════════════════════════════ */
+/* ── SCREEN 6 — SETTINGS ─────────────────────────────────────────────── */
+/* ── ═══════════════════════════════════════════════════════════════════ */
+.settings-section{margin:0 20px 20px}
+.settings-section-title{font-size:.6875rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px}
+.settings-row-label{font-size:.875rem;font-weight:600}
+.settings-row-sub{font-size:.75rem;color:var(--muted);margin-top:1px}
+.settings-select{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:.8125rem;font-family:var(--font);color:var(--ink);outline:none;cursor:pointer}
+.toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0}
+.toggle-switch input{opacity:0;width:0;height:0;position:absolute}
+.toggle-track{position:absolute;inset:0;border-radius:999px;background:var(--border);transition:background .2s;cursor:pointer}
+.toggle-thumb{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.25);transition:transform .2s}
+.toggle-switch input:checked~.toggle-track{background:var(--accent)}
+.toggle-switch input:checked~.toggle-thumb{transform:translateX(20px)}
+
+/* ── Success toast ───────────────────────────────────────────────────── */
+.toast{position:fixed;bottom:40px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:12px 24px;border-radius:999px;font-size:.875rem;font-weight:600;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;z-index:999;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── Confetti ────────────────────────────────────────────────────────── */
+.confetti-particle{position:fixed;width:8px;height:8px;border-radius:2px;pointer-events:none;animation:confettiFall 1.2s ease-in forwards;z-index:9999}
+@keyframes confettiFall{
+  0%{transform:translateY(0) rotate(0deg) scale(1);opacity:1}
+  100%{transform:translateY(300px) rotate(720deg) scale(.3);opacity:0}
+}
+
+/* ── Multipage strip ─────────────────────────────────────────────────── */
+.multipage-strip{display:flex;gap:10px;padding:12px 20px;overflow-x:auto;flex-shrink:0}
+.multipage-thumb{position:relative;flex-shrink:0;width:64px;cursor:pointer}
+.multipage-thumb img,.multipage-thumb canvas{width:64px;height:80px;border-radius:8px;object-fit:cover;border:2px solid var(--border)}
+.multipage-thumb.active img,.multipage-thumb.active canvas{border-color:var(--accent)}
+.multipage-badge{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:.625rem;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid var(--surface)}
+.add-page-btn{flex-shrink:0;width:64px;height:80px;border-radius:8px;border:2px dashed var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);font-size:1.4rem;transition:border-color .15s,color .15s}
+.add-page-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── Engine toggle banner ───────────────────────────────────────────── */
+.engine-banner{margin:0 20px 14px;padding:11px 14px;background:rgba(46,170,96,.08);border:1px solid rgba(46,170,96,.25);border-radius:var(--radius-sm);display:flex;align-items:center;gap:10px;font-size:.8125rem}
+.engine-banner.google{background:rgba(66,133,244,.08);border-color:rgba(66,133,244,.25)}
+.engine-dot{width:9px;height:9px;border-radius:50%;background:var(--green);flex-shrink:0}
+.engine-banner.google .engine-dot{background:#4285f4}
+.engine-name{font-weight:700;flex:1}
+.engine-badge{font-size:.6875rem;font-weight:700;padding:2px 8px;border-radius:999px;background:rgba(46,170,96,.15);color:#1d7a45}
+.engine-banner.google .engine-badge{background:rgba(66,133,244,.15);color:#1a56a0}
+
+/* ── Scrollable pane ─────────────────────────────────────────────────── */
+.scroll-pane{overflow-y:auto;flex:1}
+
+/* ── Sample docs notice ──────────────────────────────────────────────── */
+.sample-notice{margin:0 20px 10px;padding:10px 14px;background:rgba(224,169,42,.08);border:1px solid rgba(224,169,42,.3);border-radius:10px;font-size:.75rem;color:#7a5a0a;display:flex;align-items:flex-start;gap:8px}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     SCREEN 0 — HOME (daily page with Scanned Documents section)
+══════════════════════════════════════════════════════════════════════ -->
+<div class="screen active" id="screen-home">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Work Notebook · Meetings</div>
+      <div class="topbar-sub">April 11, 2026</div>
+    </div>
+    <button class="btn-icon" onclick="showScreen('screen-settings')" title="Settings" aria-label="Settings">⚙️</button>
+  </div>
+
+  <!-- Scanned Documents section -->
+  <div class="section-header">
+    <span class="section-label">📄 Scanned Documents</span>
+    <span style="font-size:.75rem;font-weight:700;color:var(--muted)">1</span>
+  </div>
+
+  <!-- Sample saved document -->
+  <div class="scan-doc-card" id="saved-doc-card" style="display:none">
+    <div class="card-accent-bar"></div>
+    <div class="scan-doc-inner">
+      <div class="scan-doc-title" id="saved-doc-title">Scan — Apr 11, 2026</div>
+      <div class="scan-doc-meta">
+        <span class="conf-badge conf-high" id="saved-doc-conf">🟢 96% confidence</span>
+        <span style="font-size:.6875rem;color:var(--muted)" id="saved-doc-engine">Tesseract · 2.4 KB</span>
+      </div>
+      <div class="scan-doc-body">
+        <canvas id="saved-doc-thumb" class="scan-doc-thumb" width="64" height="80"></canvas>
+        <p class="scan-doc-excerpt" id="saved-doc-excerpt">Extracted text will appear here after scanning and saving a document.</p>
+      </div>
+    </div>
+    <div class="scan-doc-actions">
+      <button class="btn btn-white btn-sm" onclick="copyDocText()">📋 Copy</button>
+      <button class="btn btn-white btn-sm" onclick="viewFullDoc()">🔍 View</button>
+      <button class="btn btn-white btn-sm" style="color:var(--red);border-color:#f3c4c0" onclick="deleteDoc()">🗑</button>
+    </div>
+  </div>
+
+  <!-- Demo card (always visible) -->
+  <div class="scan-doc-card">
+    <div class="card-accent-bar"></div>
+    <div class="scan-doc-inner">
+      <div class="scan-doc-title">Q1 Revenue Report</div>
+      <div class="scan-doc-meta">
+        <span class="conf-badge conf-high">🟢 96% · Tesseract</span>
+        <span style="font-size:.6875rem;color:var(--muted)">3.1 KB · Apr 10</span>
+      </div>
+      <div class="scan-doc-body">
+        <canvas id="demo-thumb" width="64" height="80" style="width:64px;height:80px;border-radius:8px;border:1px solid var(--border);flex-shrink:0"></canvas>
+        <p class="scan-doc-excerpt">The quarterly review showed strong growth in Q1 with a 17% increase in active subscribers and overall revenue up 23% compared to same period last year. Key drivers include…</p>
+      </div>
+    </div>
+    <div class="scan-doc-actions">
+      <button class="btn btn-white btn-sm">📋 Copy</button>
+      <button class="btn btn-white btn-sm">🔍 View</button>
+      <button class="btn btn-white btn-sm" style="color:var(--red);border-color:#f3c4c0">🗑</button>
+    </div>
+  </div>
+
+  <div class="scan-btn" onclick="startCapture()" role="button" tabindex="0">
+    <div class="scan-btn-icon">📷</div>
+    <div>
+      <div class="scan-btn-text">Scan a document</div>
+      <div class="scan-btn-sub">Camera • Edge detect • OCR</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     SCREEN 1 — CAMERA CAPTURE
+══════════════════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-capture">
+  <div class="topbar">
+    <button class="btn-icon" onclick="showScreen('screen-home')" aria-label="Cancel">✕</button>
+    <span class="topbar-title">Scan Document</span>
+    <button class="btn-icon" id="flash-btn" onclick="toggleFlash()" aria-label="Toggle flash">⚡</button>
+  </div>
+
+  <div class="cam-container" id="cam-container">
+    <video id="cam-video" class="cam-video" autoplay playsinline muted></video>
+    <canvas id="cam-process-canvas" style="display:none"></canvas>
+    <canvas id="cam-draw-canvas" class="cam-canvas"></canvas>
+    <div class="cam-flash-anim" id="cam-flash"></div>
+
+    <div class="cam-overlay-frame">
+      <div class="cam-doc-zone">
+        <div class="cam-corner tl"></div>
+        <div class="cam-corner tr"></div>
+        <div class="cam-corner bl"></div>
+        <div class="cam-corner br"></div>
+      </div>
+    </div>
+
+    <div class="cam-status" id="cam-status" aria-live="polite">Align document within the frame</div>
+    <div class="cam-auto-badge" id="auto-badge">
+      <div class="cam-auto-dot" id="auto-dot"></div>
+      <span id="auto-label">Auto</span>
+    </div>
+  </div>
+
+  <div class="cam-bottom">
+    <div class="cam-side-btn" onclick="triggerGalleryPick()" aria-label="Pick from gallery">
+      <div class="cam-gallery-preview" id="gallery-preview-wrap">
+        <img id="gallery-last-thumb" src="" alt="" style="display:none" />
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>
+      </div>
+      <span style="color:#fff">Gallery</span>
+    </div>
+    <button class="cam-shutter" id="shutter-btn" onclick="captureFrame()" aria-label="Capture document"></button>
+    <div class="cam-side-btn" onclick="toggleAutoCapture()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+      <span style="color:#fff" id="auto-cap-label">Auto ✓</span>
+    </div>
+  </div>
+
+  <input type="file" id="gallery-input" accept="image/*" style="display:none" onchange="handleGalleryFile(event)" />
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     SCREEN 2 — EDGE DETECT & CORNER ADJUST
+══════════════════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-detect">
+  <div class="topbar">
+    <button class="btn-icon" onclick="showScreen('screen-capture')" aria-label="Back">←</button>
+    <span class="topbar-title" style="color:#fff">Adjust Corners</span>
+    <button class="btn-icon" onclick="resetCorners()" aria-label="Reset">↺</button>
+  </div>
+
+  <div class="detect-hint" id="detect-hint">Drag corners to select the document area</div>
+
+  <div class="detect-container" id="detect-container">
+    <canvas id="detect-canvas"></canvas>
+    <svg id="detect-overlay" viewBox="0 0 1 1" preserveAspectRatio="none"></svg>
+    <div class="corner-handle" id="ch-0" data-idx="0"></div>
+    <div class="corner-handle" id="ch-1" data-idx="1"></div>
+    <div class="corner-handle" id="ch-2" data-idx="2"></div>
+    <div class="corner-handle" id="ch-3" data-idx="3"></div>
+    <canvas class="loupe" id="loupe-canvas"></canvas>
+  </div>
+
+  <div class="detect-bottom">
+    <button class="btn btn-white" onclick="startCapture()">↺ Retake</button>
+    <button class="btn btn-primary" onclick="cropAndEnhance()">✓ Crop</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     SCREEN 3 — ENHANCE
+══════════════════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-enhance">
+  <div class="topbar">
+    <button class="btn-icon" onclick="showScreen('screen-detect')" aria-label="Back">←</button>
+    <span class="topbar-title">Enhance</span>
+    <button class="btn-icon accent" onclick="goToOCR()" aria-label="Extract text">→</button>
+  </div>
+
+  <div class="stage-pills" id="enhance-stage-pills">
+    <div class="stage-pill done">1 Capture</div>
+    <div class="stage-pill done">2 Detect</div>
+    <div class="stage-pill active">3 Enhance</div>
+    <div class="stage-pill">4 OCR</div>
+    <div class="stage-pill">5 Save</div>
+  </div>
+
+  <div class="enhance-preview">
+    <canvas id="enhance-canvas" style="width:100%;border-radius:var(--radius-sm);border:1px solid var(--border);display:block;max-height:240px;background:#f0ece4"></canvas>
+  </div>
+
+  <div class="filter-strip-wrap">
+    <div class="filter-strip-label">Filter</div>
+    <div class="filter-strip" id="filter-strip"></div>
+  </div>
+
+  <div class="rotate-row">
+    <button class="btn btn-white btn-sm" onclick="rotateImage(-90)">↺ 90°</button>
+    <button class="btn btn-white btn-sm" onclick="rotateImage(90)">↻ 90°</button>
+    <button class="btn btn-white btn-sm" onclick="flipImage()">⇄ Flip</button>
+  </div>
+
+  <div class="manual-adjust" style="margin-top:10px">
+    <div class="manual-adjust-header" onclick="toggleManualAdjust()">
+      <span>Manual adjust</span>
+      <span id="adjust-caret">▾</span>
+    </div>
+    <div class="manual-adjust-body" id="manual-adjust-body">
+      <div class="slider-row">
+        <label>Brightness</label>
+        <input type="range" min="-100" max="100" value="0" id="sl-brightness" oninput="applyManual()" />
+        <span class="slider-val" id="sl-brightness-val">0</span>
+      </div>
+      <div class="slider-row">
+        <label>Contrast</label>
+        <input type="range" min="-100" max="100" value="0" id="sl-contrast" oninput="applyManual()" />
+        <span class="slider-val" id="sl-contrast-val">0</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-row" style="margin-top:10px">
+    <button class="btn btn-white" onclick="showScreen('screen-detect')">← Back</button>
+    <button class="btn btn-primary" onclick="goToOCR()">Extract text →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     SCREEN 4 — OCR
+══════════════════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-ocr">
+  <div class="topbar">
+    <button class="btn-icon" onclick="showScreen('screen-enhance')" aria-label="Back">←</button>
+    <span class="topbar-title">Extract Text</span>
+    <button class="btn-icon accent" onclick="showReview()" aria-label="Next">→</button>
+  </div>
+
+  <div class="stage-pills">
+    <div class="stage-pill done">1 Capture</div>
+    <div class="stage-pill done">2 Detect</div>
+    <div class="stage-pill done">3 Enhance</div>
+    <div class="stage-pill active">4 OCR</div>
+    <div class="stage-pill">5 Save</div>
+  </div>
+
+  <div class="engine-banner" id="engine-banner">
+    <div class="engine-dot" id="engine-dot"></div>
+    <span class="engine-name" id="engine-name">Tesseract.js</span>
+    <span class="engine-badge" id="engine-badge">Active</span>
+    <button class="btn btn-sm btn-white" style="padding:4px 10px;font-size:.6875rem" onclick="switchEngine()">Switch</button>
+  </div>
+
+  <div class="ocr-layout">
+    <div class="ocr-image-pane" id="ocr-image-pane">
+      <canvas id="ocr-image-canvas"></canvas>
+      <div class="ocr-scan-bar" id="ocr-scan-bar"></div>
+      <canvas class="word-highlight-overlay" id="word-overlay"></canvas>
+    </div>
+
+    <div class="ocr-text-pane">
+      <div class="ocr-progress" id="ocr-progress-section">
+        <div class="ocr-progress-label">
+          <span class="ocr-progress-text" id="ocr-progress-text" aria-live="polite">Ready to extract…</span>
+          <span class="ocr-progress-pct" id="ocr-progress-pct"></span>
+        </div>
+        <div class="ocr-bar-track"><div class="ocr-bar-fill" id="ocr-bar"></div></div>
+      </div>
+
+      <div class="ocr-meta-row">
+        <span class="conf-badge" id="ocr-conf-badge" style="display:none"></span>
+        <button class="ocr-engine-pill" onclick="switchEngine()" title="Switch OCR engine">
+          <div class="ocr-engine-dot" id="ocr-eng-dot"></div>
+          <span id="ocr-eng-label">Tesseract</span>
+        </button>
+        <select class="ocr-lang-select" id="ocr-lang" onchange="rerunOCR()">
+          <option value="eng">English</option>
+          <option value="fra">French</option>
+          <option value="deu">German</option>
+          <option value="spa">Spanish</option>
+          <option value="hin">Hindi</option>
+          <option value="jpn">Japanese</option>
+          <option value="chi_sim">Chinese</option>
+        </select>
+        <button class="btn btn-sm btn-white" onclick="rerunOCR()">↻ Re-run</button>
+      </div>
+
+      <textarea class="ocr-textarea" id="ocr-textarea" placeholder="Extracted text will appear here…" spellcheck="false"></textarea>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-white" onclick="showScreen('screen-enhance')">← Re-enhance</button>
+    <button class="btn btn-primary" onclick="showReview()">Save ✓</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     SCREEN 5 — REVIEW & SAVE
+══════════════════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-review">
+  <div class="topbar">
+    <button class="btn-icon" onclick="showScreen('screen-ocr')" aria-label="Back">←</button>
+    <span class="topbar-title">Review & Save</span>
+  </div>
+
+  <div class="stage-pills">
+    <div class="stage-pill done">1 Capture</div>
+    <div class="stage-pill done">2 Detect</div>
+    <div class="stage-pill done">3 Enhance</div>
+    <div class="stage-pill done">4 OCR</div>
+    <div class="stage-pill active">5 Save</div>
+  </div>
+
+  <div class="scroll-pane">
+    <!-- Multipage strip -->
+    <div id="multipage-section" style="display:none">
+      <div style="padding:4px 20px 0;font-size:.6875rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Pages</div>
+      <div class="multipage-strip" id="multipage-strip"></div>
+    </div>
+
+    <div class="review-thumb">
+      <canvas id="review-canvas"></canvas>
+    </div>
+
+    <div class="review-stats" id="review-stats">
+      <div class="stat-chip">
+        <div class="stat-chip-label">Confidence</div>
+        <div class="stat-chip-value" id="stat-conf">—</div>
+      </div>
+      <div class="stat-chip">
+        <div class="stat-chip-label">Engine</div>
+        <div class="stat-chip-value" id="stat-engine">—</div>
+      </div>
+      <div class="stat-chip">
+        <div class="stat-chip-label">Words</div>
+        <div class="stat-chip-value" id="stat-words">—</div>
+      </div>
+      <div class="stat-chip">
+        <div class="stat-chip-label">Pages</div>
+        <div class="stat-chip-value" id="stat-pages">—</div>
+      </div>
+    </div>
+
+    <div class="review-field">
+      <div class="review-label">Document title</div>
+      <input type="text" class="review-input" id="review-title" placeholder="Scan — Apr 11, 2026" />
+    </div>
+
+    <div class="review-field">
+      <div class="review-label">Tags</div>
+      <input type="text" class="review-input" id="review-tags" placeholder="meeting, notes, q1…" />
+    </div>
+
+    <div style="padding:0 20px;margin-bottom:10px;font-size:.6875rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Save to</div>
+
+    <div class="review-save-options" id="save-options">
+      <label class="save-option selected" onclick="selectSaveOption(this,'page')">
+        <input type="radio" name="save-to" value="page" checked />
+        <div class="save-option-icon">📄</div>
+        <div>
+          <div class="save-option-text">Current page</div>
+          <div class="save-option-sub">Meetings · Apr 11, 2026</div>
+        </div>
+      </label>
+      <label class="save-option" onclick="selectSaveOption(this,'new')">
+        <input type="radio" name="save-to" value="new" />
+        <div class="save-option-icon">✨</div>
+        <div>
+          <div class="save-option-text">New page (today)</div>
+          <div class="save-option-sub">Auto-creates a page with today's date</div>
+        </div>
+      </label>
+      <label class="save-option" onclick="selectSaveOption(this,'standalone')">
+        <input type="radio" name="save-to" value="standalone" />
+        <div class="save-option-icon">🗄️</div>
+        <div>
+          <div class="save-option-text">Standalone library</div>
+          <div class="save-option-sub">Saved to "Scanned Documents" at app level</div>
+        </div>
+      </label>
+    </div>
+
+    <div class="btn-row" style="padding-bottom:32px">
+      <button class="btn btn-white" onclick="showScreen('screen-ocr')">← Edit text</button>
+      <button class="btn btn-primary" id="save-btn" onclick="saveDocument()">Save ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     SCREEN 6 — SETTINGS
+══════════════════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-settings">
+  <div class="topbar">
+    <button class="btn-icon" onclick="showScreen('screen-home')" aria-label="Back">←</button>
+    <span class="topbar-title">Document Capture Settings</span>
+  </div>
+
+  <div class="scroll-pane" style="padding-top:10px">
+    <div class="settings-section">
+      <div class="settings-section-title">OCR Engine</div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">OCR Provider</div>
+          <div class="settings-row-sub">Choose the recognition engine</div>
+        </div>
+        <select class="settings-select" id="set-engine" onchange="updateEngineFromSettings()">
+          <option value="tesseract">Tesseract.js</option>
+          <option value="google-ml">Google ML Kit ✦</option>
+        </select>
+      </div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Default language</div>
+          <div class="settings-row-sub">Language used for text extraction</div>
+        </div>
+        <select class="settings-select" id="set-lang" onchange="cfg.captureSettings.defaultLanguage=this.value">
+          <option value="eng">English</option>
+          <option value="fra">French</option>
+          <option value="deu">German</option>
+          <option value="spa">Spanish</option>
+          <option value="hin">Hindi</option>
+          <option value="jpn">Japanese</option>
+          <option value="chi_sim">Chinese (Simplified)</option>
+          <option value="kor">Korean</option>
+          <option value="ara">Arabic</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">Capture</div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Auto-capture</div>
+          <div class="settings-row-sub">Snap when document is stable for 1s</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="set-autocap" checked onchange="cfg.captureSettings.autoCapture=this.checked;updateAutoBadge()">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+      </div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Camera resolution</div>
+          <div class="settings-row-sub">Higher = slower but more detail</div>
+        </div>
+        <select class="settings-select" id="set-res" onchange="cfg.captureSettings.resolution=this.value">
+          <option value="medium" selected>Medium</option>
+          <option value="low">Low (fast)</option>
+          <option value="high">High (best)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">Enhancement</div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Default filter</div>
+          <div class="settings-row-sub">Applied automatically after crop</div>
+        </div>
+        <select class="settings-select" id="set-filter" onchange="cfg.captureSettings.defaultFilter=this.value">
+          <option value="auto">Auto-enhance</option>
+          <option value="original">Original</option>
+          <option value="bw">B&amp;W Document</option>
+          <option value="gray">Grayscale</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">Save location</div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Default save to</div>
+          <div class="settings-row-sub">Where scans are saved by default</div>
+        </div>
+        <select class="settings-select" id="set-save" onchange="cfg.captureSettings.saveLocation=this.value">
+          <option value="page">Current page</option>
+          <option value="ask">Always ask</option>
+          <option value="standalone">Standalone library</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+// ── App config ─────────────────────────────────────────────────────────
+const cfg = {
+  ocrProvider: 'tesseract',
+  captureSettings: {
+    autoCapture: true,
+    resolution: 'medium',
+    defaultFilter: 'auto',
+    defaultLanguage: 'eng',
+    saveLocation: 'page'
+  }
+};
+
+// ── State ───────────────────────────────────────────────────────────────
+const state = {
+  capturedImage: null,   // ImageBitmap or HTMLCanvasElement
+  croppedCanvas: null,
+  enhancedCanvas: null,
+  ocrResult: null,
+  corners: [{x:0.1,y:0.1},{x:0.9,y:0.1},{x:0.9,y:0.9},{x:0.1,y:0.9}],
+  currentFilter: 'auto',
+  rotation: 0,
+  brightness: 0,
+  contrast: 0,
+  autoCapture: true,
+  pages: [],             // multipage
+  currentPageIdx: 0,
+  savedDocs: [],
+  detectedQuad: null,    // OpenCV-detected quad
+  stream: null
+};
+
+// ── OCR Engine Abstraction ──────────────────────────────────────────────
+
+class TesseractEngine {
+  constructor(){ this.name='tesseract'; this._worker=null; this._ready=false; }
+  async initialize(){
+    if(this._ready) return;
+    this._worker = await Tesseract.createWorker('eng',1,{
+      logger: m => {
+        if(m.status==='recognizing text'){
+          updateOCRProgress('Recognizing text…', Math.round(m.progress*100));
+        } else if(m.status==='loading tesseract core'){
+          updateOCRProgress('Loading engine…',0);
+        } else if(m.status==='initializing tesseract'){
+          updateOCRProgress('Initializing…',0);
+        } else if(m.status==='loading language traineddata'){
+          updateOCRProgress('Loading language data…',0);
+        }
+      }
+    });
+    this._ready=true;
+  }
+  async recognize(canvas, options={}){
+    if(!this._ready) await this.initialize();
+    const lang = options.language||'eng';
+    // Switch language if needed
+    await this._worker.loadLanguage(lang).catch(()=>{});
+    await this._worker.initialize(lang).catch(()=>{});
+    const t0=performance.now();
+    const result = await this._worker.recognize(canvas,{},{blocks:true});
+    const ms=performance.now()-t0;
+    const d=result.data;
+    return {
+      text: d.text||'',
+      confidence: d.confidence||0,
+      blocks: (d.blocks||[]).map(b=>({
+        text:b.text, confidence:b.confidence,
+        bbox:b.bbox,
+        lines:(b.lines||[]).map(l=>({
+          text:l.text,confidence:l.confidence,bbox:l.bbox,
+          words:(l.words||[]).map(w=>({text:w.text,confidence:w.confidence,bbox:w.bbox}))
+        }))
+      })),
+      processingTimeMs: ms,
+      engine:'tesseract'
+    };
+  }
+  async terminate(){ if(this._worker){await this._worker.terminate();this._worker=null;this._ready=false;} }
+  isReady(){ return this._ready; }
+  getSupportedLanguages(){ return['eng','fra','deu','spa','hin','jpn','chi_sim','kor','ara']; }
+}
+
+class GoogleMLEngine {
+  constructor(){ this.name='google-ml'; this._ready=false; }
+  async initialize(){ await delay(400); this._ready=true; }
+  async recognize(canvas, options={}){
+    updateOCRProgress('Calling Google ML…',30);
+    await delay(800);
+    updateOCRProgress('Processing…',70);
+    await delay(600);
+    updateOCRProgress('Done!',100);
+    return {
+      text:'[Google ML Kit — Stub]\n\nThis is a simulated response from the Google ML engine.\nIn production this would call the on-device Google ML Kit OCR API or the Cloud Vision REST API.\n\nThe quick brown fox jumps over the lazy dog.\nDocument processing complete.',
+      confidence:91,
+      blocks:[{text:'Google ML Kit — Stub',confidence:91,bbox:{x0:10,y0:10,x1:300,y1:30},lines:[],words:[]}],
+      processingTimeMs:1400,
+      engine:'google-ml'
+    };
+  }
+  async terminate(){ this._ready=false; }
+  isReady(){ return this._ready; }
+  getSupportedLanguages(){ return['eng','fra','deu','spa','jpn','chi_sim','kor','ara']; }
+}
+
+class OCREngineFactory {
+  static create(provider){
+    switch(provider){
+      case 'google-ml': return new GoogleMLEngine();
+      default: return new TesseractEngine();
+    }
+  }
+}
+
+let ocrEngine = OCREngineFactory.create(cfg.ocrProvider);
+
+// ── Sample images (base64 text-on-canvas generation) ───────────────────
+function drawSampleDoc(ctx, title, lines, w, h){
+  ctx.fillStyle='#fffdf8'; ctx.fillRect(0,0,w,h);
+  ctx.fillStyle='#e8e2d8'; ctx.fillRect(0,0,w,3);
+  ctx.fillStyle='#1b1b1d';
+  ctx.font=`bold ${Math.round(w*0.06)}px Inter,sans-serif`;
+  ctx.fillText(title,w*0.06,h*0.1);
+  ctx.fillStyle='#7a7670';
+  const lh=h*0.072, fsize=Math.round(w*0.045);
+  ctx.font=`${fsize}px Inter,sans-serif`;
+  lines.forEach((l,i)=>{ ctx.fillText(l,w*0.06,h*0.18+i*lh); });
+}
+
+const SAMPLES = [
+  { title:'Meeting Notes', lines:['Q1 review — April 11 2026','Attendees: Alex, Sam, Jordan','Action: finalize roadmap by Friday','Revenue up 23% vs same period','Key drivers: subscriptions +17%','Next steps: present to board Q2'] },
+  { title:'Invoice #4521', lines:['Date: April 10, 2026','From: Acme Corp','To: InkCreate Ltd','Amount due: $3,200.00','Due date: April 30, 2026','Payment: bank transfer'] },
+  { title:'Research Notes', lines:['Topic: Document scanning UX','Edge detection accuracy: 94%','User test results — 12 participants','Task completion: 89% success rate','Average scan time: 14 seconds','Recommendation: add loupe UI'] }
+];
+
+function buildSampleCanvases(){
+  return SAMPLES.map(s=>{
+    const c=document.createElement('canvas');
+    c.width=320; c.height=420;
+    drawSampleDoc(c.getContext('2d'),s.title,s.lines,320,420);
+    return c;
+  });
+}
+const sampleCanvases = buildSampleCanvases();
+
+// Draw demo thumb on home screen
+(function(){
+  const c=document.getElementById('demo-thumb');
+  const ctx=c.getContext('2d');
+  drawSampleDoc(ctx,'Q1 Report',['Revenue up 23%','Subscribers +17%','Board review Q2'],64,80);
+})();
+
+// ── Navigation ──────────────────────────────────────────────────────────
+let currentScreen='screen-home';
+function showScreen(id){
+  const prev=document.getElementById(currentScreen);
+  const next=document.getElementById(id);
+  if(!next||id===currentScreen) return;
+  prev.classList.remove('active');
+  next.classList.add('active');
+  currentScreen=id;
+}
+
+function startCapture(){
+  showScreen('screen-capture');
+  initCamera();
+}
+
+// ── Camera ──────────────────────────────────────────────────────────────
+let detectionInterval=null, stableTimer=null, stableCount=0;
+
+async function initCamera(){
+  stopCamera();
+  const video=document.getElementById('cam-video');
+  const resMap={low:{width:640,height:480},medium:{width:1280,height:720},high:{width:1920,height:1080}};
+  const res=resMap[cfg.captureSettings.resolution]||resMap.medium;
+  try{
+    state.stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:'environment',width:{ideal:res.width},height:{ideal:res.height}}
+    });
+    video.srcObject=state.stream;
+    video.onloadedmetadata=()=>{ video.play(); startDetectionLoop(); };
+  } catch(e){
+    // Camera not available — show sample picker fallback
+    showSampleFallback();
+  }
+  updateAutoBadge();
+}
+
+function stopCamera(){
+  if(state.stream){ state.stream.getTracks().forEach(t=>t.stop()); state.stream=null; }
+  if(detectionInterval){ clearInterval(detectionInterval); detectionInterval=null; }
+  if(stableTimer){ clearTimeout(stableTimer); stableTimer=null; }
+}
+
+function showSampleFallback(){
+  const container=document.getElementById('cam-container');
+  container.innerHTML=`
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:40px 30px;color:#fff;text-align:center">
+      <div style="font-size:3rem">📷</div>
+      <div style="font-size:1rem;font-weight:700">Camera not available</div>
+      <div style="font-size:.875rem;opacity:.7">Pick a sample document to continue the demo</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
+        ${sampleCanvases.map((c,i)=>`<div onclick="useSampleDoc(${i})" style="cursor:pointer;border-radius:10px;overflow:hidden;border:2px solid rgba(255,255,255,.3);width:80px;height:104px"><canvas id="samp-${i}" width="80" height="104"></canvas><div style="font-size:.6rem;text-align:center;padding:3px;color:#fff;opacity:.8">${SAMPLES[i].title}</div></div>`).join('')}
+      </div>
+      <button class="btn btn-white" onclick="triggerGalleryPick()">📁 Pick from gallery</button>
+    </div>`;
+  sampleCanvases.forEach((sc,i)=>{
+    const mini=document.getElementById(`samp-${i}`);
+    if(mini){ mini.getContext('2d').drawImage(sc,0,0,80,104); }
+  });
+}
+
+function useSampleDoc(idx){
+  state.capturedImage = sampleCanvases[idx];
+  stopCamera();
+  goToDetect();
+}
+
+function startDetectionLoop(){
+  detectionInterval=setInterval(()=>{
+    const video=document.getElementById('cam-video');
+    if(!video.readyState||video.readyState<2) return;
+    const proc=document.getElementById('cam-process-canvas');
+    proc.width=video.videoWidth||640;
+    proc.height=video.videoHeight||480;
+    const ctx=proc.getContext('2d');
+    ctx.drawImage(video,0,0);
+    if(window.__opencvReady && typeof cv!=='undefined' && cv.imread){
+      tryOpenCVDetect(proc);
+    } else {
+      // Fallback: simulate detection after 2s
+      simulateDetection();
+    }
+  },300);
+}
+
+let simDetectTimer=null;
+function simulateDetection(){
+  if(simDetectTimer) return;
+  simDetectTimer=setTimeout(()=>{
+    const status=document.getElementById('cam-status');
+    if(status){ status.textContent='Document detected!'; status.classList.add('detected'); }
+    state.detectedQuad=[{x:.08,y:.12},{x:.92,y:.08},{x:.93,y:.88},{x:.07,y:.92}];
+    drawDetectedQuadOnCamera(state.detectedQuad);
+    handleStableDetection();
+  },2000);
+}
+
+function tryOpenCVDetect(canvas){
+  try{
+    const src=cv.imread(canvas);
+    const gray=new cv.Mat(), blur=new cv.Mat(), edges=new cv.Mat();
+    cv.cvtColor(src,gray,cv.COLOR_RGBA2GRAY);
+    cv.GaussianBlur(gray,blur,new cv.Size(5,5),0);
+    cv.Canny(blur,edges,75,200);
+    const contours=new cv.MatVector(), hierarchy=new cv.Mat();
+    cv.findContours(edges,contours,hierarchy,cv.RETR_EXTERNAL,cv.CHAIN_APPROX_SIMPLE);
+    let bestQuad=null, bestArea=0;
+    const minArea=canvas.width*canvas.height*0.15;
+    for(let i=0;i<contours.size();i++){
+      const cnt=contours.get(i);
+      const area=cv.contourArea(cnt);
+      if(area<minArea){cnt.delete();continue;}
+      const peri=cv.arcLength(cnt,true);
+      const approx=new cv.Mat();
+      cv.approxPolyDP(cnt,approx,0.02*peri,true);
+      if(approx.rows===4&&area>bestArea){
+        bestArea=area;
+        bestQuad=[];
+        for(let j=0;j<4;j++){
+          bestQuad.push({x:approx.data32S[j*2]/canvas.width,y:approx.data32S[j*2+1]/canvas.height});
+        }
+      }
+      approx.delete(); cnt.delete();
+    }
+    src.delete();gray.delete();blur.delete();edges.delete();contours.delete();hierarchy.delete();
+    if(bestQuad){
+      state.detectedQuad=orderQuad(bestQuad);
+      drawDetectedQuadOnCamera(state.detectedQuad);
+      const status=document.getElementById('cam-status');
+      if(status){ status.textContent='Document detected!'; status.classList.add('detected'); }
+      handleStableDetection();
+    } else {
+      stableCount=0;
+      const status=document.getElementById('cam-status');
+      if(status){ status.textContent='Align document within the frame'; status.classList.remove('detected'); }
+      clearCanvas(document.getElementById('cam-draw-canvas'));
+    }
+  } catch(e){ /* OpenCV not ready */ }
+}
+
+function orderQuad(pts){
+  // Sort: top-left, top-right, bottom-right, bottom-left
+  const sorted=[...pts].sort((a,b)=>a.y-b.y);
+  const top=sorted.slice(0,2).sort((a,b)=>a.x-b.x);
+  const bot=sorted.slice(2).sort((a,b)=>b.x-a.x);
+  return [top[0],top[1],bot[0],bot[1]];
+}
+
+function drawDetectedQuadOnCamera(quad){
+  const canvas=document.getElementById('cam-draw-canvas');
+  const video=document.getElementById('cam-video');
+  canvas.width=video.clientWidth||canvas.offsetWidth;
+  canvas.height=video.clientHeight||canvas.offsetHeight;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  if(!quad) return;
+  const w=canvas.width, h=canvas.height;
+  ctx.beginPath();
+  ctx.moveTo(quad[0].x*w,quad[0].y*h);
+  for(let i=1;i<4;i++) ctx.lineTo(quad[i].x*w,quad[i].y*h);
+  ctx.closePath();
+  ctx.strokeStyle='#2eaa60'; ctx.lineWidth=3;
+  ctx.shadowColor='rgba(46,170,96,.6)'; ctx.shadowBlur=8;
+  ctx.stroke();
+  ctx.shadowBlur=0;
+  quad.forEach(p=>{
+    ctx.beginPath();
+    ctx.arc(p.x*w,p.y*h,8,0,Math.PI*2);
+    ctx.fillStyle='#2eaa60'; ctx.fill();
+  });
+}
+
+function clearCanvas(c){ if(c){ const ctx=c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height); } }
+
+let autoCaptureTriggered=false;
+function handleStableDetection(){
+  stableCount++;
+  if(cfg.captureSettings.autoCapture&&stableCount>=4&&!autoCaptureTriggered){
+    autoCaptureTriggered=true;
+    stableTimer=setTimeout(()=>{ captureFrame(); },600);
+  }
+}
+
+function captureFrame(){
+  autoCaptureTriggered=false; stableCount=0;
+  const flash=document.getElementById('cam-flash');
+  flash.classList.add('flash');
+  setTimeout(()=>flash.classList.remove('flash'),200);
+  const video=document.getElementById('cam-video');
+  if(video.srcObject&&video.readyState>=2){
+    const c=document.createElement('canvas');
+    c.width=video.videoWidth||640; c.height=video.videoHeight||480;
+    c.getContext('2d').drawImage(video,0,0);
+    state.capturedImage=c;
+  } else {
+    state.capturedImage=sampleCanvases[0]; // fallback
+  }
+  stopCamera();
+  setTimeout(()=>goToDetect(),180);
+}
+
+function triggerGalleryPick(){ document.getElementById('gallery-input').click(); }
+
+function handleGalleryFile(e){
+  const file=e.target.files[0]; if(!file) return;
+  const img=new Image();
+  const url=URL.createObjectURL(file);
+  img.onload=()=>{
+    const c=document.createElement('canvas');
+    c.width=img.naturalWidth; c.height=img.naturalHeight;
+    c.getContext('2d').drawImage(img,0,0);
+    state.capturedImage=c;
+    URL.revokeObjectURL(url);
+    stopCamera();
+    goToDetect();
+  };
+  img.src=url;
+}
+
+let flashOn=false;
+function toggleFlash(){ flashOn=!flashOn; document.getElementById('flash-btn').textContent=flashOn?'🔦':'⚡'; }
+
+function toggleAutoCapture(){
+  cfg.captureSettings.autoCapture=!cfg.captureSettings.autoCapture;
+  document.getElementById('auto-cap-label').textContent=cfg.captureSettings.autoCapture?'Auto ✓':'Auto ✗';
+  updateAutoBadge();
+}
+
+function updateAutoBadge(){
+  const dot=document.getElementById('auto-dot');
+  const label=document.getElementById('auto-label');
+  if(dot){ dot.className='cam-auto-dot'+(cfg.captureSettings.autoCapture?'':' off'); }
+  if(label){ label.textContent=cfg.captureSettings.autoCapture?'Auto':'Manual'; }
+}
+
+// ── Detect screen ───────────────────────────────────────────────────────
+function goToDetect(){
+  showScreen('screen-detect');
+  renderDetectCanvas();
+  setupCornerHandles();
+}
+
+function renderDetectCanvas(){
+  const container=document.getElementById('detect-container');
+  const canvas=document.getElementById('detect-canvas');
+  const src=state.capturedImage;
+  if(!src) return;
+  const maxW=container.clientWidth||360;
+  const maxH=container.clientHeight||500;
+  const scale=Math.min(maxW/src.width,maxH/src.height,1);
+  canvas.width=Math.round(src.width*scale);
+  canvas.height=Math.round(src.height*scale);
+  canvas.style.width=canvas.width+'px';
+  canvas.style.height=canvas.height+'px';
+  canvas.getContext('2d').drawImage(src,0,0,canvas.width,canvas.height);
+
+  // Set corner positions
+  if(state.detectedQuad){
+    state.corners=state.detectedQuad.map(p=>({x:p.x,y:p.y}));
+  } else {
+    state.corners=[{x:.1,y:.1},{x:.9,y:.1},{x:.9,y:.9},{x:.1,y:.9}];
+  }
+  const hint=document.getElementById('detect-hint');
+  if(hint){ hint.textContent=state.detectedQuad?'Document detected — adjust if needed':'Drag corners to select the document area'; }
+  updateCornerHandles();
+  drawQuadOverlay();
+}
+
+function updateCornerHandles(){
+  const canvas=document.getElementById('detect-canvas');
+  const rect=canvas.getBoundingClientRect();
+  state.corners.forEach((c,i)=>{
+    const el=document.getElementById(`ch-${i}`);
+    if(!el) return;
+    el.style.left=(rect.left+c.x*rect.width)+'px';
+    el.style.top=(rect.top+c.y*rect.height)+'px';
+  });
+}
+
+function drawQuadOverlay(){
+  const canvas=document.getElementById('detect-canvas');
+  const svg=document.getElementById('detect-overlay');
+  const rect=canvas.getBoundingClientRect();
+  svg.style.left=rect.left+'px'; svg.style.top=rect.top+'px';
+  svg.style.width=rect.width+'px'; svg.style.height=rect.height+'px';
+  svg.setAttribute('viewBox',`0 0 ${rect.width} ${rect.height}`);
+  const pts=state.corners.map(c=>`${c.x*rect.width},${c.y*rect.height}`).join(' ');
+  svg.innerHTML=`<polygon points="${pts}" fill="rgba(255,95,78,.1)" stroke="#ff5f4e" stroke-width="2.5" stroke-dasharray="6,3"/>`;
+}
+
+// Corner drag
+let draggingCorner=-1;
+document.addEventListener('DOMContentLoaded',()=>{ setupCornerHandles(); });
+function setupCornerHandles(){
+  for(let i=0;i<4;i++){
+    const el=document.getElementById(`ch-${i}`);
+    if(!el) continue;
+    el.onpointerdown=e=>{ e.preventDefault(); draggingCorner=i; el.classList.add('dragging'); el.setPointerCapture(e.pointerId); };
+    el.onpointermove=e=>{ if(draggingCorner!==i) return; moveCorner(i,e); };
+    el.onpointerup=e=>{ draggingCorner=-1; el.classList.remove('dragging'); hideLoupee(); };
+  }
+}
+
+function moveCorner(idx,e){
+  const canvas=document.getElementById('detect-canvas');
+  const rect=canvas.getBoundingClientRect();
+  const nx=Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width));
+  const ny=Math.max(0,Math.min(1,(e.clientY-rect.top)/rect.height));
+  state.corners[idx]={x:nx,y:ny};
+  updateCornerHandles();
+  drawQuadOverlay();
+  showLoupee(idx,e.clientX,e.clientY);
+}
+
+function showLoupee(idx,cx,cy){
+  const loupe=document.getElementById('loupe-canvas');
+  const src=document.getElementById('detect-canvas');
+  const rect=src.getBoundingClientRect();
+  const px=state.corners[idx].x*src.width;
+  const py=state.corners[idx].y*src.height;
+  const r=40, ds=loupe.width=loupe.height=80;
+  const ctx=loupe.getContext('2d');
+  ctx.clearRect(0,0,ds,ds);
+  ctx.save(); ctx.beginPath(); ctx.arc(40,40,38,0,Math.PI*2); ctx.clip();
+  ctx.drawImage(src,px-r,py-r,r*2,r*2,0,0,ds,ds);
+  ctx.restore();
+  ctx.beginPath(); ctx.moveTo(40,30); ctx.lineTo(40,50); ctx.moveTo(30,40); ctx.lineTo(50,40);
+  ctx.strokeStyle='rgba(255,95,78,.8)'; ctx.lineWidth=2; ctx.stroke();
+  loupe.style.display='block';
+  loupe.style.left=(cx-40)+'px'; loupe.style.top=(cy-100)+'px';
+}
+function hideLoupee(){ const l=document.getElementById('loupe-canvas'); if(l) l.style.display='none'; }
+function resetCorners(){ state.corners=[{x:.1,y:.1},{x:.9,y:.1},{x:.9,y:.9},{x:.1,y:.9}]; updateCornerHandles(); drawQuadOverlay(); }
+
+// ── Perspective warp ────────────────────────────────────────────────────
+function cropAndEnhance(){
+  const src=state.capturedImage;
+  if(!src){ showScreen('screen-enhance'); return; }
+  if(window.__opencvReady && typeof cv!=='undefined' && cv.imread){
+    try{
+      const tmp=document.createElement('canvas');
+      tmp.width=src.width||src.naturalWidth||640;
+      tmp.height=src.height||src.naturalHeight||480;
+      tmp.getContext('2d').drawImage(src,0,0,tmp.width,tmp.height);
+      const mat=cv.imread(tmp);
+      const W=tmp.width, H=tmp.height;
+      const srcPts=cv.matFromArray(4,1,cv.CV_32FC2,[
+        state.corners[0].x*W,state.corners[0].y*H,
+        state.corners[1].x*W,state.corners[1].y*H,
+        state.corners[2].x*W,state.corners[2].y*H,
+        state.corners[3].x*W,state.corners[3].y*H
+      ]);
+      const outW=480, outH=640;
+      const dstPts=cv.matFromArray(4,1,cv.CV_32FC2,[0,0,outW,0,outW,outH,0,outH]);
+      const M=cv.getPerspectiveTransform(srcPts,dstPts);
+      const out=new cv.Mat();
+      cv.warpPerspective(mat,out,M,new cv.Size(outW,outH));
+      const outCanvas=document.createElement('canvas');
+      outCanvas.width=outW; outCanvas.height=outH;
+      cv.imshow(outCanvas,out);
+      [mat,srcPts,dstPts,M,out].forEach(m=>m.delete());
+      state.croppedCanvas=outCanvas;
+    } catch(e){ fallbackCrop(); }
+  } else { fallbackCrop(); }
+  buildFilterStrip();
+  applyFilter(cfg.captureSettings.defaultFilter||'auto');
+  showScreen('screen-enhance');
+}
+
+function fallbackCrop(){
+  const src=state.capturedImage;
+  const W=src.width||src.naturalWidth||640;
+  const H=src.height||src.naturalHeight||480;
+  const c=state.corners;
+  const minX=Math.min(c[0].x,c[1].x,c[2].x,c[3].x);
+  const maxX=Math.max(c[0].x,c[1].x,c[2].x,c[3].x);
+  const minY=Math.min(c[0].y,c[1].y,c[2].y,c[3].y);
+  const maxY=Math.max(c[0].y,c[1].y,c[2].y,c[3].y);
+  const cw=Math.round((maxX-minX)*W), ch=Math.round((maxY-minY)*H);
+  const out=document.createElement('canvas');
+  out.width=cw||480; out.height=ch||640;
+  out.getContext('2d').drawImage(src,minX*W,minY*H,cw,ch,0,0,out.width,out.height);
+  state.croppedCanvas=out;
+}
+
+// ── Enhance ─────────────────────────────────────────────────────────────
+const FILTERS=[
+  {id:'original',name:'Original'},
+  {id:'auto',name:'Auto'},
+  {id:'gray',name:'Grayscale'},
+  {id:'bw',name:'B&W Doc'},
+  {id:'color',name:'Color+'},
+  {id:'lighten',name:'Lighten'}
+];
+
+function buildFilterStrip(){
+  const strip=document.getElementById('filter-strip');
+  if(!strip) return;
+  strip.innerHTML='';
+  FILTERS.forEach(f=>{
+    const chip=document.createElement('div');
+    chip.className='filter-chip'+(f.id===state.currentFilter?' active':'');
+    chip.dataset.filter=f.id;
+    chip.onclick=()=>applyFilter(f.id);
+    const thumb=document.createElement('div');
+    thumb.className='filter-thumb';
+    const tc=document.createElement('canvas');
+    tc.width=64; tc.height=80;
+    if(state.croppedCanvas) renderFilterPreview(tc,f.id);
+    thumb.appendChild(tc);
+    const check=document.createElement('div');
+    check.className='filter-check';
+    check.innerHTML='<svg width="22" height="22" viewBox="0 0 22 22"><path d="M5 11l5 5 7-8" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
+    thumb.appendChild(check);
+    chip.appendChild(thumb);
+    const name=document.createElement('div');
+    name.className='filter-name'; name.textContent=f.name;
+    chip.appendChild(name);
+    strip.appendChild(chip);
+  });
+}
+
+function renderFilterPreview(outCanvas, filterId){
+  const src=state.croppedCanvas;
+  if(!src) return;
+  const ctx=outCanvas.getContext('2d');
+  ctx.drawImage(src,0,0,outCanvas.width,outCanvas.height);
+  const imgd=ctx.getImageData(0,0,outCanvas.width,outCanvas.height);
+  processFilter(imgd,filterId,0,0);
+  ctx.putImageData(imgd,0,0);
+}
+
+function processFilter(imgd, filterId, brightness, contrast){
+  const d=imgd.data;
+  const applyBC=(v)=>{
+    let r=(v/255-0.5)*((contrast+100)/100)+0.5+(brightness/255);
+    return Math.max(0,Math.min(255,r*255));
+  };
+  for(let i=0;i<d.length;i+=4){
+    let r=d[i],g=d[i+1],b=d[i+2];
+    switch(filterId){
+      case 'gray':{ const l=0.299*r+0.587*g+0.114*b; r=g=b=l; break; }
+      case 'auto':{ // adaptive: lighten + slight contrast boost
+        const l=0.299*r+0.587*g+0.114*b;
+        const f=(l<128)?1.15:0.95;
+        r=Math.min(255,r*f+8); g=Math.min(255,g*f+8); b=Math.min(255,b*f+8);
+        break;
+      }
+      case 'bw':{ const l=0.299*r+0.587*g+0.114*b; const v=l>140?255:0; r=g=b=v; break; }
+      case 'color':{ r=Math.min(255,r*1.12); g=Math.min(255,g*1.08); b=Math.min(255,b*0.92); break; }
+      case 'lighten':{ r=Math.min(255,r+40); g=Math.min(255,g+40); b=Math.min(255,b+40); break; }
+      default: break;
+    }
+    if(brightness!==0||contrast!==0){ r=applyBC(r); g=applyBC(g); b=applyBC(b); }
+    d[i]=r; d[i+1]=g; d[i+2]=b;
+  }
+}
+
+function applyFilter(filterId){
+  state.currentFilter=filterId;
+  const brightness=parseInt(document.getElementById('sl-brightness')?.value||0);
+  const contrast=parseInt(document.getElementById('sl-contrast')?.value||0);
+  const src=state.croppedCanvas;
+  if(!src) return;
+  const out=document.createElement('canvas');
+  out.width=src.width; out.height=src.height;
+  const ctx=out.getContext('2d');
+  ctx.drawImage(src,0,0);
+  if(filterId!=='original'){
+    const imgd=ctx.getImageData(0,0,out.width,out.height);
+    processFilter(imgd,filterId,brightness,contrast);
+    ctx.putImageData(imgd,0,0);
+  }
+  state.enhancedCanvas=out;
+  // Draw on screen
+  const display=document.getElementById('enhance-canvas');
+  if(display){
+    display.width=out.width; display.height=out.height;
+    display.getContext('2d').drawImage(out,0,0);
+  }
+  // Update strip
+  document.querySelectorAll('.filter-chip').forEach(c=>{
+    c.classList.toggle('active',c.dataset.filter===filterId);
+  });
+}
+
+function applyManual(){
+  const bv=document.getElementById('sl-brightness');
+  const cv2=document.getElementById('sl-contrast');
+  document.getElementById('sl-brightness-val').textContent=bv.value;
+  document.getElementById('sl-contrast-val').textContent=cv2.value;
+  applyFilter(state.currentFilter);
+}
+
+function toggleManualAdjust(){
+  const body=document.getElementById('manual-adjust-body');
+  const caret=document.getElementById('adjust-caret');
+  body.classList.toggle('open');
+  if(caret) caret.textContent=body.classList.contains('open')?'▴':'▾';
+}
+
+let rotationDeg=0;
+function rotateImage(deg){
+  rotationDeg=(rotationDeg+deg+360)%360;
+  const src=state.croppedCanvas; if(!src) return;
+  const sw=src.width, sh=src.height;
+  const rad=deg*Math.PI/180;
+  const nw=Math.abs(sw*Math.cos(rad))+Math.abs(sh*Math.sin(rad));
+  const nh=Math.abs(sw*Math.sin(rad))+Math.abs(sh*Math.cos(rad));
+  const out=document.createElement('canvas');
+  out.width=Math.round(nw); out.height=Math.round(nh);
+  const ctx=out.getContext('2d');
+  ctx.translate(out.width/2,out.height/2);
+  ctx.rotate(rad);
+  ctx.drawImage(src,-sw/2,-sh/2);
+  state.croppedCanvas=out;
+  applyFilter(state.currentFilter);
+  buildFilterStrip();
+}
+function flipImage(){
+  const src=state.croppedCanvas; if(!src) return;
+  const out=document.createElement('canvas');
+  out.width=src.width; out.height=src.height;
+  const ctx=out.getContext('2d');
+  ctx.translate(src.width,0); ctx.scale(-1,1);
+  ctx.drawImage(src,0,0);
+  state.croppedCanvas=out;
+  applyFilter(state.currentFilter);
+  buildFilterStrip();
+}
+
+// ── OCR ──────────────────────────────────────────────────────────────────
+function goToOCR(){
+  showScreen('screen-ocr');
+  // Copy enhanced canvas to OCR display
+  const src=state.enhancedCanvas||state.croppedCanvas;
+  const dest=document.getElementById('ocr-image-canvas');
+  const pane=document.getElementById('ocr-image-pane');
+  if(src&&dest){
+    const scale=Math.min(1,pane.clientWidth/src.width,220/src.height);
+    dest.width=Math.round(src.width*scale);
+    dest.height=Math.round(src.height*scale);
+    dest.style.width='100%'; dest.style.height='100%';
+    dest.getContext('2d').drawImage(src,0,0,dest.width,dest.height);
+  }
+  updateEngineBanner();
+  runOCR();
+}
+
+function updateOCRProgress(text,pct){
+  const bar=document.getElementById('ocr-bar');
+  const txt=document.getElementById('ocr-progress-text');
+  const pctEl=document.getElementById('ocr-progress-pct');
+  if(bar) bar.style.width=pct+'%';
+  if(txt) txt.textContent=text;
+  if(pctEl) pctEl.textContent=pct>0?pct+'%':'';
+}
+
+async function runOCR(){
+  const src=state.enhancedCanvas||state.croppedCanvas;
+  if(!src){ document.getElementById('ocr-textarea').value='No image to process.'; return; }
+  document.getElementById('ocr-scan-bar').classList.add('active');
+  document.getElementById('ocr-conf-badge').style.display='none';
+  document.getElementById('ocr-textarea').value='';
+  updateOCRProgress('Initializing engine…',0);
+  const lang=document.getElementById('ocr-lang')?.value||cfg.captureSettings.defaultLanguage;
+  try{
+    await ocrEngine.initialize();
+    updateOCRProgress('Recognizing text…',20);
+    const result=await ocrEngine.recognize(src,{language:lang,mode:'accurate'});
+    state.ocrResult=result;
+    document.getElementById('ocr-scan-bar').classList.remove('active');
+    updateOCRProgress('Done!',100);
+    document.getElementById('ocr-textarea').value=result.text.trim()||'(No text detected)';
+    showConfidenceBadge(result.confidence);
+    renderWordHighlights(result);
+    setTimeout(()=>{ document.getElementById('ocr-progress-section').style.opacity='0.5'; },1500);
+  } catch(e){
+    document.getElementById('ocr-scan-bar').classList.remove('active');
+    updateOCRProgress('Error: '+e.message,0);
+    document.getElementById('ocr-textarea').value='OCR failed. Try re-enhancing the image or switching engines.';
+  }
+}
+
+function rerunOCR(){ runOCR(); }
+
+function showConfidenceBadge(conf){
+  const badge=document.getElementById('ocr-conf-badge');
+  if(!badge) return;
+  badge.style.display='';
+  const cls=conf>=80?'conf-high':conf>=50?'conf-mid':'conf-low';
+  const icon=conf>=80?'🟢':conf>=50?'🟡':'🔴';
+  badge.className=`conf-badge ${cls}`;
+  badge.textContent=`${icon} ${Math.round(conf)}% confidence`;
+}
+
+function renderWordHighlights(result){
+  const imgCanvas=document.getElementById('ocr-image-canvas');
+  const overlay=document.getElementById('word-overlay');
+  if(!imgCanvas||!overlay) return;
+  overlay.width=imgCanvas.width; overlay.height=imgCanvas.height;
+  overlay.style.width=imgCanvas.style.width; overlay.style.height=imgCanvas.style.height;
+  // Store word boxes for interaction
+  if(!result.blocks) return;
+  const src=state.enhancedCanvas||state.croppedCanvas;
+  if(!src) return;
+  const sw=src.width, sh=src.height;
+  const scaleX=imgCanvas.width/sw, scaleY=imgCanvas.height/sh;
+  const ctx=overlay.getContext('2d');
+  result.blocks.forEach(b=>{
+    b.lines&&b.lines.forEach(l=>{
+      l.words&&l.words.forEach(w=>{
+        if(!w.bbox) return;
+        ctx.strokeStyle='rgba(255,95,78,.6)'; ctx.lineWidth=1.5;
+        ctx.strokeRect(w.bbox.x0*scaleX,w.bbox.y0*scaleY,(w.bbox.x1-w.bbox.x0)*scaleX,(w.bbox.y1-w.bbox.y0)*scaleY);
+      });
+    });
+  });
+}
+
+let currentEngine='tesseract';
+function switchEngine(){
+  currentEngine=currentEngine==='tesseract'?'google-ml':'tesseract';
+  cfg.ocrProvider=currentEngine;
+  ocrEngine=OCREngineFactory.create(currentEngine);
+  document.getElementById('set-engine').value=currentEngine;
+  updateEngineBanner();
+  runOCR();
+}
+
+function updateEngineBanner(){
+  const banner=document.getElementById('engine-banner');
+  const name=document.getElementById('engine-name');
+  const badge=document.getElementById('engine-badge');
+  const dot=document.getElementById('engine-dot');
+  const engPill=document.getElementById('ocr-eng-dot');
+  const engLabel=document.getElementById('ocr-eng-label');
+  const isTess=currentEngine==='tesseract';
+  if(banner){ banner.className='engine-banner'+(isTess?'':' google'); }
+  if(name){ name.textContent=isTess?'Tesseract.js':'Google ML Kit (Stub)'; }
+  if(badge){ badge.textContent=isTess?'Active':'Stub – mock data'; }
+  if(dot){ dot.className='engine-dot'+(isTess?'':' google'); }
+  if(engPill){ engPill.style.background=isTess?'var(--green)':'#4285f4'; }
+  if(engLabel){ engLabel.textContent=isTess?'Tesseract':'Google ML'; }
+}
+
+function updateEngineFromSettings(){
+  currentEngine=document.getElementById('set-engine').value;
+  cfg.ocrProvider=currentEngine;
+  ocrEngine=OCREngineFactory.create(currentEngine);
+  updateEngineBanner();
+}
+
+// ── Review & Save ───────────────────────────────────────────────────────
+function showReview(){
+  showScreen('screen-review');
+  // Draw thumbnail
+  const src=state.enhancedCanvas||state.croppedCanvas;
+  const rc=document.getElementById('review-canvas');
+  if(src&&rc){
+    rc.width=src.width; rc.height=src.height;
+    rc.getContext('2d').drawImage(src,0,0);
+  }
+  // Default title from first OCR line
+  const ocrText=document.getElementById('ocr-textarea')?.value||'';
+  const firstLine=(ocrText.split('\n').find(l=>l.trim().length>3)||'').trim().substring(0,50);
+  const titleDefault=firstLine||`Scan — ${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`;
+  document.getElementById('review-title').value=titleDefault;
+  // Stats
+  const conf=state.ocrResult?.confidence||0;
+  document.getElementById('stat-conf').textContent=conf>0?`${Math.round(conf)}%`:'—';
+  document.getElementById('stat-engine').textContent=state.ocrResult?.engine||currentEngine;
+  const wc=(document.getElementById('ocr-textarea')?.value||'').split(/\s+/).filter(Boolean).length;
+  document.getElementById('stat-words').textContent=wc||'—';
+  document.getElementById('stat-pages').textContent=Math.max(1,state.pages.length)||1;
+  // Multipage
+  updateMultipageStrip();
+}
+
+function selectSaveOption(el,val){
+  document.querySelectorAll('.save-option').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function saveDocument(){
+  const title=document.getElementById('review-title').value||'Scanned Document';
+  const tags=document.getElementById('review-tags').value;
+  const text=document.getElementById('ocr-textarea')?.value||'';
+  const conf=state.ocrResult?.confidence||0;
+  const doc={
+    id:Date.now(),title,tags,text,
+    confidence:conf,
+    engine:state.ocrResult?.engine||currentEngine,
+    enhancedCanvas:state.enhancedCanvas||state.croppedCanvas,
+    createdAt:new Date()
+  };
+  state.savedDocs.push(doc);
+  // Show on home screen
+  updateSavedDocCard(doc);
+  // Confetti
+  launchConfetti(document.getElementById('save-btn'));
+  showToast('Document saved! 📄');
+  setTimeout(()=>showScreen('screen-home'),700);
+}
+
+function updateSavedDocCard(doc){
+  const card=document.getElementById('saved-doc-card');
+  const titleEl=document.getElementById('saved-doc-title');
+  const confEl=document.getElementById('saved-doc-conf');
+  const engEl=document.getElementById('saved-doc-engine');
+  const excerptEl=document.getElementById('saved-doc-excerpt');
+  const thumbEl=document.getElementById('saved-doc-thumb');
+  if(!card) return;
+  if(titleEl) titleEl.textContent=doc.title;
+  const conf=Math.round(doc.confidence);
+  if(confEl){
+    const cls=conf>=80?'conf-high':conf>=50?'conf-mid':'conf-low';
+    const icon=conf>=80?'🟢':conf>=50?'🟡':'🔴';
+    confEl.className=`conf-badge ${cls}`;
+    confEl.textContent=`${icon} ${conf>0?conf+'% confidence':'No OCR'}`;
+  }
+  if(engEl) engEl.textContent=`${doc.engine} · ${(JSON.stringify(doc.text||'').length/1000).toFixed(1)} KB`;
+  if(excerptEl) excerptEl.textContent=doc.text.substring(0,200)+'…';
+  if(thumbEl&&doc.enhancedCanvas){ thumbEl.getContext('2d').drawImage(doc.enhancedCanvas,0,0,64,80); }
+  card.style.display='';
+}
+
+function copyDocText(){
+  const text=state.savedDocs.at(-1)?.text||'';
+  navigator.clipboard.writeText(text).then(()=>showToast('Copied!'));
+}
+function viewFullDoc(){ showToast('Full view coming soon'); }
+function deleteDoc(){
+  document.getElementById('saved-doc-card').style.display='none';
+  state.savedDocs.pop();
+  showToast('Deleted');
+}
+
+// ── Multipage ───────────────────────────────────────────────────────────
+function updateMultipageStrip(){
+  const strip=document.getElementById('multipage-strip');
+  const section=document.getElementById('multipage-section');
+  if(!strip||!section) return;
+  const pages=[state.enhancedCanvas||state.croppedCanvas,...state.pages];
+  if(pages.length<=1){ section.style.display='none'; return; }
+  section.style.display='';
+  strip.innerHTML='';
+  pages.forEach((pg,i)=>{
+    if(!pg) return;
+    const div=document.createElement('div');
+    div.className='multipage-thumb'+(i===state.currentPageIdx?' active':'');
+    div.onclick=()=>{ state.currentPageIdx=i; updateMultipageStrip(); };
+    const c=document.createElement('canvas');
+    c.width=64; c.height=80;
+    c.getContext('2d').drawImage(pg,0,0,64,80);
+    const badge=document.createElement('div');
+    badge.className='multipage-badge'; badge.textContent=i+1;
+    div.appendChild(c); div.appendChild(badge);
+    strip.appendChild(div);
+  });
+  const addBtn=document.createElement('div');
+  addBtn.className='add-page-btn'; addBtn.textContent='+';
+  addBtn.title='Scan another page';
+  addBtn.onclick=()=>{ state.pages.push(state.enhancedCanvas); startCapture(); };
+  strip.appendChild(addBtn);
+}
+
+// ── Utilities ───────────────────────────────────────────────────────────
+function delay(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2400);
+}
+
+const CONFETTI_COLORS=['#ff5f4e','#ff9a6c','#2eaa60','#4285f4','#e0a92a','#aa60c8'];
+function launchConfetti(origin){
+  const rect=origin?.getBoundingClientRect();
+  const cx=rect?(rect.left+rect.width/2):window.innerWidth/2;
+  const cy=rect?(rect.top+rect.height/2):window.innerHeight/2;
+  for(let i=0;i<28;i++){
+    const el=document.createElement('div');
+    el.className='confetti-particle';
+    el.style.cssText=`left:${cx}px;top:${cy}px;background:${CONFETTI_COLORS[i%CONFETTI_COLORS.length]};transform-origin:center;animation-delay:${Math.random()*0.2}s;animation-duration:${0.9+Math.random()*0.6}s`;
+    const angle=Math.random()*Math.PI*2;
+    const dist=40+Math.random()*120;
+    el.style.setProperty('--tx',Math.cos(angle)*dist+'px');
+    el.style.setProperty('--ty',(Math.sin(angle)*dist-dist*0.5)+'px');
+    el.style.transform=`translate(${Math.cos(angle)*dist}px,${Math.sin(angle)*dist-60}px)`;
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),2000);
+  }
+}
+
+// ── OpenCV ready event ──────────────────────────────────────────────────
+document.addEventListener('opencvReady',()=>{
+  window.__opencvReady=true;
+  if(simDetectTimer){ clearTimeout(simDetectTimer); simDetectTimer=null; }
+});
+
+// ── Keyboard: arrow keys for corner nudge ───────────────────────────────
+document.addEventListener('keydown',e=>{
+  if(currentScreen!=='screen-detect') return;
+  if(draggingCorner<0) return;
+  const step=0.005;
+  const c=state.corners[draggingCorner];
+  if(e.key==='ArrowLeft') c.x=Math.max(0,c.x-step);
+  if(e.key==='ArrowRight') c.x=Math.min(1,c.x+step);
+  if(e.key==='ArrowUp') c.y=Math.max(0,c.y-step);
+  if(e.key==='ArrowDown') c.y=Math.min(1,c.y+step);
+  updateCornerHandles(); drawQuadOverlay();
+  e.preventDefault();
+});
+
+// ── Filter strip keyboard navigation ───────────────────────────────────
+document.addEventListener('keydown',e=>{
+  if(currentScreen!=='screen-enhance') return;
+  const ids=FILTERS.map(f=>f.id);
+  const cur=ids.indexOf(state.currentFilter);
+  if(e.key==='ArrowRight'&&cur<ids.length-1) applyFilter(ids[cur+1]);
+  if(e.key==='ArrowLeft'&&cur>0) applyFilter(ids[cur-1]);
+});
+
+// ── Init ────────────────────────────────────────────────────────────────
+updateAutoBadge();
+updateEngineBanner();
+</script>
+</body>
+</html>

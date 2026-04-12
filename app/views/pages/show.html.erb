@@ -76,6 +76,11 @@
     <% end %>
 
     <div class="col-12">
+      <%= render "pages/scanned_documents_section",
+            notebook: @notebook, chapter: @chapter, page: @page %>
+    </div>
+
+    <div class="col-12">
       <div class="ibox">
         <%= form_with model: [@notebook, @chapter, @page],
           data: { photo_capture_auto_save: true, controller: "photo-capture" },
