@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <defs>
+    <linearGradient id="leaf-bg" x1="24" y1="20" x2="168" y2="172" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#193d2a" />
+      <stop offset="1" stop-color="#5a9a63" />
+    </linearGradient>
+    <linearGradient id="leaf-fill" x1="64" y1="48" x2="138" y2="138" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f3f8ee" />
+      <stop offset="1" stop-color="#d9f0bf" />
+    </linearGradient>
+  </defs>
+  <rect width="192" height="192" rx="48" fill="url(#leaf-bg)" />
+  <path d="M145 46c-31 5-55 18-71 37-21 24-28 52-23 82 30 5 58-2 82-23 19-16 32-40 37-71l4-25-29 0z" fill="url(#leaf-fill)" />
+  <path d="M67 126c18-19 42-35 72-49" fill="none" stroke="#214f35" stroke-linecap="round" stroke-width="10" />
+  <path d="M88 103c9 1 18 4 27 8" fill="none" stroke="#214f35" stroke-linecap="round" stroke-width="8" />
+  <path d="M100 84c8 1 16 4 24 8" fill="none" stroke="#214f35" stroke-linecap="round" stroke-width="8" />
+</svg>

@@ -1,4 +1,4 @@
-const SHELL_CACHE = "inkcreate-shell-v9";
+const SHELL_CACHE = "inkcreate-shell-v10";
 const OFFLINE_URL = "/offline.html";
 const DB_NAME = "inkcreate-pwa";
 const DB_VERSION = 3;
@@ -8,6 +8,9 @@ const SYNC_STORE = "syncEvents";
 const PREFERENCES_STORE = "appPreferences";
 const NOTIFICATION_PREFERENCE_ID = "notificationPreferences";
 const SYNC_NOTIFICATION_TAG = "inkcreate-sync-status";
+const NOTIFICATION_ICON = "/icons/notification-leaf.svg";
+const NOTIFICATION_BADGE = "/icons/notification-badge-leaf.svg";
+const REMINDER_VIBRATE_PATTERN = [180, 60, 180, 60, 240];
 const SHELL_ASSET_PREFIXES = ["/scripts/", "/inapp/", "/icons/"];
 const SHELL_ASSET_PATHS = [OFFLINE_URL, "/manifest.json"];
 
@@ -17,6 +20,8 @@ self.addEventListener("install", (event) => {
       OFFLINE_URL,
       "/manifest.json",
       "/icons/app-icon.svg",
+      "/icons/notification-leaf.svg",
+      "/icons/notification-badge-leaf.svg",
       "/inapp/inapp_admin.css",
       "/inapp/inapp_admin.js",
       "/inapp/inapp_workspace.css",
@@ -210,8 +215,9 @@ async function handlePushEvent(event) {
     body: payload.body || "A reminder is due now.",
     tag: payload.tag || `push-${Date.now()}`,
     renotify: true,
-    icon: "/icons/app-icon.svg",
-    badge: "/icons/app-icon.svg",
+    icon: NOTIFICATION_ICON,
+    badge: NOTIFICATION_BADGE,
+    vibrate: REMINDER_VIBRATE_PATTERN,
     data: {
       url: payload.url || "/app",
       reminderId: payload.reminder_id || null
@@ -278,8 +284,8 @@ async function notifyReplayResult(syncedCount, attemptedCount) {
     body,
     tag: SYNC_NOTIFICATION_TAG,
     renotify: true,
-    icon: "/icons/app-icon.svg",
-    badge: "/icons/app-icon.svg",
+    icon: NOTIFICATION_ICON,
+    badge: NOTIFICATION_BADGE,
     data: { url: "/capture" }
   });
 }

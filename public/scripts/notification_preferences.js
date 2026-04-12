@@ -3,6 +3,8 @@ import { localStore } from "/scripts/indexed-db.js";
 const PREFERENCE_ID = "notificationPreferences";
 const NOTIFICATION_TAG = "inkcreate-device-notifications";
 const SYNC_NOTIFICATION_TAG = "inkcreate-sync-status";
+const NOTIFICATION_ICON = "/icons/notification-leaf.svg";
+const NOTIFICATION_BADGE = "/icons/notification-badge-leaf.svg";
 const DEFAULT_PREFERENCE = {
   id: PREFERENCE_ID,
   enabled: true,
@@ -116,8 +118,8 @@ export async function showNotificationConfirmation({
 
   await registration.showNotification(title, {
     body,
-    icon: "/icons/app-icon.svg",
-    badge: "/icons/app-icon.svg",
+    icon: NOTIFICATION_ICON,
+    badge: NOTIFICATION_BADGE,
     tag: NOTIFICATION_TAG,
     renotify: false,
     data: { url: "/capture" }
