@@ -3,9 +3,10 @@
   "configurations": [
     {
       "name": "Rails (Puma)",
-      "runtimeExecutable": "bin/rails",
-      "runtimeArgs": ["server"],
-      "port": 3002
+      "runtimeExecutable": "docker-compose",
+      "runtimeArgs": ["up", "web"],
+      "port": 8080,
+      "autoPort": false
     },
     {
       "name": "Tailwind CSS Watch",

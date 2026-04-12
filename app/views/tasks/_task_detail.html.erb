@@ -1,0 +1,232 @@
+<%
+  done_sub, total_sub = task.subtask_progress
+%>
+<div class="task-detail" data-task-id="<%= task.id %>">
+
+  <%# ── Drawer header ──────────────────────────────────────────────── %>
+  <div class="task-detail-header">
+    <div class="task-detail-header-left">
+      <span class="task-detail-priority-dot task-stripe--<%= task.priority %>" aria-label="Priority: <%= task.priority %>"></span>
+      <h2 class="task-detail-title">Task details</h2>
+    </div>
+    <button class="task-action-btn" data-action="task-manager#closeDetail" aria-label="Close">
+      <i class="ti ti-x" aria-hidden="true"></i>
+    </button>
+  </div>
+
+  <%# ── Edit form ──────────────────────────────────────────────────── %>
+  <%= form_with model: task, url: task_path(task), method: :patch, class: "task-detail-form", data: { action: "submit->task-manager#handleDetailSubmit" } do |f| %>
+
+    <%# Title %>
+    <div class="task-detail-field">
+      <%= f.text_field :title, value: task.title,
+        class: "task-detail-title-input",
+        placeholder: "Task title",
+        required: true %>
+    </div>
+
+    <%# Description %>
+    <div class="task-detail-field">
+      <label class="task-detail-label">Description</label>
+      <%= f.text_area :description, value: task.description,
+        class: "task-detail-textarea",
+        placeholder: "Add notes…",
+        rows: 3 %>
+    </div>
+
+    <%# Property grid %>
+    <div class="task-detail-prop-grid">
+
+      <div class="task-detail-prop">
+        <label class="task-detail-label">Priority</label>
+        <%= f.select :priority,
+          Task.priorities.keys.map { |p| [p.humanize, p] },
+          { selected: task.priority },
+          class: "task-detail-select" %>
+      </div>
+
+      <div class="task-detail-prop">
+        <label class="task-detail-label">Severity</label>
+        <%= f.select :severity,
+          Task.severities.keys.map { |s| [s.humanize, s] },
+          { selected: task.severity },
+          class: "task-detail-select" %>
+      </div>
+
+      <div class="task-detail-prop">
+        <label class="task-detail-label">Due date</label>
+        <%= f.date_field :due_date, value: task.due_date, class: "task-detail-select" %>
+      </div>
+
+      <div class="task-detail-prop">
+        <label class="task-detail-label">Reminder</label>
+        <%= f.datetime_local_field :reminder_at, value: task.reminder_at&.strftime("%Y-%m-%dT%H:%M"), class: "task-detail-select" %>
+      </div>
+
+      <div class="task-detail-prop task-detail-prop--full">
+        <label class="task-detail-label">Recurrence</label>
+        <div class="task-recurrence-row">
+          <% Task::RECURRENCES.each do |rec| %>
+            <label class="task-recurrence-option">
+              <input type="radio" name="task[reminder_recurrence]" value="<%= rec %>" <%= "checked" if (task.reminder_recurrence || "none") == rec %> />
+              <%= rec.capitalize %>
+            </label>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="task-detail-prop task-detail-prop--full">
+        <label class="task-detail-label">Tags</label>
+        <%= f.text_field :tags_input,
+          value: task.tags_array.join(", "),
+          name: "task[tags_input]",
+          placeholder: "design, launch, bug…",
+          class: "task-detail-select" %>
+      </div>
+
+      <div class="task-detail-prop task-detail-prop--full">
+        <label class="task-detail-label">Linked resource</label>
+
+        <%# Current link pill (shown when a link exists) %>
+        <% if task.has_link? %>
+          <% lp = task_link_path(task) %>
+          <div class="task-pill task-pill--link task-link-current-pill" style="margin-bottom:8px">
+            <i class="ti ti-link" aria-hidden="true"></i>
+            <% if lp %>
+              <a href="<%= lp %>" class="task-link-pill-text" target="_blank"><%= task.link_label %></a>
+            <% else %>
+              <span class="task-link-pill-text"><%= task.link_label %></span>
+            <% end %>
+            <button type="button" data-action="task-manager#clearLink"
+                    class="task-detail-clear-link" aria-label="Remove link">
+              <i class="ti ti-x" aria-hidden="true"></i>
+            </button>
+          </div>
+        <% end %>
+
+        <div class="task-link-fields">
+          <%# Hidden ID fields — one per resource type, no name conflicts %>
+          <input type="hidden" name="task[link_notebook_id]"  value="<%= task.link_notebook_id %>" />
+          <input type="hidden" name="task[link_chapter_id]"   value="<%= task.link_chapter_id %>" />
+          <input type="hidden" name="task[link_page_id]"      value="<%= task.link_page_id %>" />
+          <input type="hidden" name="task[link_resource_id]"  value="<%= task.link_resource_id %>" />
+
+          <%# Type selector %>
+          <select name="task[link_type]" class="task-detail-select"
+                  data-action="change->task-manager#onLinkTypeChange"
+                  data-task-manager-target="linkTypeSelect">
+            <option value="">— No link —</option>
+            <option value="notebook" <%= "selected" if task.link_type == "notebook" %>>Notebook</option>
+            <option value="chapter"  <%= "selected" if task.link_type == "chapter"  %>>Chapter</option>
+            <option value="page"     <%= "selected" if task.link_type == "page"     %>>Page</option>
+            <option value="voice"    <%= "selected" if task.link_type == "voice"    %>>Voice note</option>
+            <option value="photo"    <%= "selected" if task.link_type == "photo"    %>>Photo / Capture</option>
+            <option value="todo"     <%= "selected" if task.link_type == "todo"     %>>Page-level Todo</option>
+          </select>
+
+          <%# Search combobox — shown whenever a type is selected %>
+          <div class="task-link-search"
+               data-task-manager-target="linkSearch"
+               <%= "hidden" if task.link_type.blank? %>>
+            <div class="task-link-search-wrap">
+              <i class="ti ti-search task-link-search-icon" aria-hidden="true"></i>
+              <input type="text"
+                     class="task-link-search-input"
+                     data-task-manager-target="linkSearchInput"
+                     data-action="input->task-manager#onLinkSearchInput
+                                  focus->task-manager#onLinkSearchFocus
+                                  keydown->task-manager#onLinkSearchKeydown"
+                     placeholder="Search…"
+                     autocomplete="off" />
+            </div>
+            <div class="task-link-dropdown"
+                 data-task-manager-target="linkDropdown"
+                 hidden></div>
+          </div>
+
+          <%# Confirmed label (auto-filled on selection, also manually editable) %>
+          <input type="text" name="task[link_label]"
+                 value="<%= task.link_label %>"
+                 class="task-detail-select"
+                 data-task-manager-target="linkLabelInput"
+                 placeholder="Label (auto-filled when you pick a result)" />
+        </div>
+      </div>
+
+    </div>
+
+    <div class="task-detail-actions-row">
+      <button type="submit" class="btn btn-primary btn-sm">Save changes</button>
+      <button type="button" class="btn btn-white btn-sm" data-action="task-manager#closeDetail">Cancel</button>
+    </div>
+  <% end %>
+
+  <%# ── Subtasks ────────────────────────────────────────────────────── %>
+  <div class="task-detail-section">
+    <div class="task-detail-section-header">
+      <span class="task-detail-label">Subtasks</span>
+      <% if total_sub > 0 %>
+        <span class="task-subtask-progress"><%= done_sub %>/<%= total_sub %></span>
+      <% end %>
+    </div>
+
+    <div class="task-subtask-list">
+      <% task.task_subtasks.ordered.each do |sub| %>
+        <div class="task-subtask-row <%= "task-subtask-row--done" if sub.completed? %>" id="subtask-<%= sub.id %>">
+          <%= form_with url: task_subtask_path(sub), method: :patch, class: "task-subtask-toggle-form" do |f| %>
+            <%= f.hidden_field :completed, value: (!sub.completed?).to_s %>
+            <button type="submit" class="task-check-btn task-check-btn--sm"
+                    role="checkbox"
+                    aria-checked="<%= sub.completed? %>"
+                    aria-label="<%= sub.completed? ? "Mark open" : "Mark done" %>">
+              <i class="ti ti-check" aria-hidden="true"></i>
+            </button>
+          <% end %>
+          <span class="task-subtask-title"><%= sub.title %></span>
+          <%= button_to task_subtask_path(sub),
+            method: :delete,
+            class: "task-action-btn task-action-btn--sm task-action-btn--danger task-subtask-delete" do %>
+            <i class="ti ti-x" aria-hidden="true"></i>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+
+    <%# Add subtask form %>
+    <%= form_with url: task_task_subtasks_path(task), method: :post, class: "task-subtask-add-form" do |f| %>
+      <%= f.text_field :title,
+        name: "task_subtask[title]",
+        placeholder: "Add subtask… press Enter",
+        class: "task-subtask-add-input",
+        autocomplete: "off" %>
+    <% end %>
+  </div>
+
+  <%# ── Sync to page ───────────────────────────────────────────────── %>
+  <div class="task-detail-section task-detail-sync">
+    <div class="task-detail-label">↗ Sync to page-level Todo</div>
+    <p class="task-detail-sync-note">
+      Tasks and page-level Todos are separate features. You can reference a specific Notepad/page Todo in the link field above, or promote a Todo to this Task list using the To-do's "Promote" action.
+    </p>
+  </div>
+
+  <%# ── Activity / danger zone ─────────────────────────────────────── %>
+  <div class="task-detail-section">
+    <div class="task-detail-label">Activity</div>
+    <div class="task-detail-activity">
+      <div>Created <%= task.created_at.strftime("%-d %b %Y at %-I:%M %p") %></div>
+      <% if task.completed_at? %>
+        <div>Completed <%= task.completed_at.strftime("%-d %b %Y at %-I:%M %p") %></div>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="task-detail-danger">
+    <%= button_to task_path(task), method: :delete,
+      form: { data: { turbo_confirm: "Delete this task? This cannot be undone." } },
+      class: "btn btn-white btn-sm task-detail-delete-btn" do %>
+      <i class="ti ti-trash" aria-hidden="true"></i> Delete task
+    <% end %>
+  </div>
+
+</div>

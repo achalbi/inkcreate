@@ -1,5 +1,10 @@
 <%
   todo_lists_available = TodoList.schema_ready? && TodoItem.schema_ready?
+  voice_notes_available = VoiceNote.schema_ready?
+  voice_note_count = voice_notes_available ? @page.voice_notes.size : 0
+  todo_progress_label = if todo_lists_available && @page.todo_list&.enabled?
+    "#{@page.todo_list.completed_count}/#{@page.todo_list.total_count} to-dos"
+  end
 %>
 
 <div class="wrapper wrapper-content animated fadeInRight">
@@ -35,12 +40,18 @@
             <p class="detail-overview-notes detail-overview-notes--empty">No notes added yet.</p>
           <% end %>
           <p class="m-b-none detail-overview-meta">
+            <span class="label label-default"><%= pluralize(@page.photos.count, "photo") %></span>
+            <% if voice_notes_available %>
+              <span class="label label-default"><%= pluralize(voice_note_count, "voice note") %></span>
+            <% end %>
+            <% if todo_progress_label.present? %>
+              <span class="label label-default"><%= todo_progress_label %></span>
+            <% end %>
             <% if @page.captured_on.present? %>
               <span class="label label-info"><%= @page.captured_on.strftime("%b %-d, %Y") %></span>
             <% else %>
               <span class="label label-default">No date yet</span>
             <% end %>
-            <span class="label label-default"><%= pluralize(@page.photos.count, "photo") %></span>
           </p>
         </div>
       </div>
@@ -48,7 +59,7 @@
   </section>
 
   <section class="row notes-gallery-row">
-    <% if VoiceNote.schema_ready? %>
+    <% if voice_notes_available %>
       <div class="col-12">
         <%= render "pages/voice_notes_section", notebook: @notebook, chapter: @chapter, page: @page %>
       </div>
@@ -65,33 +76,62 @@
     <% end %>
 
     <div class="col-12">
+      <%= render "pages/scanned_documents_section",
+            notebook: @notebook, chapter: @chapter, page: @page %>
+    </div>
+
+    <div class="col-12">
       <div class="ibox">
-        <div class="ibox-title">
-          <div class="detail-photo-gallery-heading">
-            <h5 class="detail-photo-gallery-title">Photo gallery</h5>
-            <span class="label label-info detail-photo-gallery-count"><%= @page.photos.count %></span>
-          </div>
-          <div class="ibox-tools">
-            <%= link_to "Manage photos", edit_notebook_chapter_page_path(@notebook, @chapter, @page), class: "btn btn-white btn-sm" %>
-            <%= render "shared/ibox_toggle_button", target_id: dom_id(@page, :gallery_content) %>
-          </div>
-        </div>
-        <div id="<%= dom_id(@page, :gallery_content) %>" class="ibox-content collapse show">
-          <% if @page.photos.attached? %>
-            <div class="detail-photo-grid detail-photo-grid--gallery">
-              <% @page.photos.attachments.sort_by(&:created_at).reverse_each do |attachment| %>
-                <% photo = attachment.blob %>
-                <div class="detail-photo-grid__item">
-                  <div class="thumbnail">
-                    <%= render "shared/photo_lightbox", photo:, alt: @page.display_title, image_style: "width: 100%; height: 240px; object-fit: cover;" %>
-                  </div>
-                </div>
-              <% end %>
+        <%= form_with model: [@notebook, @chapter, @page],
+          data: { photo_capture_auto_save: true, controller: "photo-capture" },
+          html: { class: "detail-photo-gallery-actions-form" } do |form| %>
+          <%= render "shared/photo_gallery_actions",
+            form:,
+            tips_target_id: dom_id(@page, :gallery_capture_tips),
+            render_buttons: false,
+            render_field: false %>
+
+          <div class="ibox-title">
+            <div class="detail-photo-gallery-heading">
+              <h5 class="detail-photo-gallery-title">Photo gallery</h5>
+              <span class="label label-info detail-photo-gallery-count"><%= @page.photos.count %></span>
             </div>
-          <% else %>
-            <%= render "shared/empty_state", title: "No photos yet", description: "Upload one or more photos to keep this page visually complete." %>
-          <% end %>
-        </div>
+            <div class="ibox-tools d-flex align-items-center gap-2">
+              <%= render "shared/photo_gallery_actions",
+                form:,
+                tips_target_id: dom_id(@page, :gallery_capture_tips),
+                include_camera_input: false,
+                render_field: false %>
+              <%= render "shared/ibox_toggle_button", target_id: dom_id(@page, :gallery_content) %>
+            </div>
+          </div>
+          <div id="<%= dom_id(@page, :gallery_content) %>" class="ibox-content collapse show">
+            <%= render "shared/photo_gallery_actions",
+              form:,
+              tips_target_id: dom_id(@page, :gallery_capture_tips),
+              include_camera_input: false,
+              render_buttons: false %>
+
+            <% if @page.photos.attached? %>
+              <div class="detail-photo-grid detail-photo-grid--gallery">
+                <% @page.photos.attachments.sort_by(&:created_at).reverse_each do |attachment| %>
+                  <div class="detail-photo-grid__item">
+                    <div class="thumbnail">
+                      <%= render "shared/photo_lightbox",
+                        photo: attachment,
+                        alt: @page.display_title,
+                        image_style: "width: 100%; height: 240px; object-fit: cover;",
+                        removal_path: photo_notebook_chapter_page_path(@notebook, @chapter, @page, attachment),
+                        removal_message: "This photo will be removed from the page." %>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            <% else %>
+              <%= render "shared/empty_state", title: "No photos yet", description: "Upload one or more photos to keep this page visually complete." %>
+            <% end %>
+          </div>
+        <% end %>
       </div>
     </div>
   </section>

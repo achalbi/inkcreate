@@ -1,0 +1,29 @@
+<div
+  class="modal fade voice-note-delete-confirm-modal"
+  id="<%= modal_id %>"
+  tabindex="-1"
+  aria-labelledby="<%= "#{modal_id}-label" %>"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title" id="<%= "#{modal_id}-label" %>">Delete voice note?</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body pt-2">
+        <p class="mb-0 text-secondary">
+          <%= message %>
+        </p>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <form action="<%= delete_path %>" method="post">
+          <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+          <input type="hidden" name="_method" value="delete">
+          <button type="submit" class="btn btn-danger btn-sm">Delete voice note</button>
+        </form>
+        <button type="button" class="btn btn-white btn-sm" data-bs-dismiss="modal">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -39,7 +39,8 @@ Rails.application.routes.draw do
               patch :reorder
             end
           end
-          resources :voice_notes, only: %i[create destroy]
+          resources :voice_notes,       only: %i[create destroy]
+          resources :scanned_documents, only: %i[create destroy]
         end
       end
     end
@@ -58,7 +59,8 @@ Rails.application.routes.draw do
           patch :reorder
         end
       end
-      resources :voice_notes, only: %i[create destroy]
+      resources :voice_notes,       only: %i[create destroy]
+      resources :scanned_documents, only: %i[create destroy]
     end
   end
 
@@ -79,7 +81,16 @@ Rails.application.routes.draw do
     resources :reference_links, only: :create, controller: "capture_reference_links"
     resources :tasks, only: :create, controller: "capture_tasks"
   end
-  resources :tasks, only: %i[index create update]
+  resources :tasks, only: %i[index show create update destroy] do
+    collection do
+      get  :link_search
+      post :promote_from_todo
+    end
+    member do
+      patch :toggle_complete
+    end
+    resources :task_subtasks, only: %i[create update destroy], shallow: true
+  end
   resources :reminders, only: %i[index show edit create update destroy] do
     member do
       patch :dismiss
@@ -117,6 +128,10 @@ Rails.application.routes.draw do
 
   namespace :internal do
     resources :ocr_jobs, only: [] do
+      post :perform, on: :member
+    end
+
+    resources :reminders, only: [] do
       post :perform, on: :member
     end
 
