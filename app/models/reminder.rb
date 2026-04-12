@@ -107,6 +107,6 @@ class Reminder < ApplicationRecord
     return unless dispatchable?
     return if fire_at.blank?
 
-    DispatchDueRemindersJob.set(wait_until: fire_at).perform_later(id)
+    Async::Dispatcher.enqueue_reminder(id, fire_at: fire_at)
   end
 end

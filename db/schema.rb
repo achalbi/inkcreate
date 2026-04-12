@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_11_170000) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_12_180100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -437,6 +437,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_11_170000) do
     t.index ["user_id"], name: "index_tags_on_user_id"
   end
 
+  create_table "task_subtasks", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.boolean "completed", default: false, null: false
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.integer "position", default: 0, null: false
+    t.uuid "task_id", null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.index ["task_id", "position"], name: "index_task_subtasks_on_task_id_and_position"
+    t.index ["task_id"], name: "index_task_subtasks_on_task_id"
+  end
+
   create_table "tasks", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "capture_id"
     t.boolean "completed", default: false, null: false
@@ -445,8 +457,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_11_170000) do
     t.uuid "daily_log_id"
     t.text "description"
     t.date "due_date"
+    t.string "link_chapter_id"
+    t.string "link_label"
+    t.string "link_notebook_id"
+    t.string "link_page_id"
+    t.string "link_resource_id"
+    t.string "link_type"
     t.integer "priority", default: 0, null: false
     t.uuid "project_id"
+    t.datetime "reminder_at"
+    t.string "reminder_recurrence", default: "none", null: false
+    t.integer "severity", default: 0, null: false
+    t.text "tags", default: "[]", null: false
     t.string "title", null: false
     t.datetime "updated_at", null: false
     t.uuid "user_id", null: false
@@ -562,6 +584,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_11_170000) do
   add_foreign_key "reminders", "users"
   add_foreign_key "sync_jobs", "users"
   add_foreign_key "tags", "users"
+  add_foreign_key "task_subtasks", "tasks"
   add_foreign_key "tasks", "captures"
   add_foreign_key "tasks", "daily_logs"
   add_foreign_key "tasks", "projects"

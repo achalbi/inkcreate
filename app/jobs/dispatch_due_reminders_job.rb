@@ -32,7 +32,25 @@ class DispatchDueRemindersJob < ApplicationJob
     end
 
     reminder.user.enabled_devices_for_push.find_each do |device|
-      DeliverReminderPushJob.perform_later(reminder.id, device.id)
+      deliver_push(reminder, device)
     end
+  end
+
+  def deliver_push(reminder, device)
+    DeliverReminderPushJob.deliver(
+      reminder: reminder,
+      device: device,
+      request_id: Current.request_id
+    )
+  rescue StandardError => error
+    Observability::EventLogger.info(
+      event: "reminders.push_delivery_failed",
+      payload: {
+        reminder_id: reminder.id,
+        device_id: device.id,
+        error_class: error.class.name,
+        error_message: error.message
+      }
+    )
   end
 end

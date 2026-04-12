@@ -1,70 +1,257 @@
-<div class="workspace-page">
-    <%= render "shared/workspace_header",
-      breadcrumbs: [["Home", dashboard_path], "Tasks"],
-      eyebrow: "Tasks",
-      title: "Extracted actions and manual tasks in one place.",
-      description: "Tasks can come from AI summaries or be created manually from capture context, then tracked across projects and days." %>
+<div class="wrapper wrapper-content animated fadeInRight" data-controller="task-manager" data-task-manager-filter-value="<%= @tasks_filter %>">
 
-    <section class="workspace-grid workspace-grid-halves">
-      <article class="dashboard-card workspace-panel">
-        <div class="section-header">
-          <div class="eyebrow">Create task</div>
-          <h2>Manual task entry</h2>
-        </div>
-        <%= form_with model: @task, url: tasks_path, class: "auth-form" do |form| %>
-          <div class="field">
-            <%= form.label :title %>
-            <%= form.text_field :title, required: true %>
-          </div>
-          <div class="field">
-            <%= form.label :description %>
-            <%= form.text_area :description, rows: 4 %>
-          </div>
-          <div class="auth-form-row">
-            <div class="field">
-              <%= form.label :priority %>
-              <%= form.select :priority, Task.priorities.keys.map { |priority| [priority.humanize, priority] } %>
-            </div>
-            <div class="field">
-              <%= form.label :due_date %>
-              <%= form.date_field :due_date %>
-            </div>
-          </div>
-          <%= form.submit "Create task", class: "button button-primary" %>
-        <% end %>
-      </article>
+  <%# ── Header ─────────────────────────────────────────────────────────── %>
+  <div class="workspace-index-actions">
+    <div class="workspace-index-actions__left">
+      <h1 class="tasks-page-title">Tasks</h1>
+      <span class="tasks-page-subtitle"><%= pluralize(@counts[:active], "active task") %> · <%= @counts[:done] %> done</span>
+    </div>
+    <div class="workspace-index-actions__right">
+      <button class="btn btn-white btn-sm" data-action="task-manager#openQuickAdd" aria-label="New task">
+        <i class="ti ti-plus" aria-hidden="true"></i>
+        New task
+      </button>
+    </div>
+  </div>
 
-      <article class="dashboard-card workspace-panel">
-        <div class="section-header">
-          <div class="eyebrow">Task list</div>
-          <h2>Open and completed work</h2>
+  <%# ── Quick-add panel (collapsed by default) ─────────────────────────── %>
+  <div class="task-quick-add-panel" data-task-manager-target="quickAddPanel" aria-hidden="true" style="display:none">
+    <section class="ibox">
+      <div class="ibox-title">
+        <h5>New task</h5>
+        <div class="ibox-tools">
+          <button class="btn btn-xs btn-white" data-action="task-manager#closeQuickAdd" aria-label="Cancel">
+            <i class="ti ti-x" aria-hidden="true"></i>
+          </button>
         </div>
-        <% if @tasks.any? %>
-          <div class="capture-list">
-            <% @tasks.each do |task| %>
-              <article class="capture-card">
-                <div class="capture-card-top">
-                  <div>
-                    <div class="mini-label"><%= task.priority.humanize %> priority</div>
-                    <h3><%= task.title %></h3>
-                  </div>
-                  <span class="role-chip"><%= task.completed? ? "Done" : "Open" %></span>
-                </div>
-                <p><%= task.description.presence || "No description." %></p>
-                <div class="capture-meta">
-                  <span><%= task.project&.title || task.daily_log&.display_title || task.capture&.display_title || "General" %></span>
-                  <span><%= task.due_date&.strftime("%b %-d, %Y") || "No due date" %></span>
-                </div>
-                <%= form_with model: task, url: task_path(task), method: :patch, class: "inline-form" do |form| %>
-                  <%= form.hidden_field :completed, value: (!task.completed?).to_s %>
-                  <%= form.submit(task.completed? ? "Mark open" : "Mark complete", class: "mini-button mini-button-primary") %>
-                <% end %>
-              </article>
-            <% end %>
+      </div>
+      <div class="ibox-content collapse show">
+        <%= form_with url: tasks_path(filter: @tasks_filter), method: :post, class: "task-quick-add-form", data: { action: "submit->task-manager#handleQuickAddSubmit" } do |f| %>
+          <div class="task-quick-add-row">
+            <%= f.text_field :title,
+              name: "task[title]",
+              placeholder: "Task title… press Enter to save",
+              required: true,
+              autocomplete: "off",
+              class: "task-quick-add-input",
+              data: { task_manager_target: "quickAddInput" } %>
           </div>
-        <% else %>
-          <%= render "shared/empty_state", title: "No tasks yet", description: "Tasks extracted from captures and tasks added manually will show up here." %>
+          <div class="task-quick-add-meta">
+            <div class="field-inline">
+              <%= f.select :priority, Task.priorities.keys.map { |p| [p.humanize, p] },
+                { selected: "medium" },
+                name: "task[priority]",
+                class: "task-meta-select" %>
+            </div>
+            <div class="field-inline">
+              <%= f.select :severity, Task.severities.keys.map { |s| [s.humanize, s] },
+                { selected: "minor" },
+                name: "task[severity]",
+                class: "task-meta-select" %>
+            </div>
+            <div class="field-inline">
+              <%= f.date_field :due_date, name: "task[due_date]", class: "task-meta-select", placeholder: "Due date" %>
+            </div>
+            <div class="field-inline">
+              <%= f.text_field :tags_input, name: "task[tags_input]", placeholder: "Tags (comma-separated)", class: "task-meta-select" %>
+            </div>
+          </div>
+          <div class="task-quick-add-actions">
+            <%= f.submit "Add task", class: "btn btn-primary btn-sm" %>
+            <button type="button" class="btn btn-white btn-sm" data-action="task-manager#closeQuickAdd">Cancel</button>
+          </div>
         <% end %>
-      </article>
+      </div>
     </section>
+  </div>
+
+  <%# ── Filter tabs + sort/group ──────────────────────────────────────── %>
+  <div class="task-toolbar">
+    <div class="task-filter-tabs" role="tablist">
+      <% [
+        ["all",     "All",     @counts[:all]],
+        ["active",  "Active",  @counts[:active]],
+        ["done",    "Done",    @counts[:done]],
+        ["overdue", "Overdue", @counts[:overdue]],
+        ["today",   "Today",   @counts[:today]]
+      ].each do |filter, label, count| %>
+        <%= link_to tasks_path(filter: filter, sort: @tasks_sort, group: @tasks_group, tag: @tag_filter),
+          class: ["task-filter-tab", ("active" if @tasks_filter == filter)].compact.join(" "),
+          role: "tab",
+          aria: { selected: (@tasks_filter == filter) } do %>
+          <%= label %> <span class="task-filter-tab-count"><%= count %></span>
+        <% end %>
+      <% end %>
+    </div>
+
+    <div class="task-toolbar-right">
+      <% if @tag_filter.present? %>
+        <span class="task-tag-filter-pill">
+          #<%= @tag_filter %>
+          <%= link_to tasks_path(filter: @tasks_filter, sort: @tasks_sort, group: @tasks_group), class: "task-tag-filter-clear" do %>
+            <i class="ti ti-x" aria-hidden="true"></i>
+          <% end %>
+        </span>
+      <% end %>
+
+      <%= form_with url: tasks_path, method: :get, class: "task-sort-form", data: { action: "change->task-manager#submitSortForm" } do |f| %>
+        <%= f.hidden_field :filter, value: @tasks_filter %>
+        <%= f.hidden_field :group, value: @tasks_group %>
+        <%= f.hidden_field :tag, value: @tag_filter %>
+        <%= f.select :sort,
+          [["Sort: Manual","manual"],["Sort: Priority","priority"],["Sort: Due date","due"],["Sort: Created","created"]],
+          { selected: @tasks_sort },
+          class: "task-meta-select" %>
+      <% end %>
+
+      <%= form_with url: tasks_path, method: :get, class: "task-sort-form", data: { action: "change->task-manager#submitGroupForm" } do |f| %>
+        <%= f.hidden_field :filter, value: @tasks_filter %>
+        <%= f.hidden_field :sort, value: @tasks_sort %>
+        <%= f.hidden_field :tag, value: @tag_filter %>
+        <%= f.select :group,
+          [["Group: None","none"],["Group: Priority","priority"],["Group: Severity","severity"],["Group: Due date","due"]],
+          { selected: @tasks_group },
+          class: "task-meta-select" %>
+      <% end %>
+    </div>
+  </div>
+
+  <%# ── Progress bar ───────────────────────────────────────────────────── %>
+  <% total = @counts[:all]; done_count = @counts[:done] %>
+  <% pct = total.zero? ? 0 : (done_count.to_f / total * 100).round %>
+  <div class="task-progress-row">
+    <div class="task-progress-bar" role="progressbar" aria-valuenow="<%= done_count %>" aria-valuemax="<%= total %>">
+      <div class="task-progress-fill" style="width: <%= pct %>%"></div>
+    </div>
+    <span class="task-progress-label"><%= done_count %> / <%= total %></span>
+  </div>
+
+  <%# ── Task list ──────────────────────────────────────────────────────── %>
+  <div class="task-list" data-task-manager-target="list">
+    <% if @tasks.empty? %>
+      <div class="task-empty-state">
+        <i class="ti ti-checkbox task-empty-icon" aria-hidden="true"></i>
+        <h3>Nothing here</h3>
+        <p>
+          <% if @tasks_filter == "all" %>
+            Add a task above or press <kbd>N</kbd> to get started.
+          <% else %>
+            No tasks match the "<%= @tasks_filter %>" filter.
+            <%= link_to "See all tasks", tasks_path %>
+          <% end %>
+        </p>
+      </div>
+    <% else %>
+      <% grouped = group_tasks_for_display(@tasks, @tasks_group) %>
+      <% grouped.each do |group_label, group_tasks| %>
+        <% if group_label.present? %>
+          <div class="task-group-heading">
+            <span><%= group_label %></span>
+            <span class="task-group-count"><%= group_tasks.size %></span>
+          </div>
+        <% end %>
+        <% group_tasks.each do |task| %>
+          <%= render "tasks/task_card", task: task, filter: @tasks_filter, sort: @tasks_sort, group: @tasks_group, tag_filter: @tag_filter %>
+        <% end %>
+      <% end %>
+    <% end %>
+  </div>
+
+  <%# ── Detail drawer ──────────────────────────────────────────────────── %>
+  <div class="task-detail-backdrop" data-task-manager-target="backdrop" data-action="click->task-manager#closeDetail" aria-hidden="true"></div>
+  <aside class="task-detail-drawer" data-task-manager-target="drawer" role="dialog" aria-modal="true" aria-label="Task details">
+    <div class="task-detail-drawer-inner" data-task-manager-target="drawerContent">
+      <%# content injected by task-manager Stimulus controller via fetch %>
+    </div>
+  </aside>
+
+  <%# ── New-task modal (mobile bottom sheet / desktop centred modal) ─── %>
+  <div class="task-new-modal-backdrop"
+       data-task-manager-target="newModalBackdrop"
+       data-action="click->task-manager#closeNewModal"
+       aria-hidden="true"></div>
+
+  <div class="task-new-modal"
+       data-task-manager-target="newModal"
+       role="dialog"
+       aria-modal="true"
+       aria-labelledby="taskNewModalTitle"
+       aria-hidden="true">
+
+    <div class="task-new-modal-handle" aria-hidden="true"></div>
+
+    <div class="task-new-modal-header">
+      <h2 class="task-new-modal-title" id="taskNewModalTitle">New task</h2>
+      <button class="task-action-btn"
+              data-action="task-manager#closeNewModal"
+              aria-label="Close">
+        <i class="ti ti-x" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <%= form_with url: tasks_path(filter: @tasks_filter),
+                  method: :post,
+                  class: "task-new-modal-form",
+                  data: { action: "submit->task-manager#handleNewModalSubmit" } do |f| %>
+
+      <%# Title %>
+      <%= f.text_field :title,
+        name: "task[title]",
+        placeholder: "What needs to be done?",
+        required: true,
+        autocomplete: "off",
+        class: "task-new-modal-title-input",
+        data: { task_manager_target: "newModalInput" } %>
+
+      <%# Description %>
+      <%= f.text_area :description,
+        name: "task[description]",
+        placeholder: "Add notes…",
+        rows: 2,
+        class: "task-new-modal-desc" %>
+
+      <%# Quick properties %>
+      <div class="task-new-modal-props">
+        <div class="task-new-modal-prop">
+          <label class="task-new-modal-prop-label">Priority</label>
+          <%= f.select :priority,
+            Task.priorities.keys.map { |p| [p.humanize, p] },
+            { selected: "medium" },
+            name: "task[priority]",
+            class: "task-new-modal-select" %>
+        </div>
+        <div class="task-new-modal-prop">
+          <label class="task-new-modal-prop-label">Severity</label>
+          <%= f.select :severity,
+            Task.severities.keys.map { |s| [s.humanize, s] },
+            { selected: "minor" },
+            name: "task[severity]",
+            class: "task-new-modal-select" %>
+        </div>
+        <div class="task-new-modal-prop">
+          <label class="task-new-modal-prop-label">Due date</label>
+          <%= f.date_field :due_date,
+            name: "task[due_date]",
+            class: "task-new-modal-select" %>
+        </div>
+        <div class="task-new-modal-prop">
+          <label class="task-new-modal-prop-label">Tags</label>
+          <%= f.text_field :tags_input,
+            name: "task[tags_input]",
+            placeholder: "launch, bug…",
+            class: "task-new-modal-select" %>
+        </div>
+      </div>
+
+      <div class="task-new-modal-footer">
+        <%= f.submit "Add task", class: "btn btn-primary" %>
+        <button type="button"
+                class="btn btn-white"
+                data-action="task-manager#closeNewModal">
+          Cancel
+        </button>
+      </div>
+    <% end %>
+  </div>
+
 </div>

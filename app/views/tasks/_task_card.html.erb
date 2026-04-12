@@ -1,0 +1,123 @@
+<%
+  done_sub, total_sub = task.subtask_progress
+  overdue = task.overdue?
+  due_soon = !overdue && task.due_date.present? && task.due_date == Date.current
+%>
+<article class="task-card task-card--<%= task.priority %> <%= "task-card--done" if task.completed? %>"
+         id="task-<%= task.id %>"
+         data-task-id="<%= task.id %>"
+         aria-label="<%= task.title %>">
+
+  <%# ── Priority stripe (left edge) ─────────────────────────────────── %>
+  <div class="task-card-stripe task-stripe--<%= task.priority %>" aria-hidden="true"></div>
+
+  <div class="task-card-body">
+    <%# ── Checkbox ───────────────────────────────────────────────────── %>
+    <%= form_with url: toggle_complete_task_path(task, filter: filter, sort: sort, group: group, tag: tag_filter),
+        method: :patch, class: "task-check-form" do |f| %>
+      <button type="submit"
+              class="task-check-btn"
+              role="checkbox"
+              aria-checked="<%= task.completed? %>"
+              aria-label="<%= task.completed? ? "Mark open" : "Mark complete" %>">
+        <i class="ti ti-check" aria-hidden="true"></i>
+      </button>
+    <% end %>
+
+    <%# ── Main content ──────────────────────────────────────────────── %>
+    <div class="task-card-content" data-action="click->task-manager#openDetail" data-task-id="<%= task.id %>">
+      <div class="task-card-title-row">
+        <span class="task-card-title"><%= task.title %></span>
+        <span class="task-severity-badge task-severity-badge--<%= task.severity %>"><%= task.severity.upcase %></span>
+        <% task.tags_array.each do |tag| %>
+          <%= link_to tasks_path(filter: filter, sort: sort, group: group, tag: tag),
+            class: "task-tag-chip",
+            aria: { label: "Filter by ##{tag}" } do %>
+            #<%= tag %>
+          <% end %>
+        <% end %>
+      </div>
+
+      <%# ── Meta pills ────────────────────────────────────────────────── %>
+      <% has_meta = task.reminder_at? || task.due_date? || task.has_link? || total_sub > 0 %>
+      <% if has_meta %>
+        <div class="task-card-meta">
+          <%# Reminder pill %>
+          <% if task.reminder_at? %>
+            <span class="task-pill task-pill--reminder">
+              <i class="ti ti-bell" aria-hidden="true"></i>
+              <%= task.reminder_at.strftime("%-d %b · %-I:%M %p") %>
+              <% if task.reminder_recurrence != "none" %>
+                · <%= task.reminder_recurrence %>
+              <% end %>
+            </span>
+          <% end %>
+
+          <%# Due date pill %>
+          <% if task.due_date? %>
+            <span class="task-pill <%= overdue ? "task-pill--overdue" : (due_soon ? "task-pill--soon" : "") %>">
+              <i class="ti ti-calendar" aria-hidden="true"></i>
+              <%= task.due_date.strftime("%-d %b") %>
+              <% if overdue %><span class="sr-only">(overdue)</span><% end %>
+            </span>
+          <% end %>
+
+          <%# Link pill — clickable when IDs are stored %>
+          <% if task.has_link? %>
+            <% lp = task_link_path(task) %>
+            <% if lp %>
+              <%= link_to lp,
+                class: "task-pill task-pill--link task-pill--link-nav",
+                title: task.link_label,
+                aria: { label: "Open linked resource" } do %>
+                <i class="ti ti-link" aria-hidden="true"></i>
+                <%= truncate(task.link_label.to_s, length: 36) %>
+                <i class="ti ti-arrow-up-right task-pill-nav-icon" aria-hidden="true"></i>
+              <% end %>
+            <% else %>
+              <span class="task-pill task-pill--link" title="<%= task.link_label %>">
+                <i class="ti ti-link" aria-hidden="true"></i>
+                <%= truncate(task.link_label.to_s, length: 40) %>
+              </span>
+            <% end %>
+          <% end %>
+
+          <%# Subtask progress %>
+          <% if total_sub > 0 %>
+            <span class="task-pill">
+              <i class="ti ti-list-check" aria-hidden="true"></i>
+              <%= done_sub %>/<%= total_sub %>
+            </span>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+
+    <%# ── Hover actions ─────────────────────────────────────────────── %>
+    <div class="task-card-actions" aria-label="Task actions">
+      <button class="task-action-btn <%= "task-action-btn--active" if task.reminder_at? %>"
+              data-action="task-manager#openDetail"
+              data-task-id="<%= task.id %>"
+              aria-label="Edit task">
+        <i class="ti ti-edit" aria-hidden="true"></i>
+      </button>
+
+      <button class="task-action-btn task-action-btn--flag task-action-btn--flag-<%= task.priority %>"
+              data-action="task-manager#cyclePriority"
+              data-task-id="<%= task.id %>"
+              data-task-priority="<%= task.priority %>"
+              data-update-url="<%= task_path(task) %>"
+              aria-label="Priority: <%= task.priority %>">
+        <i class="ti ti-flag" aria-hidden="true"></i>
+      </button>
+
+      <%= button_to task_path(task, filter: filter, sort: sort, group: group, tag: tag_filter),
+        method: :delete,
+        form: { data: { turbo_confirm: "Delete this task? This cannot be undone." } },
+        class: "task-action-btn task-action-btn--danger",
+        aria: { label: "Delete task" } do %>
+        <i class="ti ti-trash" aria-hidden="true"></i>
+      <% end %>
+    </div>
+  </div>
+</article>

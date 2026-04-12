@@ -14,7 +14,7 @@ class DispatchDueRemindersJobTest < ActiveSupport::TestCase
     )
   end
 
-  test "marks a due reminder triggered and enqueues one push job per enabled device" do
+  test "marks a due reminder triggered and delivers one push payload per enabled device" do
     user = build_user(email: "dispatch-reminder@example.com")
     enabled_device = user.devices.create!(
       user_agent: "Chrome",
@@ -33,15 +33,21 @@ class DispatchDueRemindersJobTest < ActiveSupport::TestCase
       title: "Standup follow-up",
       fire_at: 5.minutes.ago
     )
+    deliveries = []
 
     clear_enqueued_jobs
 
-    assert_enqueued_with(job: DeliverReminderPushJob, args: [reminder.id, enabled_device.id]) do
-      DispatchDueRemindersJob.perform_now(reminder.id)
+    WebPushDeliverer.stub(:configured?, true) do
+      WebPushDeliverer.stub(:deliver, ->(device:, payload:) { deliveries << { device: device, payload: payload } }) do
+        DispatchDueRemindersJob.perform_now(reminder.id)
+      end
     end
 
     reminder.reload
     assert reminder.status_triggered?
     assert_not_nil reminder.last_triggered_at
+    assert_equal 1, deliveries.size
+    assert_equal enabled_device.id, deliveries.first[:device].id
+    assert_equal reminder.title, deliveries.first[:payload][:title]
   end
 end

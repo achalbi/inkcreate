@@ -12,12 +12,15 @@ module Async
       end
     end
 
-    def enqueue(queue:, path:)
+    def enqueue(queue:, path:, schedule_at: nil)
+      task = {
+        http_request: http_request(path)
+      }
+      task[:schedule_time] = schedule_time(schedule_at) if schedule_at.present?
+
       client.create_task(
         parent: queue_path(queue),
-        task: {
-          http_request: http_request(path)
-        }
+        task: task
       )
     end
 
@@ -55,6 +58,15 @@ module Async
       end
 
       request
+    end
+
+    def schedule_time(schedule_at)
+      return if schedule_at.blank?
+
+      timestamp = Google::Protobuf::Timestamp.new
+      timestamp.seconds = schedule_at.to_i
+      timestamp.nanos = schedule_at.nsec
+      timestamp
     end
   end
 end

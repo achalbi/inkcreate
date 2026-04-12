@@ -1,0 +1,53 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Rails (Puma)",
+      "runtimeExecutable": "bin/rails",
+      "runtimeArgs": ["server"],
+      "port": 3002
+    },
+    {
+      "name": "Tailwind CSS Watch",
+      "runtimeExecutable": "bin/rails",
+      "runtimeArgs": ["tailwindcss:watch"],
+      "port": null
+    },
+    {
+      "name": "Sidekiq Worker",
+      "runtimeExecutable": "bundle",
+      "runtimeArgs": ["exec", "sidekiq", "-C", "config/sidekiq.yml"],
+      "port": null
+    },
+    {
+      "name": "Docker Web",
+      "runtimeExecutable": "docker-compose",
+      "runtimeArgs": ["up", "web"],
+      "port": 8080
+    },
+    {
+      "name": "Docker Worker",
+      "runtimeExecutable": "docker-compose",
+      "runtimeArgs": ["up", "worker"],
+      "port": null
+    },
+    {
+      "name": "Docker Postgres",
+      "runtimeExecutable": "docker-compose",
+      "runtimeArgs": ["up", "postgres"],
+      "port": 5432
+    },
+    {
+      "name": "Docker Redis",
+      "runtimeExecutable": "docker-compose",
+      "runtimeArgs": ["up", "redis"],
+      "port": 6379
+    },
+    {
+      "name": "Vite Dev (inapp)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "inapp-1.0.0"],
+      "port": 5173
+    }
+  ]
+}

@@ -41,6 +41,8 @@ Add `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` to `.env` for l
 
 Keep the same keypair for a given environment after users subscribe, otherwise existing device subscriptions may stop working until they re-enable notifications.
 
+On Cloud Run production, reminders now use scheduled Cloud Tasks from `CLOUD_TASKS_REMINDERS_QUEUE`. You do not need a separate Cloud Scheduler cron just to fire reminder notifications.
+
 ## Docker Compose deploy
 
 1. Create runtime env:

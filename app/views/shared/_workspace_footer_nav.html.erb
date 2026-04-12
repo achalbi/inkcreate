@@ -47,13 +47,13 @@
 
         <%= link_to tasks_path,
           class: "mobile-footer-action-menu__item mobile-footer-action-menu__item--todo",
-          title: "To-do",
-          aria: { label: "Create to-do" },
+          title: "Tasks",
+          aria: { label: "Open tasks" },
           data: { action: "click->footer-action-menu#close", footer_action_menu_target: "item" } do %>
           <span class="mobile-footer-action-menu__item-icon" aria-hidden="true">
-            <i class="ti ti-square-rounded-plus"></i>
+            <i class="ti ti-checkbox"></i>
           </span>
-          <span class="mobile-footer-action-menu__item-label">To-do</span>
+          <span class="mobile-footer-action-menu__item-label">Tasks</span>
         <% end %>
       </div>
 

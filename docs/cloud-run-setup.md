@@ -326,11 +326,13 @@ Then choose one of these service layouts:
 
 The deploy pipeline will also:
 
-- create the Cloud Tasks queues named by `_CLOUD_TASKS_OCR_QUEUE` and `_CLOUD_TASKS_DRIVE_QUEUE` if they are missing
+- create the Cloud Tasks queues named by `_CLOUD_TASKS_OCR_QUEUE`, `_CLOUD_TASKS_DRIVE_QUEUE`, and `_CLOUD_TASKS_REMINDERS_QUEUE` if they are missing
 - try to grant `roles/iam.serviceAccountUser` from `_RUNTIME_SERVICE_ACCOUNT` to `_CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL`
 - try to grant `roles/run.invoker` on `_WORKER_SERVICE` to `_CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL`
 
 If the Cloud Build service account cannot update IAM policies, those deploy-time grant steps log warnings and continue. In that case, apply the IAM bindings manually before expecting Cloud Tasks OIDC calls to work.
+
+Reminder notifications do not need a separate Cloud Scheduler job. In production, each reminder now schedules its own Cloud Task into `_CLOUD_TASKS_REMINDERS_QUEUE` at `fire_at`, and the worker dispatches the push when that task arrives.
 
 The secret-name substitutions should usually stay at their defaults unless you rename the secrets:
 
