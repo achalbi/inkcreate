@@ -7268,3 +7268,23 @@ body.task-modal-open { overflow: hidden; }
   opacity: 0.6;
   margin-left: 1px;
 }
+
+/* ── Promote to Task button (todo list items) ───────────────────────────── */
+.todo-list-item__promote-form {
+  display: inline-flex;
+  align-items: center;
+}
+
+.todo-list-item__promote-button {
+  color: var(--inapp-muted, #888);
+  transition: color .15s ease, background .15s ease;
+}
+
+.todo-list-item__promote-button:hover {
+  color: var(--inapp-primary, #ff5f4e);
+  background: rgba(255, 95, 78, 0.08) !important;
+}
+
+.todo-list-item__promote-button .ti {
+  font-size: 1rem;
+}

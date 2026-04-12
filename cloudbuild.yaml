@@ -376,9 +376,9 @@ substitutions:
   _ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY_SECRET: inkcreate-active-record-encryption-deterministic-key
   _ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT_SECRET: inkcreate-active-record-encryption-key-derivation-salt
   _INTERNAL_TASK_TOKEN_SECRET: inkcreate-internal-task-token
-  _VAPID_PUBLIC_KEY_SECRET: ''
-  _VAPID_PRIVATE_KEY_SECRET: ''
-  _VAPID_SUBJECT_SECRET: ''
+  _VAPID_PUBLIC_KEY_SECRET: inkcreate-vapid-public-key
+  _VAPID_PRIVATE_KEY_SECRET: inkcreate-vapid-private-key
+  _VAPID_SUBJECT_SECRET: inkcreate-vapid-subject
   _SENTRY_DSN_SECRET: ''
   _API_CPU: '1'
   _API_MEMORY: 1Gi
