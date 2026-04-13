@@ -1,5 +1,5 @@
 <%
-  docs = notepad_entry.scanned_documents.includes(:enhanced_image_attachment).recent_first
+  docs = notepad_entry.scanned_documents.with_attached_enhanced_image.with_attached_document_pdf.recent_first
   post_url = notepad_entry_scanned_documents_path(notepad_entry)
 %>
 
@@ -12,7 +12,7 @@
 >
   <div class="ibox-title">
     <div class="detail-photo-gallery-heading">
-      <h5 class="detail-photo-gallery-title">📄 Scanned Documents</h5>
+      <h5 class="detail-photo-gallery-title">Scanned documents</h5>
       <span class="label label-info detail-photo-gallery-count"><%= docs.size %></span>
     </div>
     <div class="ibox-tools d-flex align-items-center gap-2">
@@ -22,7 +22,7 @@
         data-action="click->document-capture#open"
         aria-label="Scan a document"
       >
-        <i class="ti ti-scan"></i> Scan
+        <i class="ti ti-scan" aria-hidden="true"></i> Scan
       </button>
       <%= render "shared/ibox_toggle_button", target_id: dom_id(notepad_entry, :scanned_documents_content) %>
     </div>
@@ -38,10 +38,12 @@
               <div class="sdoc-header">
                 <div class="sdoc-title"><%= doc.title.presence || "Untitled scan" %></div>
                 <div class="sdoc-meta">
-                  <span class="sdoc-conf-badge <%= doc.confidence_class %>">
-                    <%= doc.confidence_label %> confidence
-                  </span>
-                  <span class="sdoc-engine-label"><%= doc.ocr_engine %> · <%= doc.created_at.strftime("%-d %b") %></span>
+                  <% if doc.ocr_confidence.present? %>
+                    <span class="sdoc-conf-badge <%= doc.confidence_class %>">
+                      <%= doc.confidence_label %> confidence
+                    </span>
+                  <% end %>
+                  <span class="sdoc-engine-label"><%= doc.status_label %></span>
                 </div>
               </div>
 
@@ -49,37 +51,65 @@
                 <% if doc.enhanced_image.attached? %>
                   <%= image_tag doc.enhanced_image, class: "sdoc-thumb", alt: doc.title %>
                 <% else %>
-                  <div class="sdoc-thumb sdoc-thumb--placeholder">📄</div>
+                  <div class="sdoc-thumb sdoc-thumb--placeholder">
+                    <i class="ti ti-file-text" aria-hidden="true"></i>
+                  </div>
                 <% end %>
                 <p class="sdoc-excerpt">
-                  <%= truncate(doc.extracted_text.to_s.strip, length: 220) %>
+                  <%= doc.ocr_completed? ? truncate(doc.extracted_text.to_s.strip, length: 220) : "OCR not run yet. Save is complete and the PDF is ready." %>
                 </p>
               </div>
 
               <div class="sdoc-actions">
-                <button
-                  type="button"
-                  class="btn btn-white btn-sm"
-                  data-action="click->document-capture#copyText"
-                  data-text="<%= j doc.extracted_text.to_s %>"
-                  title="Copy extracted text"
-                >📋 Copy</button>
+                <%= button_to extract_text_notepad_entry_scanned_document_path(notepad_entry, doc),
+                    method: :post,
+                    class: "btn btn-white btn-sm",
+                    data: {
+                      action: "click->document-capture#runOcr",
+                      image_url: (ocr_source_notepad_entry_scanned_document_path(notepad_entry, doc) if doc.enhanced_image.attached?),
+                      native_ocr_url: submit_ocr_result_notepad_entry_scanned_document_path(notepad_entry, doc),
+                      document_id: doc.id,
+                      document_title: doc.title.presence || "Untitled scan"
+                    },
+                    title: doc.ocr_action_label do %>
+                  <i class="ti ti-search" aria-hidden="true"></i>
+                  <%= doc.ocr_action_label %>
+                <% end %>
 
-                <button
-                  type="button"
-                  class="btn btn-white btn-sm"
-                  data-action="click->document-capture#viewFull"
-                  data-text="<%= j doc.extracted_text.to_s %>"
-                  data-title="<%= j doc.title.to_s %>"
-                  title="View full text"
-                >🔍 View</button>
+                <% if doc.document_pdf.attached? %>
+                  <%= link_to rails_blob_path(doc.document_pdf, disposition: "attachment"),
+                      class: "btn btn-white btn-sm",
+                      title: "Download PDF" do %>
+                    <i class="ti ti-download" aria-hidden="true"></i> PDF
+                  <% end %>
+                <% end %>
+
+                <% if doc.ocr_completed? %>
+                  <button
+                    type="button"
+                    class="btn btn-white btn-sm"
+                    data-action="click->document-capture#copyText"
+                    data-text="<%= j doc.extracted_text.to_s %>"
+                    title="Copy extracted text"
+                  ><i class="ti ti-copy" aria-hidden="true"></i> Copy</button>
+
+                  <button
+                    type="button"
+                    class="btn btn-white btn-sm"
+                    data-action="click->document-capture#viewFull"
+                    data-text="<%= j doc.extracted_text.to_s %>"
+                    data-title="<%= j doc.title.to_s %>"
+                    title="View full text"
+                  ><i class="ti ti-eye" aria-hidden="true"></i> View</button>
+                <% end %>
 
                 <%= button_to notepad_entry_scanned_document_path(notepad_entry, doc),
                     method: :delete,
                     form: { data: { turbo_confirm: "Delete this scan?" } },
                     class: "btn btn-white btn-sm sdoc-delete-btn",
                     title: "Delete" do %>
-                  🗑
+                  <i class="ti ti-trash" aria-hidden="true"></i>
+                  <span class="sr-only">Delete</span>
                 <% end %>
               </div>
             </div>
@@ -88,14 +118,16 @@
       </div>
     <% else %>
       <div class="sdoc-empty-state">
-        <div class="sdoc-empty-icon">📄</div>
+        <div class="sdoc-empty-icon">
+          <i class="ti ti-file-text" aria-hidden="true"></i>
+        </div>
         <div class="sdoc-empty-title">No scanned documents yet</div>
-        <div class="sdoc-empty-sub">Photograph a physical document and extract its text automatically.</div>
+        <div class="sdoc-empty-sub">Capture a document as a PDF now and run OCR later only when you need text extraction.</div>
         <button
           type="button"
           class="btn btn-primary btn-sm"
           data-action="click->document-capture#open"
-        >📷 Scan your first document</button>
+        ><i class="ti ti-scan" aria-hidden="true"></i> Scan your first document</button>
       </div>
     <% end %>
   </div>

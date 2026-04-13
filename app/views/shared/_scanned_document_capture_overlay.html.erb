@@ -3,7 +3,7 @@
 
   <%# Stage indicator %>
   <div class="dcap-stage-bar" data-document-capture-target="stageBar">
-    <% ["Capture","Detect","Enhance","OCR","Save"].each_with_index do |s,i| %>
+    <% ["Capture","Detect","Enhance","Save"].each_with_index do |s,i| %>
       <div class="dcap-stage-pill" data-stage="<%= i+1 %>"><%= s %></div>
     <% end %>
   </div>
@@ -13,7 +13,9 @@
     <div class="dcap-topbar">
       <button class="dcap-icon-btn" data-action="click->document-capture#close" aria-label="Cancel">✕</button>
       <span class="dcap-topbar-title">Scan Document</span>
-      <button class="dcap-icon-btn" data-action="click->document-capture#toggleFlash" data-document-capture-target="flashBtn" aria-label="Flash">⚡</button>
+      <button class="dcap-icon-btn" data-action="click->document-capture#toggleFlash" data-document-capture-target="flashBtn" aria-label="Flash">
+        <i class="ti ti-bolt" aria-hidden="true"></i>
+      </button>
     </div>
     <div class="dcap-flash-note" data-document-capture-target="flashHint" hidden></div>
     <div class="dcap-cam-container" data-document-capture-target="camContainer">
@@ -40,7 +42,14 @@
       </div>
       <button class="dcap-shutter" data-action="click->document-capture#captureFrame" aria-label="Capture"></button>
       <div class="dcap-side-btn" data-action="click->document-capture#toggleAuto" aria-label="Auto-capture">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M7 4H5a1 1 0 0 0-1 1v2"/>
+          <path d="M17 4h2a1 1 0 0 1 1 1v2"/>
+          <path d="M20 17v2a1 1 0 0 1-1 1h-2"/>
+          <path d="M7 20H5a1 1 0 0 1-1-1v-2"/>
+          <rect x="8" y="8" width="8" height="8" rx="1"/>
+          <circle cx="12" cy="12" r="1.5"/>
+        </svg>
         <span data-document-capture-target="autoCapLabel">Auto ✓</span>
       </div>
     </div>
@@ -99,58 +108,14 @@
     </div>
     <div class="dcap-footer-row">
       <button class="btn btn-white dcap-btn" data-action="click->document-capture#goToScreen2">← Back</button>
-      <button class="btn btn-primary dcap-btn" data-action="click->document-capture#goToScreen4">Extract text →</button>
+      <button class="btn btn-primary dcap-btn" data-action="click->document-capture#goToScreen4">Save PDF →</button>
     </div>
   </div>
 
-  <%# ── Stage 4: OCR ────────────────────────────────────────────────── %>
+  <%# ── Stage 4: Review & Save ──────────────────────────────────────── %>
   <div class="dcap-screen" data-screen="4" data-document-capture-target="screen4" hidden>
     <div class="dcap-topbar">
       <button class="dcap-icon-btn" data-action="click->document-capture#goToScreen3" aria-label="Back">←</button>
-      <span class="dcap-topbar-title">Extract Text</span>
-      <button class="dcap-icon-btn dcap-icon-btn--accent" data-action="click->document-capture#goToScreen5" aria-label="Next">→</button>
-    </div>
-    <div class="dcap-ocr-engine-bar" data-document-capture-target="engineBar">
-      <div class="dcap-engine-dot" data-document-capture-target="engineDot"></div>
-      <span data-document-capture-target="engineName">Tesseract.js</span>
-      <span class="dcap-engine-stub-badge" data-document-capture-target="engineStubBadge" hidden>Stub</span>
-      <button class="btn btn-sm btn-white" style="margin-left:auto;padding:4px 10px;font-size:.7rem" data-action="click->document-capture#switchEngine">Switch</button>
-      <select class="dcap-lang-select" data-document-capture-target="langSelect" data-action="change->document-capture#rerunOCR">
-        <option value="eng">English</option>
-        <option value="fra">French</option>
-        <option value="deu">German</option>
-        <option value="spa">Spanish</option>
-        <option value="hin">Hindi</option>
-        <option value="jpn">Japanese</option>
-        <option value="chi_sim">Chinese</option>
-      </select>
-    </div>
-    <div class="dcap-ocr-image-pane" data-document-capture-target="ocrImagePane">
-      <canvas data-document-capture-target="ocrCanvas"></canvas>
-      <div class="dcap-scan-bar" data-document-capture-target="scanBar"></div>
-    </div>
-    <div class="dcap-ocr-progress">
-      <div class="dcap-ocr-progress-row">
-        <span data-document-capture-target="ocrProgressText" aria-live="polite">Ready…</span>
-        <span data-document-capture-target="ocrProgressPct" class="dcap-ocr-pct"></span>
-      </div>
-      <div class="dcap-ocr-track"><div class="dcap-ocr-bar" data-document-capture-target="ocrBar"></div></div>
-    </div>
-    <div class="dcap-conf-row">
-      <span class="dcap-conf-badge" data-document-capture-target="confBadge" hidden></span>
-      <button class="btn btn-white btn-sm" data-action="click->document-capture#rerunOCR">↻ Re-run</button>
-    </div>
-    <textarea class="dcap-ocr-textarea" data-document-capture-target="ocrTextarea" placeholder="Extracted text will appear here…" spellcheck="false"></textarea>
-    <div class="dcap-footer-row">
-      <button class="btn btn-white dcap-btn" data-action="click->document-capture#goToScreen3">← Re-enhance</button>
-      <button class="btn btn-primary dcap-btn" data-action="click->document-capture#goToScreen5">Save ✓</button>
-    </div>
-  </div>
-
-  <%# ── Stage 5: Review & Save ──────────────────────────────────────── %>
-  <div class="dcap-screen" data-screen="5" data-document-capture-target="screen5" hidden>
-    <div class="dcap-topbar">
-      <button class="dcap-icon-btn" data-action="click->document-capture#goToScreen4" aria-label="Back">←</button>
       <span class="dcap-topbar-title">Review & Save</span>
     </div>
     <div class="dcap-review-scroll">
@@ -165,9 +130,9 @@
         <input type="text" class="dcap-review-input" data-document-capture-target="reviewTags" placeholder="meeting, notes, q1…" />
       </div>
       <div class="dcap-footer-row" style="padding-bottom:32px">
-        <button class="btn btn-white dcap-btn" data-action="click->document-capture#goToScreen4">← Edit</button>
+        <button class="btn btn-white dcap-btn" data-action="click->document-capture#goToScreen3">← Edit</button>
         <button class="btn btn-primary dcap-btn" data-document-capture-target="saveBtn" data-action="click->document-capture#save">
-          Save ✓
+          Save PDF
         </button>
       </div>
     </div>
@@ -178,7 +143,9 @@
     <div class="dcap-topbar">
       <button class="dcap-icon-btn" data-action="click->document-capture#closeViewer" aria-label="Close">✕</button>
       <span class="dcap-topbar-title" data-document-capture-target="viewerTitle">Extracted text</span>
-      <button class="dcap-icon-btn" data-action="click->document-capture#copyViewer" aria-label="Copy">📋</button>
+      <button class="dcap-icon-btn" data-action="click->document-capture#copyViewer" aria-label="Copy">
+        <i class="ti ti-copy" aria-hidden="true"></i>
+      </button>
     </div>
     <textarea class="dcap-viewer-text" data-document-capture-target="viewerText" readonly spellcheck="false"></textarea>
   </div>

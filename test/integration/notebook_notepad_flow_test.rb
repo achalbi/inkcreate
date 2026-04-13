@@ -155,7 +155,7 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
     get new_notepad_entry_path
 
     assert_response :success
-    assert_select "h5", text: "📄 Scanned Documents"
+    assert_select "h5", text: "Scanned documents"
 
     assert_difference -> { user.notepad_entries.count }, +1 do
       post notepad_entries_path, params: {
@@ -174,6 +174,8 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
     assert_redirected_to notepad_entry_path(entry)
     assert_equal 1, entry.scanned_documents.count
     assert entry.scanned_documents.first.enhanced_image.attached?
+    assert entry.scanned_documents.first.document_pdf.attached?
+    assert_nil entry.scanned_documents.first.extracted_text
   end
 
   test "user can manage scanned documents on a notepad entry" do
@@ -196,7 +198,7 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
     get notepad_entry_path(entry)
 
     assert_response :success
-    assert_select "h5", text: "📄 Scanned Documents"
+    assert_select "h5", text: "Scanned documents"
     assert_select "form.button_to[action='#{notepad_entry_scanned_document_path(entry, 'missing')}']", count: 0
 
     assert_difference -> { entry.scanned_documents.count }, +1 do
@@ -204,17 +206,35 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
         authenticity_token: authenticity_token_for(notepad_entry_scanned_documents_path(entry)),
         scanned_document: {
           title: "Receipt",
-          extracted_text: "Total: 42.00",
-          ocr_engine: "tesseract",
-          ocr_language: "eng",
-          ocr_confidence: "91",
           enhancement_filter: "auto",
-          tags: ["receipt", "expense"].to_json
+          tags: ["receipt", "expense"].to_json,
+          image_data: tiny_jpeg_data_url
         }
       }
     end
 
     scanned_document = entry.scanned_documents.order(:created_at).last
+
+    assert_redirected_to notepad_entry_path(entry)
+    assert scanned_document.document_pdf.attached?
+    follow_redirect!
+
+    ScannedDocuments::RunOcr.stub :new, ->(scanned_document:) {
+      runner = Object.new
+      runner.define_singleton_method(:call) do
+        scanned_document.update!(
+          extracted_text: "Total: 42.00",
+          ocr_engine: "tesseract",
+          ocr_language: "eng",
+          ocr_confidence: 88
+        )
+      end
+      runner
+    } do
+      post extract_text_notepad_entry_scanned_document_path(entry, scanned_document), params: {
+        authenticity_token: authenticity_token_for(extract_text_notepad_entry_scanned_document_path(entry, scanned_document))
+      }
+    end
 
     assert_redirected_to notepad_entry_path(entry)
 
@@ -231,6 +251,58 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to notepad_entry_path(entry)
+  end
+
+  test "user can store a native OCR result on a notepad scan" do
+    user = User.create!(
+      email: "notepad-native-ocr@example.com",
+      password: "Password123!",
+      password_confirmation: "Password123!",
+      time_zone: "UTC",
+      locale: "en",
+      role: :user
+    )
+    entry = user.notepad_entries.create!(
+      title: "Inbox scans",
+      notes: "Collect scans here.",
+      entry_date: Date.current
+    )
+
+    sign_in_browser_user(user)
+    get notepad_entry_path(entry)
+
+    assert_difference -> { entry.scanned_documents.count }, +1 do
+      post notepad_entry_scanned_documents_path(entry), params: {
+        authenticity_token: authenticity_token_for(notepad_entry_scanned_documents_path(entry)),
+        scanned_document: {
+          title: "Invoice",
+          enhancement_filter: "auto",
+          tags: ["invoice"].to_json,
+          image_data: tiny_jpeg_data_url
+        }
+      }
+    end
+
+    scanned_document = entry.scanned_documents.order(:created_at).last
+    follow_redirect!
+
+    post submit_ocr_result_notepad_entry_scanned_document_path(entry, scanned_document), params: {
+      authenticity_token: authenticity_token_for(notepad_entry_path(entry)),
+      ocr_result: {
+        text: "Invoice Total 84.00",
+        confidence: 87,
+        language: "eng",
+        engine: "google-ml"
+      }
+    }
+
+    assert_redirected_to notepad_entry_path(entry)
+
+    scanned_document.reload
+    assert_equal "Invoice Total 84.00", scanned_document.extracted_text
+    assert_equal "google-ml", scanned_document.ocr_engine
+    assert_equal "eng", scanned_document.ocr_language
+    assert_in_delta 87.0, scanned_document.ocr_confidence, 0.001
   end
 
   test "user cannot access another users notebook" do
@@ -473,16 +545,16 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
     )
   end
 
-  def scanned_document_payload(title:, text:)
+  def scanned_document_payload(title:, text: nil)
     {
       title: title,
-      extracted_text: text,
-      ocr_engine: "tesseract",
-      ocr_language: "eng",
-      ocr_confidence: 91,
       enhancement_filter: "auto",
       tags: ["receipt"].to_json,
-      image_data: "data:image/jpeg;base64,#{Base64.strict_encode64('scan-bytes')}"
+      image_data: tiny_jpeg_data_url
     }
+  end
+
+  def tiny_jpeg_data_url
+    "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxAQEBUQEBAVFhUVFRUVFRUVFRUVFRUVFRUWFhUVFRUYHSggGBolHRUVITEhJSkrLi4uFx8zODMsNygtLisBCgoKDg0OGxAQGi0lHyUtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAAEAAQMBEQACEQEDEQH/xAAXAAADAQAAAAAAAAAAAAAAAAAAAQMC/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEAMQAAAB6AAAAP/EABQQAQAAAAAAAAAAAAAAAAAAADD/2gAIAQEAAT8Af//EABQRAQAAAAAAAAAAAAAAAAAAADD/2gAIAQIBAT8Af//EABQRAQAAAAAAAAAAAAAAAAAAADD/2gAIAQMBAT8Af//Z"
   end
 end

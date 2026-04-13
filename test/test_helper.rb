@@ -40,6 +40,9 @@ class ActionDispatch::IntegrationTest
 
   def authenticity_token_for(action_path)
     document = Nokogiri::HTML.parse(response.body)
+    meta_token = document.at_css("meta[name='csrf-token']")&.[]("content")
+    return meta_token if meta_token.present?
+
     form = document.css("form").find do |node|
       URI.parse(node["action"]).path == action_path
     end

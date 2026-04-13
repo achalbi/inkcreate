@@ -146,7 +146,7 @@ class PageEnhancementsFlowTest < ActionDispatch::IntegrationTest
     get new_notebook_chapter_page_path(notebook, chapter)
 
     assert_response :success
-    assert_select "h5", text: "📄 Scanned Documents"
+    assert_select "h5", text: "Scanned documents"
 
     assert_difference -> { chapter.pages.count }, +1 do
       post notebook_chapter_pages_path(notebook, chapter), params: {
@@ -165,6 +165,90 @@ class PageEnhancementsFlowTest < ActionDispatch::IntegrationTest
     assert_redirected_to notebook_chapter_page_path(notebook, chapter, entry_page)
     assert_equal 1, entry_page.scanned_documents.count
     assert entry_page.scanned_documents.first.enhanced_image.attached?
+    assert entry_page.scanned_documents.first.document_pdf.attached?
+    assert_nil entry_page.scanned_documents.first.extracted_text
+  end
+
+  test "user can run OCR on a saved page scan" do
+    user = build_user(email: "page-scan-ocr@example.com")
+    notebook = user.notebooks.create!(title: "Paper trail", status: :active)
+    chapter = notebook.chapters.create!(title: "Receipts", description: "Captured scans")
+    page = chapter.pages.create!(title: "Expense scans", notes: "April receipts")
+
+    sign_in_browser_user(user)
+    get notebook_chapter_page_path(notebook, chapter, page)
+
+    assert_difference -> { page.scanned_documents.count }, +1 do
+      post notebook_chapter_page_scanned_documents_path(notebook, chapter, page), params: {
+        authenticity_token: authenticity_token_for(notebook_chapter_page_scanned_documents_path(notebook, chapter, page)),
+        scanned_document: scanned_document_payload(title: "Receipt")
+      }
+    end
+
+    scanned_document = page.scanned_documents.order(:created_at).last
+    follow_redirect!
+
+    ScannedDocuments::RunOcr.stub :new, ->(scanned_document:) {
+      runner = Object.new
+      runner.define_singleton_method(:call) do
+        scanned_document.update!(
+          extracted_text: "Total: 42.00",
+          ocr_engine: "tesseract",
+          ocr_language: "eng",
+          ocr_confidence: 88
+        )
+      end
+      runner
+    } do
+      post extract_text_notebook_chapter_page_scanned_document_path(notebook, chapter, page, scanned_document), params: {
+        authenticity_token: authenticity_token_for(extract_text_notebook_chapter_page_scanned_document_path(notebook, chapter, page, scanned_document))
+      }
+    end
+
+    assert_redirected_to notebook_chapter_page_path(notebook, chapter, page)
+
+    follow_redirect!
+
+    assert_response :success
+    assert_select ".sdoc-excerpt", text: /Total: 42.00/
+  end
+
+  test "user can store a native OCR result on a saved page scan" do
+    user = build_user(email: "page-scan-native-ocr@example.com")
+    notebook = user.notebooks.create!(title: "Paper trail", status: :active)
+    chapter = notebook.chapters.create!(title: "Receipts", description: "Captured scans")
+    page = chapter.pages.create!(title: "Expense scans", notes: "April receipts")
+
+    sign_in_browser_user(user)
+    get notebook_chapter_page_path(notebook, chapter, page)
+
+    assert_difference -> { page.scanned_documents.count }, +1 do
+      post notebook_chapter_page_scanned_documents_path(notebook, chapter, page), params: {
+        authenticity_token: authenticity_token_for(notebook_chapter_page_scanned_documents_path(notebook, chapter, page)),
+        scanned_document: scanned_document_payload(title: "Invoice")
+      }
+    end
+
+    scanned_document = page.scanned_documents.order(:created_at).last
+    follow_redirect!
+
+    post submit_ocr_result_notebook_chapter_page_scanned_document_path(notebook, chapter, page, scanned_document), params: {
+      authenticity_token: authenticity_token_for(notebook_chapter_page_path(notebook, chapter, page)),
+      ocr_result: {
+        text: "Invoice Total 42.00",
+        confidence: 0.91,
+        language: "eng",
+        engine: "google-ml"
+      }
+    }
+
+    assert_redirected_to notebook_chapter_page_path(notebook, chapter, page)
+
+    scanned_document.reload
+    assert_equal "Invoice Total 42.00", scanned_document.extracted_text
+    assert_equal "google-ml", scanned_document.ocr_engine
+    assert_equal "eng", scanned_document.ocr_language
+    assert_in_delta 91.0, scanned_document.ocr_confidence, 0.001
   end
 
   test "user can create a page with only todo items" do
@@ -260,16 +344,16 @@ class PageEnhancementsFlowTest < ActionDispatch::IntegrationTest
     )
   end
 
-  def scanned_document_payload(title:, text:)
+  def scanned_document_payload(title:, text: nil)
     {
       title: title,
-      extracted_text: text,
-      ocr_engine: "tesseract",
-      ocr_language: "eng",
-      ocr_confidence: 91,
       enhancement_filter: "auto",
       tags: ["receipt"].to_json,
-      image_data: "data:image/jpeg;base64,#{Base64.strict_encode64('scan-bytes')}"
+      image_data: tiny_jpeg_data_url
     }
+  end
+
+  def tiny_jpeg_data_url
+    "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxAQEBUQEBAVFhUVFRUVFRUVFRUVFRUVFRUWFhUVFRUYHSggGBolHRUVITEhJSkrLi4uFx8zODMsNygtLisBCgoKDg0OGxAQGi0lHyUtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAAEAAQMBEQACEQEDEQH/xAAXAAADAQAAAAAAAAAAAAAAAAAAAQMC/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEAMQAAAB6AAAAP/EABQQAQAAAAAAAAAAAAAAAAAAADD/2gAIAQEAAT8Af//EABQRAQAAAAAAAAAAAAAAAAAAADD/2gAIAQIBAT8Af//EABQRAQAAAAAAAAAAAAAAAAAAADD/2gAIAQMBAT8Af//Z"
   end
 end

@@ -1,73 +1,14 @@
 import { Controller } from "/scripts/vendor/stimulus.js";
 
-// ── OCR Engine abstraction ────────────────────────────────────────────────────
-class TesseractEngine {
-  constructor() { this.name = "tesseract"; this._worker = null; this._ready = false; }
-  async initialize() {
-    if (this._ready) return;
-    this._worker = await Tesseract.createWorker("eng", 1, {
-      logger: m => {
-        if (m.status === "recognizing text") this._onProgress?.(Math.round(m.progress * 100), "Recognizing…");
-        else if (m.status === "loading tesseract core") this._onProgress?.(5, "Loading engine…");
-        else if (m.status === "initializing tesseract") this._onProgress?.(10, "Initializing…");
-        else if (m.status === "loading language traineddata") this._onProgress?.(15, "Loading language…");
-      }
-    });
-    this._ready = true;
-  }
-  async recognize(canvas, opts = {}) {
-    if (!this._ready) await this.initialize();
-    const lang = opts.language || "eng";
-    try { await this._worker.loadLanguage(lang); await this._worker.initialize(lang); } catch {}
-    const t0 = performance.now();
-    const result = await this._worker.recognize(canvas, {}, { blocks: true });
-    const d = result.data;
-    return {
-      text: d.text || "",
-      confidence: d.confidence || 0,
-      words: (d.words || []).map(w => ({ text: w.text, bbox: w.bbox, confidence: w.confidence })),
-      processingTimeMs: performance.now() - t0,
-      engine: "tesseract"
-    };
-  }
-  async terminate() { if (this._worker) { await this._worker.terminate(); this._worker = null; this._ready = false; } }
-  isReady() { return this._ready; }
-}
-
-class GoogleMLEngine {
-  constructor() { this.name = "google-ml"; }
-  async initialize() { await delay(300); }
-  async recognize(canvas, opts = {}) {
-    this._onProgress?.(30, "Calling Google ML…");
-    await delay(800);
-    this._onProgress?.(80, "Processing…");
-    await delay(400);
-    return {
-      text: "[Google ML Kit — Stub]\n\nThis would call the on-device ML Kit OCR or Cloud Vision API.\nThe quick brown fox jumps over the lazy document.",
-      confidence: 91, words: [], processingTimeMs: 1200, engine: "google-ml"
-    };
-  }
-  async terminate() {}
-  isReady() { return true; }
-}
-
-function createEngine(name) {
-  return name === "google-ml" ? new GoogleMLEngine() : new TesseractEngine();
-}
-
-function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
-
 // ── Stimulus Controller ───────────────────────────────────────────────────────
 export default class extends Controller {
   static targets = [
     "overlay", "stageBar",
-    "screen1", "screen2", "screen3", "screen4", "screen5",
+    "screen1", "screen2", "screen3", "screen4",
     "video", "drawCanvas", "camContainer", "cameraFallback", "flashOverlay", "flashBtn", "flashHint", "nativeCameraInput",
     "camStatus", "autoDot", "autoLabel", "autoCapLabel", "autoBadge", "fileInput",
     "detectContainer", "detectCanvas", "quadSvg", "cornerHandle", "loupeCanvas", "detectHint",
     "enhanceCanvas", "filterStrip", "brightness", "contrast", "brightnessVal", "contrastVal",
-    "ocrImagePane", "ocrCanvas", "scanBar", "ocrBar", "ocrProgressText", "ocrProgressPct", "confBadge",
-    "engineBar", "engineDot", "engineName", "engineStubBadge", "langSelect", "ocrTextarea",
     "reviewCanvas", "reviewStats", "reviewTitle", "reviewTags", "saveBtn",
     "viewer", "viewerTitle", "viewerText",
     "count", "draftPayloadField", "draftList", "draftEmptyState"
@@ -86,14 +27,11 @@ export default class extends Controller {
     this.capturedImage = null;
     this.croppedCanvas = null;
     this.enhancedCanvas = null;
-    this.ocrResult = null;
     this.currentFilter = "auto";
     this.corners = [{ x: .1, y: .1 }, { x: .9, y: .1 }, { x: .9, y: .9 }, { x: .1, y: .9 }];
     this.draggingCornerIdx = -1;
     this.stableCount = 0;
     this.autoCaptureTriggered = false;
-    this.engineName = "tesseract";
-    this.ocrEngine = createEngine("tesseract");
     this._flashOn = false;
     this._torchSupported = false;
     this._torchActive = false;
@@ -116,11 +54,6 @@ export default class extends Controller {
       s.async = true;
       s.src = "https://docs.opencv.org/4.x/opencv.js";
       s.onload = () => { window.__opencvReady = true; };
-      document.head.appendChild(s);
-    }
-    if (!document.querySelector('script[src*="tesseract"]')) {
-      const s = document.createElement("script");
-      s.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
       document.head.appendChild(s);
     }
   }
@@ -188,45 +121,25 @@ export default class extends Controller {
           <div class="sdoc-header">
             <div class="sdoc-title">${this._escapeHtml(doc.title || "Untitled scan")}</div>
             <div class="sdoc-meta">
-              <span class="sdoc-conf-badge ${this._confidenceClass(doc.ocr_confidence)}">
-                ${this._escapeHtml(this._confidenceLabel(doc.ocr_confidence))}
-              </span>
-              <span class="sdoc-engine-label">${this._escapeHtml(doc.ocr_engine || "tesseract")} · pending save</span>
+              <span class="sdoc-engine-label">PDF queued · pending save</span>
             </div>
           </div>
 
           <div class="sdoc-body">
             ${doc.image_data
               ? `<img src="${this._escapeAttribute(doc.image_data)}" class="sdoc-thumb" alt="${this._escapeAttribute(doc.title || "Untitled scan")}">`
-              : `<div class="sdoc-thumb sdoc-thumb--placeholder">📄</div>`}
-            <p class="sdoc-excerpt">${this._escapeHtml(this._truncateText(doc.extracted_text || "", 220))}</p>
+              : `<div class="sdoc-thumb sdoc-thumb--placeholder"><i class="ti ti-file-text" aria-hidden="true"></i></div>`}
+            <p class="sdoc-excerpt">OCR will be available after this scan is saved.</p>
           </div>
 
           <div class="sdoc-actions">
-            <button
-              type="button"
-              class="btn btn-white btn-sm"
-              data-action="click->document-capture#copyText"
-              data-text="${this._escapeAttribute(doc.extracted_text || "")}"
-              title="Copy extracted text"
-            >📋 Copy</button>
-
-            <button
-              type="button"
-              class="btn btn-white btn-sm"
-              data-action="click->document-capture#viewFull"
-              data-text="${this._escapeAttribute(doc.extracted_text || "")}"
-              data-title="${this._escapeAttribute(doc.title || "Untitled scan")}"
-              title="View full text"
-            >🔍 View</button>
-
             <button
               type="button"
               class="btn btn-white btn-sm sdoc-delete-btn"
               data-action="click->document-capture#removeDraftDocument"
               data-index="${index}"
               title="Remove pending scan"
-            >🗑</button>
+            ><i class="ti ti-trash" aria-hidden="true"></i><span class="sr-only">Delete</span></button>
           </div>
         </div>
       </div>
@@ -240,26 +153,6 @@ export default class extends Controller {
     const documents = [...(this._draftDocuments || [])];
     documents.splice(index, 1);
     this._writeDraftDocuments(documents);
-  }
-
-  _confidenceLabel(confidence) {
-    const pct = Number(confidence || 0);
-    if (!pct) return "— confidence";
-    if (pct >= 80) return `🟢 ${Math.round(pct)}% confidence`;
-    if (pct >= 50) return `🟡 ${Math.round(pct)}% confidence`;
-    return `🔴 ${Math.round(pct)}% confidence`;
-  }
-
-  _confidenceClass(confidence) {
-    const pct = Number(confidence || 0);
-    if (pct >= 80) return "conf-high";
-    if (pct >= 50) return "conf-mid";
-    return "conf-low";
-  }
-
-  _truncateText(text, maxLength) {
-    if (text.length <= maxLength) return text;
-    return `${text.slice(0, maxLength - 1)}…`;
   }
 
   _escapeHtml(value) {
@@ -277,7 +170,7 @@ export default class extends Controller {
 
   // ── Screen navigation ───────────────────────────────────────────────────────
   _showScreen(n) {
-    [1, 2, 3, 4, 5].forEach(i => {
+    [1, 2, 3, 4].forEach(i => {
       const el = this[`screen${i}Target`];
       el.hidden = (i !== n);
     });
@@ -291,8 +184,7 @@ export default class extends Controller {
   goToScreen1() { this._showScreen(1); this._startCamera(); }
   goToScreen2() { this._showScreen(2); this._renderDetectCanvas(); }
   goToScreen3() { this._showScreen(3); }
-  goToScreen4() { this._showScreen(4); this._setupOCRScreen(); this._runOCR(); }
-  goToScreen5() { this._showScreen(5); this._setupReviewScreen(); }
+  goToScreen4() { this._showScreen(4); this._setupReviewScreen(); }
 
   // ── Camera ──────────────────────────────────────────────────────────────────
   async _startCamera() {
@@ -463,7 +355,7 @@ export default class extends Controller {
 
     button.style.visibility = supported ? "visible" : "hidden";
     button.disabled = !supported;
-    button.textContent = active ? "🔦" : "⚡";
+    button.innerHTML = '<i class="ti ti-bolt" aria-hidden="true"></i>';
     button.classList.toggle("dcap-icon-btn--active", active);
     button.setAttribute("aria-label", supported ? (active ? "Flash on" : "Flash off") : "Flash unavailable");
     button.setAttribute("aria-pressed", active ? "true" : "false");
@@ -505,19 +397,19 @@ export default class extends Controller {
   _showCameraFallback(type = "unavailable") {
     const messages = {
       denied: {
-        icon: "🔒",
+        icon: '<i class="ti ti-lock" aria-hidden="true"></i>',
         title: "Camera access blocked",
         sub: "Allow camera access in your browser, then tap Retry.",
         showRetry: true
       },
       notfound: {
-        icon: "📷",
+        icon: '<i class="ti ti-camera" aria-hidden="true"></i>',
         title: "No camera found",
         sub: "Upload a photo or pick a sample document instead.",
         showRetry: false
       },
       unavailable: {
-        icon: "📷",
+        icon: '<i class="ti ti-camera" aria-hidden="true"></i>',
         title: "Camera not available",
         sub: "Upload a photo or pick a sample document instead.",
         showRetry: false
@@ -546,8 +438,8 @@ export default class extends Controller {
             </button>`).join("")}
         </div>
         ${this._supportsNativeCameraFlashFallback() ? `
-        <button class="btn btn-white btn-sm" data-action="click->document-capture#openNativeCamera">📷 Camera app</button>` : ""}
-        <button class="btn btn-white btn-sm" data-action="click->document-capture#pickGallery">📁 Upload</button>
+        <button class="btn btn-white btn-sm" data-action="click->document-capture#openNativeCamera"><i class="ti ti-camera" aria-hidden="true"></i> Camera app</button>` : ""}
+        <button class="btn btn-white btn-sm" data-action="click->document-capture#pickGallery"><i class="ti ti-photo-plus" aria-hidden="true"></i> Upload</button>
       </div>`);
   }
 
@@ -1119,94 +1011,20 @@ export default class extends Controller {
     this.croppedCanvas = out; this._applyFilter(this.currentFilter); this._buildFilterStrip();
   }
 
-  // ── Stage 4: OCR ────────────────────────────────────────────────────────────
-  _setupOCRScreen() {
-    const src = this.enhancedCanvas || this.croppedCanvas;
-    const dest = this.ocrCanvasTarget;
-    const pane = this.ocrImagePaneTarget;
-    if (src && dest) {
-      const scale = Math.min(1, (pane.clientWidth || 360) / src.width, 200 / src.height);
-      dest.width = Math.round(src.width * scale);
-      dest.height = Math.round(src.height * scale);
-      dest.style.width = "100%"; dest.style.height = "100%";
-      dest.getContext("2d").drawImage(src, 0, 0, dest.width, dest.height);
-    }
-    this._updateEngineUI();
-  }
-
-  _updateOCRProgress(text, pct) {
-    if (this.hasOcrProgressTextTarget) this.ocrProgressTextTarget.textContent = text;
-    if (this.hasOcrProgressPctTarget) this.ocrProgressPctTarget.textContent = pct > 0 ? pct + "%" : "";
-    if (this.hasOcrBarTarget) this.ocrBarTarget.style.width = pct + "%";
-  }
-
-  async _runOCR() {
-    const src = this.enhancedCanvas || this.croppedCanvas;
-    if (!src) { this.ocrTextareaTarget.value = "No image to process."; return; }
-    this.scanBarTarget.classList.add("dcap-scan-bar--active");
-    this.confBadgeTarget.hidden = true;
-    this.ocrTextareaTarget.value = "";
-    this._updateOCRProgress("Initializing…", 0);
-    const lang = this.hasLangSelectTarget ? this.langSelectTarget.value : "eng";
-    this.ocrEngine._onProgress = (pct, txt) => this._updateOCRProgress(txt, pct);
-    try {
-      await this.ocrEngine.initialize();
-      this._updateOCRProgress("Recognizing…", 20);
-      this.ocrResult = await this.ocrEngine.recognize(src, { language: lang });
-      this.scanBarTarget.classList.remove("dcap-scan-bar--active");
-      this._updateOCRProgress("Done!", 100);
-      this.ocrTextareaTarget.value = this.ocrResult.text.trim() || "(No text detected)";
-      this._showConfBadge(this.ocrResult.confidence);
-    } catch (e) {
-      this.scanBarTarget.classList.remove("dcap-scan-bar--active");
-      this._updateOCRProgress("Error: " + e.message, 0);
-      this.ocrTextareaTarget.value = "OCR failed. Try re-enhancing or switching engines.";
-    }
-  }
-
-  rerunOCR() { this._runOCR(); }
-
-  _showConfBadge(conf) {
-    const b = this.confBadgeTarget;
-    b.hidden = false;
-    const pct = Math.round(conf);
-    const cls = pct >= 80 ? "sdoc-conf-badge--high" : pct >= 50 ? "sdoc-conf-badge--mid" : "sdoc-conf-badge--low";
-    const icon = pct >= 80 ? "🟢" : pct >= 50 ? "🟡" : "🔴";
-    b.className = "dcap-conf-badge " + cls;
-    b.textContent = `${icon} ${pct}% confidence`;
-  }
-
-  switchEngine() {
-    this.engineName = this.engineName === "tesseract" ? "google-ml" : "tesseract";
-    this.ocrEngine = createEngine(this.engineName);
-    this._updateEngineUI();
-    this._runOCR();
-  }
-
-  _updateEngineUI() {
-    if (!this.hasEngineNameTarget) return;
-    const isTess = this.engineName === "tesseract";
-    this.engineNameTarget.textContent = isTess ? "Tesseract.js" : "Google ML Kit";
-    this.engineDotTarget.style.background = isTess ? "#2eaa60" : "#4285f4";
-    this.engineStubBadgeTarget.hidden = isTess;
-  }
-
-  // ── Stage 5: Review ─────────────────────────────────────────────────────────
+  // ── Stage 4: Review & save ─────────────────────────────────────────────────
+  // ── Stage 4: Review ─────────────────────────────────────────────────────────
   _setupReviewScreen() {
     const src = this.enhancedCanvas || this.croppedCanvas;
     const rc = this.reviewCanvasTarget;
     if (src && rc) { rc.width = src.width; rc.height = src.height; rc.getContext("2d").drawImage(src, 0, 0); }
-    const text = this.hasOcrTextareaTarget ? this.ocrTextareaTarget.value : "";
-    const firstLine = (text.split("\n").find(l => l.trim().length > 3) || "").trim().substring(0, 50);
     const d = new Date();
-    this.reviewTitleTarget.value = firstLine || `Scan — ${d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
-    const conf = this.ocrResult?.confidence || 0;
-    const wc = text.split(/\s+/).filter(Boolean).length;
+    this.reviewTitleTarget.value = `Scan — ${d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+    this.reviewTagsTarget.value = "";
     this.reviewStatsTarget.innerHTML = `
-      <div class="dcap-stat"><div class="dcap-stat-label">Confidence</div><div class="dcap-stat-value">${conf > 0 ? Math.round(conf) + "%" : "—"}</div></div>
-      <div class="dcap-stat"><div class="dcap-stat-label">Engine</div><div class="dcap-stat-value">${this.ocrResult?.engine || this.engineName}</div></div>
-      <div class="dcap-stat"><div class="dcap-stat-label">Words</div><div class="dcap-stat-value">${wc || "—"}</div></div>
-      <div class="dcap-stat"><div class="dcap-stat-label">Language</div><div class="dcap-stat-value">${this.hasLangSelectTarget ? this.langSelectTarget.value : "eng"}</div></div>`;
+      <div class="dcap-stat"><div class="dcap-stat-label">Format</div><div class="dcap-stat-value">PDF</div></div>
+      <div class="dcap-stat"><div class="dcap-stat-label">Filter</div><div class="dcap-stat-value">${this._filterDisplayName(this.currentFilter)}</div></div>
+      <div class="dcap-stat"><div class="dcap-stat-label">Width</div><div class="dcap-stat-value">${src?.width || "—"} px</div></div>
+      <div class="dcap-stat"><div class="dcap-stat-label">Height</div><div class="dcap-stat-value">${src?.height || "—"} px</div></div>`;
   }
 
   async save() {
@@ -1214,24 +1032,20 @@ export default class extends Controller {
     btn.disabled = true;
     btn.textContent = "Saving…";
     const canvas = this.enhancedCanvas || this.croppedCanvas;
-    if (!canvas) { btn.disabled = false; btn.textContent = "Save ✓"; return; }
+    if (!canvas) { btn.disabled = false; btn.textContent = "Save PDF"; return; }
 
     const payload = this._buildScannedDocumentPayload(canvas);
 
     if (this._isDraftMode()) {
       this._writeDraftDocuments([payload, ...(this._draftDocuments || [])]);
       btn.disabled = false;
-      btn.textContent = "Save ✓";
+      btn.textContent = "Save PDF";
       this.close();
       return;
     }
 
     const formData = new FormData();
     formData.append("scanned_document[title]", payload.title);
-    formData.append("scanned_document[extracted_text]", payload.extracted_text);
-    formData.append("scanned_document[ocr_engine]", payload.ocr_engine);
-    formData.append("scanned_document[ocr_language]", payload.ocr_language);
-    formData.append("scanned_document[ocr_confidence]", payload.ocr_confidence);
     formData.append("scanned_document[enhancement_filter]", payload.enhancement_filter);
     formData.append("scanned_document[tags]", payload.tags);
     formData.append("scanned_document[image_data]", payload.image_data);
@@ -1245,11 +1059,11 @@ export default class extends Controller {
       if (resp.ok || resp.redirected) {
         window.location.reload();
       } else {
-        btn.disabled = false; btn.textContent = "Save ✓";
+        btn.disabled = false; btn.textContent = "Save PDF";
         alert("Save failed. Please try again.");
       }
     } catch {
-      btn.disabled = false; btn.textContent = "Save ✓";
+      btn.disabled = false; btn.textContent = "Save PDF";
       alert("Network error. Please try again.");
     }
   }
@@ -1257,16 +1071,144 @@ export default class extends Controller {
   _buildScannedDocumentPayload(canvas) {
     return {
       title: this.reviewTitleTarget.value,
-      extracted_text: this.hasOcrTextareaTarget ? this.ocrTextareaTarget.value : "",
-      ocr_engine: this.ocrResult?.engine || this.engineName,
-      ocr_language: this.hasLangSelectTarget ? this.langSelectTarget.value : "eng",
-      ocr_confidence: this.ocrResult?.confidence || 0,
       enhancement_filter: this.currentFilter,
       tags: JSON.stringify(
         (this.reviewTagsTarget.value || "").split(",").map(tag => tag.trim()).filter(Boolean)
       ),
       image_data: canvas.toDataURL("image/jpeg", 0.92)
     };
+  }
+
+  _filterDisplayName(filterId) {
+    const map = {
+      original: "Original",
+      auto: "Auto",
+      gray: "Grayscale",
+      bw: "B&W Doc",
+      color: "Color+",
+      lighten: "Lighten"
+    };
+
+    return map[filterId] || "Auto";
+  }
+
+  async runOcr(event) {
+    const trigger = event.currentTarget;
+    if (!this._shouldUseNativeOcr(trigger)) return;
+
+    event.preventDefault();
+
+    const form = trigger.form;
+    const originalMarkup = trigger.innerHTML;
+    trigger.disabled = true;
+    trigger.innerHTML = '<i class="ti ti-loader-2" aria-hidden="true"></i> Running…';
+
+    try {
+      const imageDataUrl = await this._fetchImageDataUrl(trigger.dataset.imageUrl);
+      const plugin = this._nativeOcrPlugin();
+      const result = await this._recognizeNativeText(plugin, {
+        imageDataUrl,
+        documentId: trigger.dataset.documentId,
+        title: trigger.dataset.documentTitle || "Scanned document"
+      });
+
+      const response = await fetch(trigger.dataset.nativeOcrUrl, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+          "X-CSRF-Token": this.csrfValue,
+          "X-Requested-With": "XMLHttpRequest"
+        },
+        body: JSON.stringify({
+          ocr_result: this._buildNativeOcrPayload(result)
+        })
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error || "Could not save the OCR result.");
+      }
+
+      window.location.reload();
+    } catch (error) {
+      console.warn("Native OCR failed, falling back to server OCR.", error);
+
+      if (form) {
+        form.submit();
+        return;
+      }
+
+      trigger.disabled = false;
+      trigger.innerHTML = originalMarkup;
+      alert(error?.message || "OCR failed. Please try again.");
+    }
+  }
+
+  _shouldUseNativeOcr(trigger) {
+    return Boolean(
+      trigger &&
+      this._isNativeCapacitorApp() &&
+      this._nativeOcrPlugin() &&
+      trigger.dataset.nativeOcrUrl &&
+      trigger.dataset.imageUrl
+    );
+  }
+
+  _isNativeCapacitorApp() {
+    const capacitor = window.Capacitor;
+    if (!capacitor) return false;
+    if (typeof capacitor.isNativePlatform === "function") return capacitor.isNativePlatform();
+
+    const platform = typeof capacitor.getPlatform === "function" ? capacitor.getPlatform() : null;
+    return platform === "android" || platform === "ios";
+  }
+
+  _nativeOcrPlugin() {
+    return window.InkcreateNativeOcr
+      || window.Capacitor?.Plugins?.InkcreateNativeOcr
+      || window.Capacitor?.Plugins?.NativeTextRecognition
+      || null;
+  }
+
+  async _recognizeNativeText(plugin, payload) {
+    const runner = plugin?.recognizeText || plugin?.runOcr;
+    if (typeof runner !== "function") {
+      throw new Error("Native OCR plugin is unavailable.");
+    }
+
+    return runner.call(plugin, payload);
+  }
+
+  async _fetchImageDataUrl(url) {
+    const response = await fetch(url, {
+      credentials: "same-origin",
+      headers: {
+        "Accept": "application/json",
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error("Could not load the scanned document image.");
+    }
+
+    const data = await response.json().catch(() => null);
+    if (!data?.image_data_url) {
+      throw new Error(data?.error || "Could not prepare the scanned document image.");
+    }
+
+    return data.image_data_url;
+  }
+
+  _buildNativeOcrPayload(result) {
+    const text = result?.text || result?.extractedText || result?.fullText || "";
+    const confidence = result?.confidence ?? result?.meanConfidence ?? result?.confidencePercent ?? null;
+    const language = result?.language || result?.languageCode || result?.detectedLanguage || null;
+    const engine = result?.engine || "google-ml";
+
+    return { text, confidence, language, engine };
   }
 
   // ── Text viewer ──────────────────────────────────────────────────────────────
@@ -1294,7 +1236,12 @@ export default class extends Controller {
 
   copyText(e) {
     navigator.clipboard.writeText(e.currentTarget.dataset.text || "")
-      .then(() => { e.currentTarget.textContent = "✓ Copied"; setTimeout(() => { e.currentTarget.textContent = "📋 Copy"; }, 1500); })
+      .then(() => {
+        e.currentTarget.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i> Copied';
+        setTimeout(() => {
+          e.currentTarget.innerHTML = '<i class="ti ti-copy" aria-hidden="true"></i> Copy';
+        }, 1500);
+      })
       .catch(() => {});
   }
 }
