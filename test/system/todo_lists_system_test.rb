@@ -10,7 +10,7 @@ class TodoListsSystemTest < ApplicationSystemTestCase
     sign_in_as(user)
     visit notebook_chapter_page_path(notebook, chapter, work_page)
 
-    click_button "Enable to-do list"
+    assert_no_button "Enable to-do list"
 
     add_todo_item("Pack microphones")
     add_todo_item("Confirm venue")

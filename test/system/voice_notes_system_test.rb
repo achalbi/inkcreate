@@ -9,7 +9,7 @@ class VoiceNotesSystemTest < ApplicationSystemTestCase
     sign_in_as(user)
     visit new_notebook_chapter_page_path(notebook, chapter)
 
-    click_button "Record voice note"
+    click_button "Record"
     click_button "Stop"
 
     assert_text "Review the recording and save it when ready."
@@ -72,7 +72,7 @@ class VoiceNotesSystemTest < ApplicationSystemTestCase
     sign_in_as(user)
     visit edit_notepad_entry_path(entry)
 
-    click_button "Record voice note"
+    click_button "Record"
     click_button "Stop"
 
     assert_text "Review the recording and save it when ready."
@@ -106,23 +106,22 @@ class VoiceNotesSystemTest < ApplicationSystemTestCase
       content_type: "audio/webm"
     )
     voice_note.save!
-    delete_label = "Delete voice note recorded #{voice_note.recorded_at.in_time_zone.strftime('%b %-d, %Y at %-I:%M %p')}"
-
     sign_in_as(user)
     visit edit_notepad_entry_path(entry)
 
     assert_selector ".voice-note-player", count: 1
 
-    click_button delete_label
+    find(".voice-note-player__action--delete").click
 
     within ".voice-note-delete-confirm-modal.show" do
       assert_text "Delete voice note?"
       click_button "Cancel"
     end
 
+    assert_no_selector ".voice-note-delete-confirm-modal.show", wait: 10
     assert_selector ".voice-note-player", count: 1
 
-    click_button delete_label
+    find(".voice-note-player__action--delete").click
 
     within ".voice-note-delete-confirm-modal.show" do
       click_button "Delete voice note"

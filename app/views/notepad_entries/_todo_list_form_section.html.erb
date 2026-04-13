@@ -1,7 +1,6 @@
 <%
   current_todo_list = notepad_entry.todo_list
   current_items = current_todo_list&.display_todo_items&.to_a || []
-  todo_list_enabled = current_todo_list&.enabled?
   hide_completed = current_todo_list&.hide_completed?
 %>
 
@@ -17,23 +16,20 @@
       <span class="label label-info detail-photo-gallery-count"><%= current_items.size %></span>
     </div>
     <div class="ibox-tools d-flex align-items-center gap-2">
-      <% if current_todo_list&.enabled? && current_items.any? %>
+      <% if current_items.any? %>
         <span class="label label-default"><%= current_todo_list.progress_label %></span>
-      <% end %>
-      <% unless todo_list_enabled %>
-        <button type="button" class="btn btn-white btn-sm todo-list-draft__toggle" data-action="todo-list#toggleDraftEnabled" data-todo-list-target="toggleButton">Enable list</button>
       <% end %>
       <%= render "shared/ibox_toggle_button", target_id: dom_id(notepad_entry, :todo_form_list_content) %>
     </div>
   </div>
 
   <div id="<%= dom_id(notepad_entry, :todo_form_list_content) %>" class="ibox-content collapse show">
-    <%= form.hidden_field :todo_list_enabled, value: todo_list_enabled ? "true" : "false", data: { todo_list_target: "enabledField" } %>
+    <%= form.hidden_field :todo_list_enabled, value: current_todo_list&.enabled? ? "true" : "false", data: { todo_list_target: "enabledField" } %>
     <%= form.hidden_field :todo_list_hide_completed, value: hide_completed ? "true" : "false", data: { todo_list_target: "hideCompletedField" } %>
     <div data-todo-list-target="draftFields"></div>
 
-    <div class="todo-list-draft <%= "is-disabled" unless todo_list_enabled %>" data-todo-list-target="draftPanel">
-      <p class="todo-list-draft__intro">Enable the checklist and queue items before saving this page.</p>
+    <div class="todo-list-draft">
+      <p class="todo-list-draft__intro">Add checklist items before saving.</p>
 
       <div class="todo-list-composer todo-list-composer--draft todo-list-composer--prompt">
         <div class="todo-list-composer__field">

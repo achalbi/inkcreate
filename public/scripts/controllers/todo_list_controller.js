@@ -7,8 +7,6 @@ export default class extends Controller {
     "draftFields",
     "enabledField",
     "hideCompletedField",
-    "toggleButton",
-    "draftPanel",
     "items",
     "filterButton",
     "filterEmpty",
@@ -33,7 +31,6 @@ export default class extends Controller {
     this.boundResetDeleteConfirmation = this.resetDeleteConfirmation.bind(this);
     this.restorePersistedFilter();
     this.renderDraftItems();
-    this.renderDraftState();
     this.renderPersistedState();
     this.resizeAllTextareas();
 
@@ -46,15 +43,6 @@ export default class extends Controller {
     if (this.hasDeleteModalTarget) {
       this.deleteModalTarget.removeEventListener("hidden.bs.modal", this.boundResetDeleteConfirmation);
     }
-  }
-
-  toggleDraftEnabled() {
-    if (!this.hasEnabledFieldTarget) {
-      return;
-    }
-
-    this.enabledFieldTarget.value = this.enabledFieldTarget.value === "true" ? "false" : "true";
-    this.renderDraftState();
   }
 
   addDraftItem() {
@@ -75,7 +63,6 @@ export default class extends Controller {
     this.draftInputTarget.value = "";
     this.resizeElement(this.draftInputTarget);
     this.renderDraftItems();
-    this.renderDraftState();
   }
 
   removeDraftItem(event) {
@@ -349,22 +336,6 @@ export default class extends Controller {
       hiddenField.value = content;
       this.draftFieldsTarget.appendChild(hiddenField);
     });
-  }
-
-  renderDraftState() {
-    if (!this.hasEnabledFieldTarget) {
-      return;
-    }
-
-    const enabled = this.enabledFieldTarget.value === "true";
-
-    if (this.hasToggleButtonTarget) {
-      this.toggleButtonTarget.hidden = enabled;
-    }
-
-    if (this.hasDraftPanelTarget) {
-      this.draftPanelTarget.classList.toggle("is-disabled", !enabled);
-    }
   }
 
   renderPersistedState() {

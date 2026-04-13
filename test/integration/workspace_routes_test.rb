@@ -170,10 +170,13 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_response :success
     modal_id = ActionView::RecordIdentifier.dom_id(voice_note, :delete_confirm_modal)
     document = Nokogiri::HTML.parse(response.body)
+    start_button = document.at_xpath("//section[contains(@data-controller, 'voice-recorder')]//div[contains(@class, 'ibox-title')]//button[@data-action='voice-recorder#start']")
     button = document.at_xpath("//button[@data-bs-toggle='modal' and @data-bs-target='##{modal_id}']")
     modal = document.at_xpath("//*[@id='#{modal_id}']")
     form = modal&.at_xpath(".//form[@method='post']")
 
+    assert start_button.present?, "Expected voice note record button in the section header"
+    assert_equal "Record", start_button.text.strip
     assert button.present?, "Expected delete trigger button for voice note modal"
     assert modal.present?, "Expected delete confirmation modal to be rendered"
     assert form.present?, "Expected delete confirmation form inside the voice note modal"
@@ -202,10 +205,13 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_response :success
     modal_id = ActionView::RecordIdentifier.dom_id(voice_note, :delete_confirm_modal)
     document = Nokogiri::HTML.parse(response.body)
+    start_button = document.at_xpath("//section[contains(@data-controller, 'voice-recorder')]//div[contains(@class, 'ibox-title')]//button[@data-action='voice-recorder#start']")
     button = document.at_xpath("//button[@data-bs-toggle='modal' and @data-bs-target='##{modal_id}']")
     modal = document.at_xpath("//*[@id='#{modal_id}']")
     form = modal&.at_xpath(".//form[@method='post']")
 
+    assert start_button.present?, "Expected voice note record button in the section header"
+    assert_equal "Record", start_button.text.strip
     assert button.present?, "Expected delete trigger button for voice note modal"
     assert modal.present?, "Expected delete confirmation modal to be rendered"
     assert form.present?, "Expected delete confirmation form inside the voice note modal"
@@ -303,6 +309,20 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_no_match "Saved items on this page", response.body
   end
 
+  test "new page form shows the to-do composer without an enable toggle" do
+    sign_in!
+
+    get new_notebook_chapter_page_path(@notebook, @chapter)
+
+    assert_response :success
+    assert_select "textarea[data-todo-list-target='draftInput']", count: 1
+    assert_select "input[name='page[todo_list_enabled]'][value='false']", count: 1
+    assert_no_match "Enable list", response.body
+    assert_no_match "Enable to-do list", response.body
+    assert_no_match "Enable the checklist and queue items before saving this page.", response.body
+    assert_match "Add checklist items before saving.", response.body
+  end
+
   test "notepad edit page renders the live to-do list section for persisted entries" do
     sign_in!
 
@@ -328,6 +348,20 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_no_match "Enable the checklist and queue items before saving this page.", response.body
     assert_no_match "Saved items on this page", response.body
     assert_operator response.body.index("To-do list"), :<, response.body.index("Move to notebook")
+  end
+
+  test "new notepad form shows the to-do composer without an enable toggle" do
+    sign_in!
+
+    get new_notepad_entry_path
+
+    assert_response :success
+    assert_select "textarea[data-todo-list-target='draftInput']", count: 1
+    assert_select "input[name='notepad_entry[todo_list_enabled]'][value='false']", count: 1
+    assert_no_match "Enable list", response.body
+    assert_no_match "Enable to-do list", response.body
+    assert_no_match "Enable the checklist and queue items before saving this page.", response.body
+    assert_match "Add checklist items before saving.", response.body
   end
 
   test "page overview shows voice note and to-do progress labels" do

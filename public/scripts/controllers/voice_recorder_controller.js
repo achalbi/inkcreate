@@ -13,6 +13,7 @@ export default class extends Controller {
     "stopButton",
     "live",
     "timer",
+    "panel",
     "preview",
     "previewAudio",
     "previewMeta",
@@ -52,6 +53,8 @@ export default class extends Controller {
   }
 
   async start() {
+    this.expandPanel();
+
     if (!this.canRecordInBrowser()) {
       this.discard();
       this.openFallbackCapture();
@@ -379,6 +382,7 @@ export default class extends Controller {
   }
 
   renderPreviewState() {
+    this.expandPanel();
     if (this.hasStartButtonTarget) this.startButtonTarget.hidden = false;
     if (this.hasStopButtonTarget) {
       this.stopButtonTarget.hidden = true;
@@ -417,6 +421,28 @@ export default class extends Controller {
     }
 
     this.feedbackTarget.textContent = message;
+  }
+
+  expandPanel() {
+    if (!this.hasPanelTarget || this.panelTarget.classList.contains("show")) {
+      return;
+    }
+
+    const collapse = globalThis.bootstrap?.Collapse;
+
+    if (collapse?.getOrCreateInstance) {
+      collapse.getOrCreateInstance(this.panelTarget).show();
+    } else {
+      this.panelTarget.classList.add("show");
+    }
+
+    const toggleButton = this.element.querySelector(`[data-bs-target="#${this.panelTarget.id}"]`);
+    if (!toggleButton) {
+      return;
+    }
+
+    toggleButton.setAttribute("aria-expanded", "true");
+    toggleButton.setAttribute("title", "Collapse section");
   }
 
   openFallbackCapture() {

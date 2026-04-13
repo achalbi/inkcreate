@@ -42,6 +42,7 @@ module Pages
 
     def set_todo_list
       @todo_list = @page.todo_list || @page.create_todo_list!
+      @todo_list.update!(enabled: true) unless @todo_list.enabled?
     end
 
     def set_todo_item

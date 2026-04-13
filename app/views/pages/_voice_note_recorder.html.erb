@@ -4,6 +4,8 @@
   create_url = local_assigns[:create_url]
   param_key = local_assigns[:param_key].presence || recorder_form&.object_name.to_s.presence || "page"
   auto_submit_on_save = local_assigns.fetch(:auto_submit_on_save, false)
+  start_button_label = local_assigns.fetch(:start_button_label, "Record voice note")
+  show_start_button = local_assigns.fetch(:show_start_button, true)
 %>
 
 <div
@@ -17,60 +19,9 @@
     data-voice-recorder-create-url-value="<%= create_url %>"
   <% end %>
 >
-  <%= tag.input type: "file",
-    accept: "audio/*",
-    capture: true,
-    hidden: true,
-    data: {
-      voice_recorder_target: "fallbackInput",
-      action: "change->voice-recorder#selectFallbackRecording"
-    } %>
-
-  <% if recorder_mode == "form" && recorder_form.present? %>
-    <%= recorder_form.file_field :voice_note_uploads,
-      multiple: true,
-      accept: "audio/*",
-      style: "display:none;",
-      data: { voice_recorder_target: "fileInput" } %>
-    <div data-voice-recorder-target="metadata"></div>
-  <% end %>
-
-  <div class="voice-note-recorder__controls">
-    <button type="button" class="btn btn-primary" data-voice-recorder-target="startButton" data-action="voice-recorder#start">
-      <i class="ti ti-microphone" aria-hidden="true"></i>
-      <span>Record voice note</span>
-    </button>
-
-    <button type="button" class="btn btn-outline-secondary" data-voice-recorder-target="stopButton" data-action="voice-recorder#stop" hidden>
-      <i class="ti ti-player-stop" aria-hidden="true"></i>
-      <span>Stop</span>
-    </button>
-
-    <div class="voice-note-recorder__live" data-voice-recorder-target="live" hidden>
-      <span class="voice-note-recorder__pulse" data-voice-recorder-target="pulse" aria-hidden="true"></span>
-      <span class="voice-note-recorder__timer" data-voice-recorder-target="timer">00:00</span>
-      <span class="text-secondary small">Recording in progress</span>
-    </div>
-  </div>
-
-  <div class="voice-note-recorder__preview" data-voice-recorder-target="preview" hidden>
-    <audio controls data-voice-recorder-target="previewAudio"></audio>
-    <div class="voice-note-recorder__preview-meta" data-voice-recorder-target="previewMeta"></div>
-    <div class="d-flex flex-wrap justify-content-end gap-2">
-      <button type="button" class="btn btn-outline-secondary btn-sm" data-voice-recorder-target="discardButton" data-action="voice-recorder#discard" hidden>
-        Discard
-      </button>
-      <button type="button" class="btn btn-primary btn-sm" data-voice-recorder-target="saveButton" data-action="voice-recorder#save" hidden>
-        Save voice note
-      </button>
-    </div>
-  </div>
-
-  <div class="voice-note-recorder__feedback small text-secondary" data-voice-recorder-target="feedback">
-    Browser microphone access is required to record a voice note.
-  </div>
-
-  <% if recorder_mode == "form" %>
-    <div class="voice-note-recorder__pending-list vstack gap-2" data-voice-recorder-target="recordings"></div>
-  <% end %>
+  <%= render "pages/voice_note_recorder_content",
+    recorder_mode: recorder_mode,
+    recorder_form: recorder_form,
+    show_start_button: show_start_button,
+    start_button_label: start_button_label %>
 </div>

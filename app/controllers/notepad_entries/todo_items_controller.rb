@@ -42,6 +42,7 @@ module NotepadEntries
 
     def set_todo_list
       @todo_list = @notepad_entry.todo_list || @notepad_entry.create_todo_list!
+      @todo_list.update!(enabled: true) unless @todo_list.enabled?
     end
 
     def set_todo_item

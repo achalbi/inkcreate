@@ -3,30 +3,47 @@
   voice_notes = page.voice_notes.recent_first.includes(audio_attachment: :blob)
   recorder_mode = page.persisted? ? :persisted : :form
   recorder_url = page.persisted? ? notebook_chapter_page_voice_notes_path(notebook, chapter, page) : nil
+  content_id = dom_id(page, :voice_notes_content)
+  param_key = form&.object_name.to_s.presence || "page"
 %>
 
-<section class="ibox float-e-margins">
+<section
+  class="ibox float-e-margins"
+  data-controller="voice-recorder"
+  data-voice-recorder-auto-submit-on-save-value="false"
+  data-voice-recorder-mode-value="<%= recorder_mode %>"
+  data-voice-recorder-max-duration-seconds-value="<%= VoiceNote::MAX_DURATION_SECONDS %>"
+  data-voice-recorder-param-key-value="<%= param_key %>"
+  <% if recorder_url.present? %>
+    data-voice-recorder-create-url-value="<%= recorder_url %>"
+  <% end %>
+>
   <div class="ibox-title">
     <div class="detail-photo-gallery-heading">
       <h5 class="detail-photo-gallery-title">Voice notes</h5>
       <span class="label label-info detail-photo-gallery-count"><%= voice_notes.size %></span>
     </div>
-    <div class="ibox-tools">
+    <div class="ibox-tools d-flex align-items-center gap-2">
+      <button type="button" class="btn btn-primary btn-sm" data-voice-recorder-target="startButton" data-action="voice-recorder#start">
+        <i class="ti ti-microphone" aria-hidden="true"></i>
+        <span>Record</span>
+      </button>
       <% if page.persisted? %>
         <span class="label label-default">Saved to this page</span>
       <% else %>
         <span class="label label-default">Saved with this form</span>
       <% end %>
-      <%= render "shared/ibox_toggle_button", target_id: dom_id(page, :voice_notes_content) %>
+      <%= render "shared/ibox_toggle_button", target_id: content_id %>
     </div>
   </div>
 
-  <div id="<%= dom_id(page, :voice_notes_content) %>" class="ibox-content collapse show">
-    <%= render "pages/voice_note_recorder",
-      page: page,
-      form: form,
-      mode: recorder_mode,
-      create_url: recorder_url %>
+  <div id="<%= content_id %>" class="ibox-content collapse show" data-voice-recorder-target="panel">
+    <div class="voice-note-recorder">
+      <%= render "pages/voice_note_recorder_content",
+        recorder_form: form,
+        recorder_mode: recorder_mode,
+        show_start_button: false %>
+    </div>
 
     <% if voice_notes.any? %>
       <div class="m-t-md voice-note-list-content">
