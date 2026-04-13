@@ -153,7 +153,7 @@ export default class extends Controller {
     if (this.hasExtractButtonTarget) {
       const shouldHideExtractButton = !nativeAvailable && hasTranscript;
       this.extractButtonTarget.hidden = shouldHideExtractButton;
-      this.extractButtonTarget.disabled = this.isExtracting || (!nativeAvailable && !hasTranscript);
+      this.extractButtonTarget.disabled = this.isExtracting;
     }
 
     if (!nativeAvailable && !hasTranscript && !this.statusVisible()) {
