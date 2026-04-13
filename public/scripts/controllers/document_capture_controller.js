@@ -1,73 +1,14 @@
 import { Controller } from "/scripts/vendor/stimulus.js";
 
-// ── OCR Engine abstraction ────────────────────────────────────────────────────
-class TesseractEngine {
-  constructor() { this.name = "tesseract"; this._worker = null; this._ready = false; }
-  async initialize() {
-    if (this._ready) return;
-    this._worker = await Tesseract.createWorker("eng", 1, {
-      logger: m => {
-        if (m.status === "recognizing text") this._onProgress?.(Math.round(m.progress * 100), "Recognizing…");
-        else if (m.status === "loading tesseract core") this._onProgress?.(5, "Loading engine…");
-        else if (m.status === "initializing tesseract") this._onProgress?.(10, "Initializing…");
-        else if (m.status === "loading language traineddata") this._onProgress?.(15, "Loading language…");
-      }
-    });
-    this._ready = true;
-  }
-  async recognize(canvas, opts = {}) {
-    if (!this._ready) await this.initialize();
-    const lang = opts.language || "eng";
-    try { await this._worker.loadLanguage(lang); await this._worker.initialize(lang); } catch {}
-    const t0 = performance.now();
-    const result = await this._worker.recognize(canvas, {}, { blocks: true });
-    const d = result.data;
-    return {
-      text: d.text || "",
-      confidence: d.confidence || 0,
-      words: (d.words || []).map(w => ({ text: w.text, bbox: w.bbox, confidence: w.confidence })),
-      processingTimeMs: performance.now() - t0,
-      engine: "tesseract"
-    };
-  }
-  async terminate() { if (this._worker) { await this._worker.terminate(); this._worker = null; this._ready = false; } }
-  isReady() { return this._ready; }
-}
-
-class GoogleMLEngine {
-  constructor() { this.name = "google-ml"; }
-  async initialize() { await delay(300); }
-  async recognize(canvas, opts = {}) {
-    this._onProgress?.(30, "Calling Google ML…");
-    await delay(800);
-    this._onProgress?.(80, "Processing…");
-    await delay(400);
-    return {
-      text: "[Google ML Kit — Stub]\n\nThis would call the on-device ML Kit OCR or Cloud Vision API.\nThe quick brown fox jumps over the lazy document.",
-      confidence: 91, words: [], processingTimeMs: 1200, engine: "google-ml"
-    };
-  }
-  async terminate() {}
-  isReady() { return true; }
-}
-
-function createEngine(name) {
-  return name === "google-ml" ? new GoogleMLEngine() : new TesseractEngine();
-}
-
-function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
-
 // ── Stimulus Controller ───────────────────────────────────────────────────────
 export default class extends Controller {
   static targets = [
     "overlay", "stageBar",
-    "screen1", "screen2", "screen3", "screen4", "screen5",
+    "screen1", "screen2", "screen3", "screen4",
     "video", "drawCanvas", "camContainer", "flashOverlay", "flashBtn",
     "camStatus", "autoDot", "autoLabel", "autoCapLabel", "autoBadge", "fileInput",
     "detectContainer", "detectCanvas", "quadSvg", "cornerHandle", "loupeCanvas", "detectHint",
     "enhanceCanvas", "filterStrip", "brightness", "contrast", "brightnessVal", "contrastVal",
-    "ocrImagePane", "ocrCanvas", "scanBar", "ocrBar", "ocrProgressText", "ocrProgressPct", "confBadge",
-    "engineBar", "engineDot", "engineName", "engineStubBadge", "langSelect", "ocrTextarea",
     "reviewCanvas", "reviewStats", "reviewTitle", "reviewTags", "saveBtn",
     "viewer", "viewerTitle", "viewerText"
   ];
@@ -84,15 +25,14 @@ export default class extends Controller {
     this.capturedImage = null;
     this.croppedCanvas = null;
     this.enhancedCanvas = null;
-    this.ocrResult = null;
     this.currentFilter = "auto";
     this.corners = [{ x: .1, y: .1 }, { x: .9, y: .1 }, { x: .9, y: .9 }, { x: .1, y: .9 }];
     this.draggingCornerIdx = -1;
     this.stableCount = 0;
     this.autoCaptureTriggered = false;
-    this.engineName = "tesseract";
-    this.ocrEngine = createEngine("tesseract");
-    this._loadOpenCV();
+    this._flashOn = false;
+    this._torchSupported = false;
+    this._loadDependencies();
     this._setupCornerDrag();
   }
 
@@ -100,7 +40,7 @@ export default class extends Controller {
     this._stopCamera();
   }
 
-  _loadOpenCV() {
+  _loadDependencies() {
     if (window.__opencvReady) return;
     if (!document.querySelector('script[src*="opencv"]')) {
       const s = document.createElement("script");
@@ -109,9 +49,9 @@ export default class extends Controller {
       s.onload = () => { window.__opencvReady = true; };
       document.head.appendChild(s);
     }
-    if (!document.querySelector('script[src*="tesseract"]')) {
+    if (!document.querySelector('script[src*="jspdf"]')) {
       const s = document.createElement("script");
-      s.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+      s.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
       document.head.appendChild(s);
     }
   }
@@ -135,7 +75,7 @@ export default class extends Controller {
 
   // ── Screen navigation ───────────────────────────────────────────────────────
   _showScreen(n) {
-    [1, 2, 3, 4, 5].forEach(i => {
+    [1, 2, 3, 4].forEach(i => {
       const el = this[`screen${i}Target`];
       el.hidden = (i !== n);
     });
@@ -149,8 +89,7 @@ export default class extends Controller {
   goToScreen1() { this._showScreen(1); this._startCamera(); }
   goToScreen2() { this._showScreen(2); this._renderDetectCanvas(); }
   goToScreen3() { this._showScreen(3); }
-  goToScreen4() { this._showScreen(4); this._setupOCRScreen(); this._runOCR(); }
-  goToScreen5() { this._showScreen(5); this._setupReviewScreen(); }
+  goToScreen4() { this._showScreen(4); this._setupReviewScreen(); }
 
   // ── Camera ──────────────────────────────────────────────────────────────────
   async _startCamera() {
@@ -184,6 +123,13 @@ export default class extends Controller {
         this.videoTarget.play();
         this._startDetectionLoop();
       };
+      // Check if this device supports torch (rear camera flash)
+      const track = this._stream.getVideoTracks()[0];
+      const capabilities = track?.getCapabilities?.() || {};
+      this._torchSupported = !!(capabilities.torch);
+      if (this.hasFlashBtnTarget) {
+        this.flashBtnTarget.style.visibility = this._torchSupported ? "visible" : "hidden";
+      }
     } catch(err) {
       const type = err.name === "NotFoundError" || err.name === "DevicesNotFoundError"
         ? "notfound"
@@ -231,6 +177,8 @@ export default class extends Controller {
     };
 
     const { icon, title, sub, showRetry } = messages[type] || messages.unavailable;
+    // No camera → flash is meaningless
+    if (this.hasFlashBtnTarget) this.flashBtnTarget.style.visibility = "hidden";
 
     container.innerHTML = `
       <div class="dcap-fallback">
@@ -361,9 +309,11 @@ export default class extends Controller {
 
   captureFrame() {
     this.autoCaptureTriggered = false;
-    // Flash
-    this.flashOverlayTarget.classList.add("dcap-flash--active");
-    setTimeout(() => this.flashOverlayTarget.classList.remove("dcap-flash--active"), 180);
+    // Only fire the screen-flash animation when flash is enabled
+    if (this._flashOn) {
+      this.flashOverlayTarget.classList.add("dcap-flash--active");
+      setTimeout(() => this.flashOverlayTarget.classList.remove("dcap-flash--active"), 180);
+    }
     const video = this.videoTarget;
     if (video.srcObject && video.readyState >= 2) {
       const c = document.createElement("canvas");
@@ -423,9 +373,19 @@ export default class extends Controller {
     return c;
   }
 
-  toggleFlash() {
+  async toggleFlash() {
     this._flashOn = !this._flashOn;
-    this.flashBtnTarget.textContent = this._flashOn ? "🔦" : "⚡";
+    const btn = this.flashBtnTarget;
+    btn.textContent = this._flashOn ? "🔦" : "⚡";
+    btn.classList.toggle("dcap-icon-btn--active", this._flashOn);
+    btn.setAttribute("aria-label", this._flashOn ? "Flash on" : "Flash off");
+    // Apply torch to the live camera track if supported
+    if (this._torchSupported && this._stream) {
+      const track = this._stream.getVideoTracks()[0];
+      try {
+        await track.applyConstraints({ advanced: [{ torch: this._flashOn }] });
+      } catch { /* torch constraint rejected — silently ignore */ }
+    }
   }
 
   toggleAuto() {
@@ -702,94 +662,17 @@ export default class extends Controller {
     this.croppedCanvas = out; this._applyFilter(this.currentFilter); this._buildFilterStrip();
   }
 
-  // ── Stage 4: OCR ────────────────────────────────────────────────────────────
-  _setupOCRScreen() {
-    const src = this.enhancedCanvas || this.croppedCanvas;
-    const dest = this.ocrCanvasTarget;
-    const pane = this.ocrImagePaneTarget;
-    if (src && dest) {
-      const scale = Math.min(1, (pane.clientWidth || 360) / src.width, 200 / src.height);
-      dest.width = Math.round(src.width * scale);
-      dest.height = Math.round(src.height * scale);
-      dest.style.width = "100%"; dest.style.height = "100%";
-      dest.getContext("2d").drawImage(src, 0, 0, dest.width, dest.height);
-    }
-    this._updateEngineUI();
-  }
-
-  _updateOCRProgress(text, pct) {
-    if (this.hasOcrProgressTextTarget) this.ocrProgressTextTarget.textContent = text;
-    if (this.hasOcrProgressPctTarget) this.ocrProgressPctTarget.textContent = pct > 0 ? pct + "%" : "";
-    if (this.hasOcrBarTarget) this.ocrBarTarget.style.width = pct + "%";
-  }
-
-  async _runOCR() {
-    const src = this.enhancedCanvas || this.croppedCanvas;
-    if (!src) { this.ocrTextareaTarget.value = "No image to process."; return; }
-    this.scanBarTarget.classList.add("dcap-scan-bar--active");
-    this.confBadgeTarget.hidden = true;
-    this.ocrTextareaTarget.value = "";
-    this._updateOCRProgress("Initializing…", 0);
-    const lang = this.hasLangSelectTarget ? this.langSelectTarget.value : "eng";
-    this.ocrEngine._onProgress = (pct, txt) => this._updateOCRProgress(txt, pct);
-    try {
-      await this.ocrEngine.initialize();
-      this._updateOCRProgress("Recognizing…", 20);
-      this.ocrResult = await this.ocrEngine.recognize(src, { language: lang });
-      this.scanBarTarget.classList.remove("dcap-scan-bar--active");
-      this._updateOCRProgress("Done!", 100);
-      this.ocrTextareaTarget.value = this.ocrResult.text.trim() || "(No text detected)";
-      this._showConfBadge(this.ocrResult.confidence);
-    } catch (e) {
-      this.scanBarTarget.classList.remove("dcap-scan-bar--active");
-      this._updateOCRProgress("Error: " + e.message, 0);
-      this.ocrTextareaTarget.value = "OCR failed. Try re-enhancing or switching engines.";
-    }
-  }
-
-  rerunOCR() { this._runOCR(); }
-
-  _showConfBadge(conf) {
-    const b = this.confBadgeTarget;
-    b.hidden = false;
-    const pct = Math.round(conf);
-    const cls = pct >= 80 ? "sdoc-conf-badge--high" : pct >= 50 ? "sdoc-conf-badge--mid" : "sdoc-conf-badge--low";
-    const icon = pct >= 80 ? "🟢" : pct >= 50 ? "🟡" : "🔴";
-    b.className = "dcap-conf-badge " + cls;
-    b.textContent = `${icon} ${pct}% confidence`;
-  }
-
-  switchEngine() {
-    this.engineName = this.engineName === "tesseract" ? "google-ml" : "tesseract";
-    this.ocrEngine = createEngine(this.engineName);
-    this._updateEngineUI();
-    this._runOCR();
-  }
-
-  _updateEngineUI() {
-    if (!this.hasEngineNameTarget) return;
-    const isTess = this.engineName === "tesseract";
-    this.engineNameTarget.textContent = isTess ? "Tesseract.js" : "Google ML Kit";
-    this.engineDotTarget.style.background = isTess ? "#2eaa60" : "#4285f4";
-    this.engineStubBadgeTarget.hidden = isTess;
-  }
-
-  // ── Stage 5: Review ─────────────────────────────────────────────────────────
+  // ── Stage 4: Review & Save ──────────────────────────────────────────────────
   _setupReviewScreen() {
     const src = this.enhancedCanvas || this.croppedCanvas;
     const rc = this.reviewCanvasTarget;
     if (src && rc) { rc.width = src.width; rc.height = src.height; rc.getContext("2d").drawImage(src, 0, 0); }
-    const text = this.hasOcrTextareaTarget ? this.ocrTextareaTarget.value : "";
-    const firstLine = (text.split("\n").find(l => l.trim().length > 3) || "").trim().substring(0, 50);
     const d = new Date();
-    this.reviewTitleTarget.value = firstLine || `Scan — ${d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
-    const conf = this.ocrResult?.confidence || 0;
-    const wc = text.split(/\s+/).filter(Boolean).length;
-    this.reviewStatsTarget.innerHTML = `
-      <div class="dcap-stat"><div class="dcap-stat-label">Confidence</div><div class="dcap-stat-value">${conf > 0 ? Math.round(conf) + "%" : "—"}</div></div>
-      <div class="dcap-stat"><div class="dcap-stat-label">Engine</div><div class="dcap-stat-value">${this.ocrResult?.engine || this.engineName}</div></div>
-      <div class="dcap-stat"><div class="dcap-stat-label">Words</div><div class="dcap-stat-value">${wc || "—"}</div></div>
-      <div class="dcap-stat"><div class="dcap-stat-label">Language</div><div class="dcap-stat-value">${this.hasLangSelectTarget ? this.langSelectTarget.value : "eng"}</div></div>`;
+    this.reviewTitleTarget.value = `Scan — ${d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+    this.reviewStatsTarget.innerHTML = src ? `
+      <div class="dcap-stat"><div class="dcap-stat-label">Filter</div><div class="dcap-stat-value">${this.currentFilter}</div></div>
+      <div class="dcap-stat"><div class="dcap-stat-label">Size</div><div class="dcap-stat-value">${src.width}×${src.height}px</div></div>
+      <div class="dcap-stat"><div class="dcap-stat-label">PDF</div><div class="dcap-stat-value">Will be generated on save</div></div>` : "";
   }
 
   async save() {
@@ -799,21 +682,29 @@ export default class extends Controller {
     const canvas = this.enhancedCanvas || this.croppedCanvas;
     if (!canvas) { btn.disabled = false; btn.textContent = "Save ✓"; return; }
 
-    // Convert canvas to Blob
-    canvas.toBlob(async blob => {
-      const formData = new FormData();
-      formData.append("scanned_document[title]", this.reviewTitleTarget.value);
-      formData.append("scanned_document[extracted_text]", this.hasOcrTextareaTarget ? this.ocrTextareaTarget.value : "");
-      formData.append("scanned_document[ocr_engine]", this.ocrResult?.engine || this.engineName);
-      formData.append("scanned_document[ocr_language]", this.hasLangSelectTarget ? this.langSelectTarget.value : "eng");
-      formData.append("scanned_document[ocr_confidence]", this.ocrResult?.confidence || 0);
-      formData.append("scanned_document[enhancement_filter]", this.currentFilter);
-      formData.append("scanned_document[tags]", JSON.stringify(
-        (this.reviewTagsTarget.value || "").split(",").map(t => t.trim()).filter(Boolean)
-      ));
-      formData.append("scanned_document[enhanced_image]", blob, "scan.jpg");
-
+    canvas.toBlob(async jpegBlob => {
       try {
+        const formData = new FormData();
+        formData.append("scanned_document[title]", this.reviewTitleTarget.value);
+        formData.append("scanned_document[enhancement_filter]", this.currentFilter);
+        formData.append("scanned_document[tags]", JSON.stringify(
+          (this.reviewTagsTarget.value || "").split(",").map(t => t.trim()).filter(Boolean)
+        ));
+        formData.append("scanned_document[enhanced_image]", jpegBlob, "scan.jpg");
+
+        // Generate PDF using jsPDF if available
+        if (window.jspdf?.jsPDF) {
+          btn.textContent = "Generating PDF…";
+          const { jsPDF } = window.jspdf;
+          const orientation = canvas.width > canvas.height ? "landscape" : "portrait";
+          const pdf = new jsPDF({ orientation, unit: "px", format: [canvas.width, canvas.height], hotfixes: ["px_scaling"] });
+          const imgData = canvas.toDataURL("image/jpeg", 0.92);
+          pdf.addImage(imgData, "JPEG", 0, 0, canvas.width, canvas.height);
+          const pdfBlob = pdf.output("blob");
+          formData.append("scanned_document[pdf_document]", pdfBlob, "scan.pdf");
+          btn.textContent = "Saving…";
+        }
+
         const resp = await fetch(this.postUrlValue, {
           method: "POST",
           body: formData,
@@ -830,6 +721,36 @@ export default class extends Controller {
         alert("Network error. Please try again.");
       }
     }, "image/jpeg", 0.92);
+  }
+
+  // ── On-demand OCR ──────────────────────────────────────────────────────────
+  async generateOcr(e) {
+    const btn = e.currentTarget;
+    const ocrUrl = btn.dataset.ocrUrl;
+    if (!ocrUrl) return;
+    btn.disabled = true;
+    btn.textContent = "Processing…";
+    try {
+      const resp = await fetch(ocrUrl, {
+        method: "PATCH",
+        headers: {
+          "X-CSRF-Token": this.csrfValue,
+          "X-Requested-With": "XMLHttpRequest",
+          "Accept": "application/json"
+        }
+      });
+      if (resp.ok) {
+        window.location.reload();
+      } else {
+        btn.disabled = false;
+        btn.textContent = "🔤 Generate OCR";
+        alert("OCR failed. Please try again.");
+      }
+    } catch {
+      btn.disabled = false;
+      btn.textContent = "🔤 Generate OCR";
+      alert("Network error. Please try again.");
+    }
   }
 
   // ── Text viewer ──────────────────────────────────────────────────────────────

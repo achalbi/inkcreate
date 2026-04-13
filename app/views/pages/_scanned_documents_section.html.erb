@@ -38,10 +38,14 @@
               <div class="sdoc-header">
                 <div class="sdoc-title"><%= doc.title.presence || "Untitled scan" %></div>
                 <div class="sdoc-meta">
-                  <span class="sdoc-conf-badge <%= doc.confidence_class %>">
-                    <%= doc.confidence_label %> confidence
-                  </span>
-                  <span class="sdoc-engine-label"><%= doc.ocr_engine %> · <%= doc.created_at.strftime("%-d %b") %></span>
+                  <% if doc.ocr_confidence.present? %>
+                    <span class="sdoc-conf-badge <%= doc.confidence_class %>">
+                      <%= doc.confidence_label %> confidence
+                    </span>
+                    <span class="sdoc-engine-label"><%= doc.ocr_engine %> · <%= doc.created_at.strftime("%-d %b") %></span>
+                  <% else %>
+                    <span class="sdoc-engine-label text-muted">No OCR · <%= doc.created_at.strftime("%-d %b") %></span>
+                  <% end %>
                 </div>
               </div>
 
@@ -51,28 +55,46 @@
                 <% else %>
                   <div class="sdoc-thumb sdoc-thumb--placeholder">📄</div>
                 <% end %>
-                <p class="sdoc-excerpt">
-                  <%= truncate(doc.extracted_text.to_s.strip, length: 220) %>
-                </p>
+                <% if doc.extracted_text.present? %>
+                  <p class="sdoc-excerpt">
+                    <%= truncate(doc.extracted_text.to_s.strip, length: 220) %>
+                  </p>
+                <% else %>
+                  <p class="sdoc-excerpt text-muted fst-italic">No text extracted yet. Click "Generate OCR" to extract text.</p>
+                <% end %>
               </div>
 
               <div class="sdoc-actions">
-                <button
-                  type="button"
-                  class="btn btn-white btn-sm"
-                  data-action="click->document-capture#copyText"
-                  data-text="<%= j doc.extracted_text.to_s %>"
-                  title="Copy extracted text"
-                >📋 Copy</button>
+                <% if doc.extracted_text.present? %>
+                  <button
+                    type="button"
+                    class="btn btn-white btn-sm"
+                    data-action="click->document-capture#copyText"
+                    data-text="<%= j doc.extracted_text.to_s %>"
+                    title="Copy extracted text"
+                  >📋 Copy</button>
+
+                  <button
+                    type="button"
+                    class="btn btn-white btn-sm"
+                    data-action="click->document-capture#viewFull"
+                    data-text="<%= j doc.extracted_text.to_s %>"
+                    data-title="<%= j doc.title.to_s %>"
+                    title="View full text"
+                  >🔍 View</button>
+                <% end %>
+
+                <% if doc.pdf_document.attached? %>
+                  <%= link_to "📥 PDF", rails_blob_path(doc.pdf_document, disposition: "attachment"), class: "btn btn-white btn-sm", title: "Download PDF" %>
+                <% end %>
 
                 <button
                   type="button"
                   class="btn btn-white btn-sm"
-                  data-action="click->document-capture#viewFull"
-                  data-text="<%= j doc.extracted_text.to_s %>"
-                  data-title="<%= j doc.title.to_s %>"
-                  title="View full text"
-                >🔍 View</button>
+                  data-action="click->document-capture#generateOcr"
+                  data-ocr-url="<%= run_ocr_notebook_chapter_page_scanned_document_path(notebook, chapter, page, doc) %>"
+                  title="<%= doc.extracted_text.present? ? 'Re-run OCR' : 'Generate OCR' %>"
+                >🔤 <%= doc.extracted_text.present? ? "Re-run OCR" : "Generate OCR" %></button>
 
                 <%= button_to notebook_chapter_page_scanned_document_path(notebook, chapter, page, doc),
                     method: :delete,
@@ -90,7 +112,7 @@
       <div class="sdoc-empty-state">
         <div class="sdoc-empty-icon">📄</div>
         <div class="sdoc-empty-title">No scanned documents yet</div>
-        <div class="sdoc-empty-sub">Photograph a physical document and extract its text automatically.</div>
+        <div class="sdoc-empty-sub">Photograph a physical document to save it as a PDF. Extract text on demand with OCR.</div>
         <button
           type="button"
           class="btn btn-primary btn-sm"
@@ -100,12 +122,12 @@
     <% end %>
   </div>
 
-  <%# ─── Document Capture Overlay (5-stage pipeline, shown when active) ─── %>
+  <%# ─── Document Capture Overlay (4-stage pipeline, shown when active) ─── %>
   <div class="dcap-overlay" data-document-capture-target="overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Document capture">
 
     <%# Stage indicator %>
     <div class="dcap-stage-bar" data-document-capture-target="stageBar">
-      <% ["Capture","Detect","Enhance","OCR","Save"].each_with_index do |s,i| %>
+      <% ["Capture","Detect","Enhance","Save"].each_with_index do |s,i| %>
         <div class="dcap-stage-pill" data-stage="<%= i+1 %>"><%= s %></div>
       <% end %>
     </div>
@@ -198,58 +220,14 @@
       </div>
       <div class="dcap-footer-row">
         <button class="btn btn-white dcap-btn" data-action="click->document-capture#goToScreen2">← Back</button>
-        <button class="btn btn-primary dcap-btn" data-action="click->document-capture#goToScreen4">Extract text →</button>
+        <button class="btn btn-primary dcap-btn" data-action="click->document-capture#goToScreen4">Save →</button>
       </div>
     </div>
 
-    <%# ── Stage 4: OCR ────────────────────────────────────────────────── %>
+    <%# ── Stage 4: Review & Save ──────────────────────────────────────── %>
     <div class="dcap-screen" data-screen="4" data-document-capture-target="screen4" hidden>
       <div class="dcap-topbar">
         <button class="dcap-icon-btn" data-action="click->document-capture#goToScreen3" aria-label="Back">←</button>
-        <span class="dcap-topbar-title">Extract Text</span>
-        <button class="dcap-icon-btn dcap-icon-btn--accent" data-action="click->document-capture#goToScreen5" aria-label="Next">→</button>
-      </div>
-      <div class="dcap-ocr-engine-bar" data-document-capture-target="engineBar">
-        <div class="dcap-engine-dot" data-document-capture-target="engineDot"></div>
-        <span data-document-capture-target="engineName">Tesseract.js</span>
-        <span class="dcap-engine-stub-badge" data-document-capture-target="engineStubBadge" hidden>Stub</span>
-        <button class="btn btn-sm btn-white" style="margin-left:auto;padding:4px 10px;font-size:.7rem" data-action="click->document-capture#switchEngine">Switch</button>
-        <select class="dcap-lang-select" data-document-capture-target="langSelect" data-action="change->document-capture#rerunOCR">
-          <option value="eng">English</option>
-          <option value="fra">French</option>
-          <option value="deu">German</option>
-          <option value="spa">Spanish</option>
-          <option value="hin">Hindi</option>
-          <option value="jpn">Japanese</option>
-          <option value="chi_sim">Chinese</option>
-        </select>
-      </div>
-      <div class="dcap-ocr-image-pane" data-document-capture-target="ocrImagePane">
-        <canvas data-document-capture-target="ocrCanvas"></canvas>
-        <div class="dcap-scan-bar" data-document-capture-target="scanBar"></div>
-      </div>
-      <div class="dcap-ocr-progress">
-        <div class="dcap-ocr-progress-row">
-          <span data-document-capture-target="ocrProgressText" aria-live="polite">Ready…</span>
-          <span data-document-capture-target="ocrProgressPct" class="dcap-ocr-pct"></span>
-        </div>
-        <div class="dcap-ocr-track"><div class="dcap-ocr-bar" data-document-capture-target="ocrBar"></div></div>
-      </div>
-      <div class="dcap-conf-row">
-        <span class="dcap-conf-badge" data-document-capture-target="confBadge" hidden></span>
-        <button class="btn btn-white btn-sm" data-action="click->document-capture#rerunOCR">↻ Re-run</button>
-      </div>
-      <textarea class="dcap-ocr-textarea" data-document-capture-target="ocrTextarea" placeholder="Extracted text will appear here…" spellcheck="false"></textarea>
-      <div class="dcap-footer-row">
-        <button class="btn btn-white dcap-btn" data-action="click->document-capture#goToScreen3">← Re-enhance</button>
-        <button class="btn btn-primary dcap-btn" data-action="click->document-capture#goToScreen5">Save ✓</button>
-      </div>
-    </div>
-
-    <%# ── Stage 5: Review & Save ──────────────────────────────────────── %>
-    <div class="dcap-screen" data-screen="5" data-document-capture-target="screen5" hidden>
-      <div class="dcap-topbar">
-        <button class="dcap-icon-btn" data-action="click->document-capture#goToScreen4" aria-label="Back">←</button>
         <span class="dcap-topbar-title">Review & Save</span>
       </div>
       <div class="dcap-review-scroll">
@@ -264,7 +242,7 @@
           <input type="text" class="dcap-review-input" data-document-capture-target="reviewTags" placeholder="meeting, notes, q1…" />
         </div>
         <div class="dcap-footer-row" style="padding-bottom:32px">
-          <button class="btn btn-white dcap-btn" data-action="click->document-capture#goToScreen4">← Edit</button>
+          <button class="btn btn-white dcap-btn" data-action="click->document-capture#goToScreen3">← Enhance</button>
           <button class="btn btn-primary dcap-btn" data-document-capture-target="saveBtn" data-action="click->document-capture#save">
             Save ✓
           </button>
