@@ -170,6 +170,34 @@ class PageEnhancementsFlowTest < ActionDispatch::IntegrationTest
     assert_nil entry_page.scanned_documents.first.extracted_text
   end
 
+  test "page scanned documents auto-title duplicates gain a numeric suffix" do
+    user = build_user(email: "page-scan-title-suffix@example.com")
+    notebook = user.notebooks.create!(title: "Paper trail", status: :active)
+    chapter = notebook.chapters.create!(title: "Receipts", description: "Captured scans")
+    auto_title = "Scan — Apr 14, 2026 10:15:30"
+
+    sign_in_browser_user(user)
+    get new_notebook_chapter_page_path(notebook, chapter)
+
+    assert_difference -> { chapter.pages.count }, +1 do
+      post notebook_chapter_pages_path(notebook, chapter), params: {
+        authenticity_token: authenticity_token_for(notebook_chapter_pages_path(notebook, chapter)),
+        page: {
+          title: "",
+          notes: "",
+          captured_on: Date.current,
+          pending_scanned_documents_json: [
+            scanned_document_payload(title: auto_title),
+            scanned_document_payload(title: auto_title)
+          ].to_json
+        }
+      }
+    end
+
+    entry_page = chapter.pages.order(:created_at).last
+    assert_equal [auto_title, "#{auto_title} #2"], entry_page.scanned_documents.order(:created_at).pluck(:title)
+  end
+
   test "user can run OCR on a saved page scan" do
     user = build_user(email: "page-scan-ocr@example.com")
     notebook = user.notebooks.create!(title: "Paper trail", status: :active)

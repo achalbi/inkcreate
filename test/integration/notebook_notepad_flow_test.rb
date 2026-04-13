@@ -256,6 +256,52 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
     assert_redirected_to notepad_entry_path(entry)
   end
 
+  test "notepad scanned documents auto-title duplicates gain a numeric suffix" do
+    user = User.create!(
+      email: "notepad-scan-title-suffix@example.com",
+      password: "Password123!",
+      password_confirmation: "Password123!",
+      time_zone: "UTC",
+      locale: "en",
+      role: :user
+    )
+    entry = user.notepad_entries.create!(
+      title: "Inbox scans",
+      notes: "Collect scans here.",
+      entry_date: Date.current
+    )
+    auto_title = "Scan — Apr 14, 2026 10:15:30"
+
+    sign_in_browser_user(user)
+    get notepad_entry_path(entry)
+    assert_response :success
+    scanned_document_token = authenticity_token_for(notepad_entry_scanned_documents_path(entry))
+
+    post notepad_entry_scanned_documents_path(entry), params: {
+      authenticity_token: scanned_document_token,
+      scanned_document: {
+        title: auto_title,
+        enhancement_filter: "auto",
+        tags: ["receipt"].to_json,
+        image_data: tiny_jpeg_data_url,
+        pdf_data: tiny_pdf_data_url
+      }
+    }
+
+    post notepad_entry_scanned_documents_path(entry), params: {
+      authenticity_token: scanned_document_token,
+      scanned_document: {
+        title: auto_title,
+        enhancement_filter: "auto",
+        tags: ["receipt"].to_json,
+        image_data: tiny_jpeg_data_url,
+        pdf_data: tiny_pdf_data_url
+      }
+    }
+
+    assert_equal [auto_title, "#{auto_title} #2"], entry.scanned_documents.order(:created_at).pluck(:title)
+  end
+
   test "user can store a native OCR result on a notepad scan" do
     user = User.create!(
       email: "notepad-native-ocr@example.com",
@@ -569,6 +615,17 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def build_user(email:)
+    User.create!(
+      email: email,
+      password: "Password123!",
+      password_confirmation: "Password123!",
+      time_zone: "UTC",
+      locale: "en",
+      role: :user
+    )
+  end
 
   def audio_upload(filename:, content_type:, contents:)
     tempfile = Tempfile.new([File.basename(filename, ".*"), File.extname(filename)])

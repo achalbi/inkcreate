@@ -194,6 +194,31 @@ export default class extends Controller {
     })}`;
   }
 
+  _nextAutoScanTitle(baseTitle = this._defaultScanTitle()) {
+    const escapedBase = baseTitle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const pattern = new RegExp(`^${escapedBase}(?: #(\\d+))?$`);
+    const existingTitles = this._existingScannedDocumentTitles();
+
+    if (!existingTitles.includes(baseTitle)) {
+      return baseTitle;
+    }
+
+    const nextSuffix = existingTitles.reduce((max, title) => {
+      const match = String(title || "").trim().match(pattern);
+      if (!match) return max;
+      const value = match[1] ? Number(match[1]) : 1;
+      return Number.isNaN(value) ? max : Math.max(max, value);
+    }, 1) + 1;
+
+    return `${baseTitle} #${nextSuffix}`;
+  }
+
+  _existingScannedDocumentTitles() {
+    return Array.from(this.element.querySelectorAll(".sdoc-title, .sdoc-title-button"))
+      .map((element) => element.textContent?.trim())
+      .filter(Boolean);
+  }
+
   // ── Screen navigation ───────────────────────────────────────────────────────
   _showScreen(n) {
     [1, 2, 3, 4].forEach(i => {
@@ -1043,7 +1068,7 @@ export default class extends Controller {
     const src = this.enhancedCanvas || this.croppedCanvas;
     const rc = this.reviewCanvasTarget;
     if (src && rc) { rc.width = src.width; rc.height = src.height; rc.getContext("2d").drawImage(src, 0, 0); }
-    this.reviewTitleTarget.value = this._defaultScanTitle();
+    this.reviewTitleTarget.value = this._nextAutoScanTitle();
     this.reviewTagsTarget.value = "";
     this.reviewStatsTarget.innerHTML = `
       <div class="dcap-stat"><div class="dcap-stat-label">Format</div><div class="dcap-stat-value">PDF</div></div>
@@ -1088,7 +1113,7 @@ export default class extends Controller {
     }
 
     const formData = new FormData();
-    formData.append("scanned_document[title]", payload.title || this._defaultScanTitle());
+    formData.append("scanned_document[title]", payload.title || this._nextAutoScanTitle());
     formData.append("scanned_document[enhancement_filter]", payload.enhancement_filter || "auto");
     formData.append("scanned_document[tags]", payload.tags || "[]");
     if (payload.image_data) formData.append("scanned_document[image_data]", payload.image_data);
@@ -1218,7 +1243,7 @@ export default class extends Controller {
     const tags = Array.isArray(result?.tags) ? result.tags : [];
 
     return {
-      title: result?.title || this._defaultScanTitle(),
+      title: result?.title || this._nextAutoScanTitle(),
       enhancement_filter: result?.enhancementFilter || "auto",
       tags: JSON.stringify(tags.filter(Boolean)),
       image_data: result?.previewImageDataUrl

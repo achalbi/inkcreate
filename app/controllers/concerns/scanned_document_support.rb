@@ -1,4 +1,6 @@
 module ScannedDocumentSupport
+  AUTO_SCANNED_DOCUMENT_TITLE_REGEX = /\A(?<base>Scan [—-] .+?)(?: #(?<suffix>\d+))?\z/
+
   private
 
   def attach_scanned_document_assets(doc, image_data_url, pdf_data: nil)
@@ -34,12 +36,18 @@ module ScannedDocumentSupport
   end
 
   def persist_pending_scanned_documents(owner, payloads:, user:)
+    used_titles = owner.scanned_documents.pluck(:title)
+
     Array(payloads).each do |payload|
       normalized_payload = normalize_scanned_document_payload(payload)
       next if normalized_payload.blank?
 
       doc = owner.scanned_documents.new(
-        title: normalized_payload["title"].presence || default_scanned_document_title,
+        title: next_scanned_document_title_for(
+          owner,
+          normalized_payload["title"].presence || default_scanned_document_title,
+          used_titles: used_titles
+        ),
         enhancement_filter: normalized_payload["enhancement_filter"].presence || "auto",
         tags: normalize_scanned_document_tags(normalized_payload["tags"])
       )
@@ -83,6 +91,30 @@ module ScannedDocumentSupport
 
   def default_scanned_document_title
     "Scan — #{Time.zone.now.strftime("%b %-d, %Y %H:%M:%S")}"
+  end
+
+  def next_scanned_document_title_for(owner, preferred_title, used_titles: nil)
+    title = preferred_title.to_s.strip.presence || default_scanned_document_title
+    match = title.match(AUTO_SCANNED_DOCUMENT_TITLE_REGEX)
+    return title unless match
+
+    titles = used_titles || owner.scanned_documents.pluck(:title)
+    unless titles.include?(title)
+      used_titles&.push(title)
+      return title
+    end
+
+    base = match[:base]
+    next_suffix = titles.filter_map do |existing_title|
+      existing_match = existing_title.to_s.match(/\A#{Regexp.escape(base)}(?: #(?<suffix>\d+))?\z/)
+      next unless existing_match
+
+      existing_match[:suffix].present? ? existing_match[:suffix].to_i : 1
+    end.max.to_i + 1
+
+    unique_title = "#{base} ##{next_suffix}"
+    used_titles&.push(unique_title)
+    unique_title
   end
 
   def scanned_document_filename_base(title)

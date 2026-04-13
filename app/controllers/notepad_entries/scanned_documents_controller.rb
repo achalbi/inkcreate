@@ -8,6 +8,7 @@ module NotepadEntries
     def create
       doc = @notepad_entry.scanned_documents.new(scanned_document_params)
       doc.user = current_user
+      doc.title = next_scanned_document_title_for(@notepad_entry, doc.title.presence || default_scanned_document_title)
 
       if params.dig(:scanned_document, :image_data).present?
         attach_scanned_document_assets(
