@@ -94,6 +94,7 @@ export default class extends Controller {
     this.ocrEngine = createEngine("tesseract");
     this._flashOn = false;
     this._torchSupported = false;
+    this._torchActive = false;
     this._stillFlashSupported = false;
     this._loadOpenCV();
     this._setupCornerDrag();
@@ -223,6 +224,7 @@ export default class extends Controller {
     }
     this._clearCanvas(this.drawCanvasTarget);
     this._torchSupported = false;
+    this._torchActive = false;
     this._stillFlashSupported = false;
     this._syncFlashButton();
   }
@@ -235,12 +237,14 @@ export default class extends Controller {
     const track = this._getVideoTrack();
     this._torchSupported = this._detectTorchSupport(track);
     this._stillFlashSupported = await this._detectStillFlashSupport(track);
+    this._torchActive = false;
 
-    if (this._torchSupported && this._flashOn) {
-      const applied = await this._applyTorchState(true);
-      if (!applied && !this._stillFlashSupported) this._flashOn = false;
-    } else if (this._flashOn && !this._hasFlashSupport()) {
-      this._flashOn = false;
+    if (this._flashOn) {
+      if (this._torchSupported) {
+        this._torchActive = await this._applyTorchState(true);
+      }
+
+      this._flashOn = this._torchActive || this._stillFlashSupported;
     }
 
     this._syncFlashButton();
@@ -263,7 +267,7 @@ export default class extends Controller {
       const imageCapture = new window.ImageCapture(track);
       const photoCapabilities = await imageCapture.getPhotoCapabilities?.();
       return Array.isArray(photoCapabilities?.fillLightMode)
-        && photoCapabilities.fillLightMode.includes("flash");
+        && photoCapabilities.fillLightMode.some((mode) => mode === "flash" || mode === "on");
     } catch {
       return false;
     }
@@ -497,7 +501,7 @@ export default class extends Controller {
 
   async _captureCurrentFrame() {
     const track = this._getVideoTrack();
-    if (this._flashOn && !this._torchSupported && this._stillFlashSupported && track) {
+    if (this._flashOn && !this._torchActive && this._stillFlashSupported && track) {
       const stillPhoto = await this._captureStillPhotoWithFlash(track);
       if (stillPhoto) return stillPhoto;
     }
@@ -521,13 +525,24 @@ export default class extends Controller {
   async _captureStillPhotoWithFlash(track) {
     if (typeof window.ImageCapture !== "function") return null;
 
+    const flashModes = ["flash", "on"];
+
     try {
       const imageCapture = new window.ImageCapture(track);
-      const blob = await imageCapture.takePhoto({ fillLightMode: "flash" });
-      return await this._canvasFromBlob(blob);
+      for (const fillLightMode of flashModes) {
+        try {
+          const blob = await imageCapture.takePhoto({ fillLightMode });
+          const canvas = await this._canvasFromBlob(blob);
+          if (canvas) return canvas;
+        } catch {
+          // Try the next flash mode for browsers with older ImageCapture implementations.
+        }
+      }
     } catch {
       return null;
     }
+
+    return null;
   }
 
   async _canvasFromBlob(blob) {
@@ -607,15 +622,28 @@ export default class extends Controller {
     }
 
     const nextState = !this._flashOn;
-    if (this._torchSupported) {
-      const applied = await this._applyTorchState(nextState);
-      if (applied || this._stillFlashSupported) {
-        this._flashOn = nextState;
+
+    if (!nextState) {
+      if (this._torchActive) {
+        const disabled = await this._applyTorchState(false);
+        if (!disabled) {
+          this._syncFlashButton();
+          return;
+        }
       }
-    } else {
-      this._flashOn = nextState;
+
+      this._torchActive = false;
+      this._flashOn = false;
+      this._syncFlashButton();
+      return;
     }
 
+    this._torchActive = false;
+    if (this._torchSupported) {
+      this._torchActive = await this._applyTorchState(true);
+    }
+
+    this._flashOn = this._torchActive || this._stillFlashSupported;
     this._syncFlashButton();
   }
 
