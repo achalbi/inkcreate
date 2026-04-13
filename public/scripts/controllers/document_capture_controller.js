@@ -59,7 +59,12 @@ export default class extends Controller {
   }
 
   // ── Overlay open/close ──────────────────────────────────────────────────────
-  open() {
+  async open(event) {
+    event?.preventDefault();
+
+    const handledByNativeScanner = await this._openWithNativeDocumentScanner();
+    if (handledByNativeScanner) return;
+
     this.overlayTarget.removeAttribute("aria-hidden");
     this.overlayTarget.classList.add("dcap-overlay--open");
     document.body.style.overflow = "hidden";
@@ -166,6 +171,18 @@ export default class extends Controller {
 
   _escapeAttribute(value) {
     return this._escapeHtml(value).replaceAll("`", "&#96;");
+  }
+
+  _defaultScanTitle(date = new Date()) {
+    return `Scan — ${date.toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false
+    })}`;
   }
 
   // ── Screen navigation ───────────────────────────────────────────────────────
@@ -1017,8 +1034,7 @@ export default class extends Controller {
     const src = this.enhancedCanvas || this.croppedCanvas;
     const rc = this.reviewCanvasTarget;
     if (src && rc) { rc.width = src.width; rc.height = src.height; rc.getContext("2d").drawImage(src, 0, 0); }
-    const d = new Date();
-    this.reviewTitleTarget.value = `Scan — ${d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+    this.reviewTitleTarget.value = this._defaultScanTitle();
     this.reviewTagsTarget.value = "";
     this.reviewStatsTarget.innerHTML = `
       <div class="dcap-stat"><div class="dcap-stat-label">Format</div><div class="dcap-stat-value">PDF</div></div>
@@ -1034,37 +1050,11 @@ export default class extends Controller {
     const canvas = this.enhancedCanvas || this.croppedCanvas;
     if (!canvas) { btn.disabled = false; btn.textContent = "Save PDF"; return; }
 
-    const payload = this._buildScannedDocumentPayload(canvas);
-
-    if (this._isDraftMode()) {
-      this._writeDraftDocuments([payload, ...(this._draftDocuments || [])]);
-      btn.disabled = false;
-      btn.textContent = "Save PDF";
-      this.close();
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("scanned_document[title]", payload.title);
-    formData.append("scanned_document[enhancement_filter]", payload.enhancement_filter);
-    formData.append("scanned_document[tags]", payload.tags);
-    formData.append("scanned_document[image_data]", payload.image_data);
-
     try {
-      const resp = await fetch(this.postUrlValue, {
-        method: "POST",
-        body: formData,
-        headers: { "X-CSRF-Token": this.csrfValue, "X-Requested-With": "XMLHttpRequest" }
-      });
-      if (resp.ok || resp.redirected) {
-        window.location.reload();
-      } else {
-        btn.disabled = false; btn.textContent = "Save PDF";
-        alert("Save failed. Please try again.");
-      }
-    } catch {
+      await this._saveScannedDocumentPayload(this._buildScannedDocumentPayload(canvas));
+    } catch (error) {
       btn.disabled = false; btn.textContent = "Save PDF";
-      alert("Network error. Please try again.");
+      alert(error?.message || "Network error. Please try again.");
     }
   }
 
@@ -1079,6 +1069,36 @@ export default class extends Controller {
     };
   }
 
+  async _saveScannedDocumentPayload(payload) {
+    if (this._isDraftMode()) {
+      this._writeDraftDocuments([payload, ...(this._draftDocuments || [])]);
+      this.saveBtnTarget.disabled = false;
+      this.saveBtnTarget.textContent = "Save PDF";
+      this.close();
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("scanned_document[title]", payload.title || this._defaultScanTitle());
+    formData.append("scanned_document[enhancement_filter]", payload.enhancement_filter || "auto");
+    formData.append("scanned_document[tags]", payload.tags || "[]");
+    if (payload.image_data) formData.append("scanned_document[image_data]", payload.image_data);
+    if (payload.pdf_data) formData.append("scanned_document[pdf_data]", payload.pdf_data);
+
+    const resp = await fetch(this.postUrlValue, {
+      method: "POST",
+      body: formData,
+      headers: { "X-CSRF-Token": this.csrfValue, "X-Requested-With": "XMLHttpRequest" }
+    });
+
+    if (resp.ok || resp.redirected) {
+      window.location.reload();
+      return;
+    }
+
+    throw new Error("Save failed. Please try again.");
+  }
+
   _filterDisplayName(filterId) {
     const map = {
       original: "Original",
@@ -1090,6 +1110,104 @@ export default class extends Controller {
     };
 
     return map[filterId] || "Auto";
+  }
+
+  async _openWithNativeDocumentScanner() {
+    if (!this._shouldUseNativeDocumentScanner()) return false;
+
+    try {
+      const result = await this._runNativeDocumentScanner();
+      if (this._isNativeDocumentScanCancelled(result)) return true;
+
+      const payload = this._buildNativeScannedDocumentPayload(result);
+      if (!payload.image_data) {
+        throw new Error("Native scanner did not return a preview image.");
+      }
+
+      await this._saveScannedDocumentPayload(payload);
+      return true;
+    } catch (error) {
+      if (this._isNativeDocumentScanCancelled(error)) return true;
+
+      console.warn("Native document scanner failed, falling back to browser capture.", error);
+      return false;
+    }
+  }
+
+  _shouldUseNativeDocumentScanner() {
+    return Boolean(this._isNativeAndroidApp() && this._nativeDocumentScannerPlugin());
+  }
+
+  _isNativeAndroidApp() {
+    return this._capacitorPlatform() === "android" && this._isNativeCapacitorApp();
+  }
+
+  _capacitorPlatform() {
+    const capacitor = window.Capacitor;
+    if (!capacitor) return null;
+    if (typeof capacitor.getPlatform === "function") return capacitor.getPlatform();
+    return null;
+  }
+
+  _nativeDocumentScannerPlugin() {
+    return window.InkcreateDocumentScanner
+      || window.Capacitor?.Plugins?.InkcreateDocumentScanner
+      || window.Capacitor?.Plugins?.NativeDocumentScanner
+      || null;
+  }
+
+  async _runNativeDocumentScanner() {
+    const plugin = this._nativeDocumentScannerPlugin();
+    const runner = plugin?.scanDocument || plugin?.startScan || plugin?.openScanner;
+    if (typeof runner !== "function") {
+      throw new Error("Native document scanner plugin is unavailable.");
+    }
+
+    return runner.call(plugin, {
+      formats: ["jpeg", "pdf"],
+      pageLimit: 24,
+      allowGalleryImport: true,
+      scannerMode: "full"
+    });
+  }
+
+  _isNativeDocumentScanCancelled(value) {
+    if (!value) return false;
+    if (value === "cancelled") return true;
+    if (value?.cancelled === true || value?.canceled === true) return true;
+
+    const message = value?.message || value?.error || value?.toString?.() || "";
+    return /cancel/i.test(message);
+  }
+
+  _buildNativeScannedDocumentPayload(result) {
+    const pages = Array.isArray(result?.pages) ? result.pages : [];
+    const firstPage = pages[0] || null;
+    const tags = Array.isArray(result?.tags) ? result.tags : [];
+
+    return {
+      title: result?.title || this._defaultScanTitle(),
+      enhancement_filter: result?.enhancementFilter || "auto",
+      tags: JSON.stringify(tags.filter(Boolean)),
+      image_data: result?.previewImageDataUrl
+        || result?.imageDataUrl
+        || result?.preview?.dataUrl
+        || firstPage?.imageDataUrl
+        || firstPage?.previewImageDataUrl
+        || firstPage?.dataUrl
+        || "",
+      pdf_data: result?.pdfDataUrl
+        || result?.documentPdfDataUrl
+        || result?.pdf?.dataUrl
+        || ""
+    };
+  }
+
+  openPdf(event) {
+    const url = event.currentTarget.dataset.pdfUrl;
+    if (!url) return;
+
+    window.open(url, "_blank", "noopener");
   }
 
   async runOcr(event) {

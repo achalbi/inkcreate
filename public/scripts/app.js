@@ -15,6 +15,7 @@ import QuickCaptureController from "/scripts/controllers/quick_capture_controlle
 import FooterActionMenuController from "/scripts/controllers/footer_action_menu_controller.js";
 import VoiceRecorderController from "/scripts/controllers/voice_recorder_controller.js";
 import VoiceNotePlayerController from "/scripts/controllers/voice_note_player_controller.js";
+import VoiceNoteTranscriptController from "/scripts/controllers/voice_note_transcript_controller.js";
 import TodoListController from "/scripts/controllers/todo_list_controller.js";
 import ReminderFormController from "/scripts/controllers/reminder_form_controller.js";
 import DevicePushController from "/scripts/controllers/device_push_controller.js";
@@ -81,6 +82,7 @@ application.register("quick-capture", QuickCaptureController);
 application.register("footer-action-menu", FooterActionMenuController);
 application.register("voice-recorder", VoiceRecorderController);
 application.register("voice-note-player", VoiceNotePlayerController);
+application.register("voice-note-transcript", VoiceNoteTranscriptController);
 application.register("todo-list", TodoListController);
 application.register("reminder-form", ReminderFormController);
 application.register("device-push", DevicePushController);

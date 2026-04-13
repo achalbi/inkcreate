@@ -10,7 +10,11 @@ module NotepadEntries
       doc.user = current_user
 
       if params.dig(:scanned_document, :image_data).present?
-        attach_scanned_document_assets(doc, params[:scanned_document][:image_data])
+        attach_scanned_document_assets(
+          doc,
+          params[:scanned_document][:image_data],
+          pdf_data: params.dig(:scanned_document, :pdf_data)
+        )
       end
 
       if doc.save

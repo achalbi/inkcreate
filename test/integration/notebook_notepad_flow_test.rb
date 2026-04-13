@@ -175,6 +175,7 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
     assert_equal 1, entry.scanned_documents.count
     assert entry.scanned_documents.first.enhanced_image.attached?
     assert entry.scanned_documents.first.document_pdf.attached?
+    assert_equal tiny_pdf_binary, entry.scanned_documents.first.document_pdf.download
     assert_nil entry.scanned_documents.first.extracted_text
   end
 
@@ -208,7 +209,8 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
           title: "Receipt",
           enhancement_filter: "auto",
           tags: ["receipt", "expense"].to_json,
-          image_data: tiny_jpeg_data_url
+          image_data: tiny_jpeg_data_url,
+          pdf_data: tiny_pdf_data_url
         }
       }
     end
@@ -217,6 +219,7 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to notepad_entry_path(entry)
     assert scanned_document.document_pdf.attached?
+    assert_equal tiny_pdf_binary, scanned_document.document_pdf.download
     follow_redirect!
 
     ScannedDocuments::RunOcr.stub :new, ->(scanned_document:) {
@@ -278,7 +281,8 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
           title: "Invoice",
           enhancement_filter: "auto",
           tags: ["invoice"].to_json,
-          image_data: tiny_jpeg_data_url
+          image_data: tiny_jpeg_data_url,
+          pdf_data: tiny_pdf_data_url
         }
       }
     end
@@ -303,6 +307,40 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
     assert_equal "google-ml", scanned_document.ocr_engine
     assert_equal "eng", scanned_document.ocr_language
     assert_in_delta 87.0, scanned_document.ocr_confidence, 0.001
+  end
+
+  test "voice note transcript can be submitted for a notepad entry" do
+    user = build_user(email: "notepad-voice-transcript@example.com")
+    entry = user.notepad_entries.create!(
+      title: "Call recap",
+      notes: "Transcript pending",
+      entry_date: Date.current
+    )
+    voice_note = entry.voice_notes.new(
+      duration_seconds: 45,
+      recorded_at: Time.current.change(sec: 0),
+      byte_size: 512,
+      mime_type: "audio/webm"
+    )
+    voice_note.audio.attach(
+      io: StringIO.new("voice"),
+      filename: "entry-note.webm",
+      content_type: "audio/webm"
+    )
+    voice_note.save!
+
+    sign_in_browser_user(user)
+    get notepad_entry_path(entry)
+
+    post submit_transcript_notepad_entry_voice_note_path(entry, voice_note), params: {
+      authenticity_token: authenticity_token_for(notepad_entry_path(entry)),
+      transcript_result: {
+        text: "Discussed blockers, timeline, and rollout owners."
+      }
+    }
+
+    assert_redirected_to notepad_entry_path(entry)
+    assert_equal "Discussed blockers, timeline, and rollout owners.", voice_note.reload.transcript
   end
 
   test "user cannot access another users notebook" do
@@ -550,11 +588,20 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
       title: title,
       enhancement_filter: "auto",
       tags: ["receipt"].to_json,
-      image_data: tiny_jpeg_data_url
+      image_data: tiny_jpeg_data_url,
+      pdf_data: tiny_pdf_data_url
     }
   end
 
   def tiny_jpeg_data_url
     "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxAQEBUQEBAVFhUVFRUVFRUVFRUVFRUVFRUWFhUVFRUYHSggGBolHRUVITEhJSkrLi4uFx8zODMsNygtLisBCgoKDg0OGxAQGi0lHyUtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAAEAAQMBEQACEQEDEQH/xAAXAAADAQAAAAAAAAAAAAAAAAAAAQMC/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEAMQAAAB6AAAAP/EABQQAQAAAAAAAAAAAAAAAAAAADD/2gAIAQEAAT8Af//EABQRAQAAAAAAAAAAAAAAAAAAADD/2gAIAQIBAT8Af//EABQRAQAAAAAAAAAAAAAAAAAAADD/2gAIAQMBAT8Af//Z"
+  end
+
+  def tiny_pdf_binary
+    "%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n".b
+  end
+
+  def tiny_pdf_data_url
+    "data:application/pdf;base64,#{Base64.strict_encode64(tiny_pdf_binary)}"
   end
 end

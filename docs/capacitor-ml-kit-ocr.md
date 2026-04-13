@@ -94,7 +94,7 @@ Expected OCR source response:
 
 ## Recommended mobile workspace
 
-Because the Rails app is server-rendered and does not ship as a bundled SPA, the recommended approach is a separate `mobile/` Capacitor workspace rather than retrofitting Capacitor into the Rails root.
+Because the Rails app is server-rendered and does not ship as a bundled SPA, the recommended approach is the separate `mobile/app` Capacitor workspace rather than retrofitting Capacitor into the Rails root.
 
 That mobile shell should:
 

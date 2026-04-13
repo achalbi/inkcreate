@@ -2,16 +2,23 @@
   delete_modal_id = dom_id(voice_note, :delete_confirm_modal)
   recorded_at_label = voice_note.recorded_at.in_time_zone.strftime("%b %-d, %Y at %-I:%M %p")
   duration_label = voice_note_duration_label(voice_note.duration_seconds)
-  audio_url = if respond_to?(:rails_storage_proxy_path)
-    rails_storage_proxy_path(voice_note.audio, only_path: true)
+  audio_url = if respond_to?(:rails_storage_proxy_url)
+    rails_storage_proxy_url(voice_note.audio)
   else
-    rails_blob_path(voice_note.audio, only_path: true)
+    rails_blob_url(voice_note.audio)
   end
   download_url = rails_blob_path(voice_note.audio, disposition: "attachment", only_path: true)
   download_name = voice_note.audio.filename.to_s
+  transcript_text = voice_note.transcript.to_s
 %>
 
-<article class="notebook-list-card voice-note-list-card">
+<article
+  class="notebook-list-card voice-note-list-card"
+  data-controller="voice-note-transcript"
+  data-voice-note-transcript-audio-url-value="<%= audio_url %>"
+  data-voice-note-transcript-submit-url-value="<%= submit_transcript_path %>"
+  data-voice-note-transcript-title-value="Voice note from <%= recorded_at_label %>"
+>
   <div class="notebook-list-card__body">
     <div class="notebook-list-card__content notebook-list-card__content--chapter">
       <div class="notebook-list-card__symbol" aria-hidden="true">
@@ -105,6 +112,67 @@
               <i class="ti ti-trash" aria-hidden="true"></i>
             </button>
           </div>
+        </div>
+      </div>
+
+      <div class="voice-note-transcript">
+        <div class="voice-note-transcript__actions" aria-label="Voice note transcript actions" role="group">
+          <button
+            type="button"
+            class="btn btn-white btn-sm voice-note-transcript__action voice-note-transcript__action--extract"
+            data-action="voice-note-transcript#extract"
+            data-voice-note-transcript-target="extractButton"
+          >
+            <i class="ti ti-wave-square" aria-hidden="true"></i>
+            <span>Extract speech to text</span>
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-white btn-sm voice-note-transcript__action"
+            data-action="voice-note-transcript#toggle"
+            data-voice-note-transcript-target="toggleButton"
+          >
+            <i class="ti ti-align-box-left-middle" aria-hidden="true"></i>
+            <span>View text</span>
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-white btn-sm voice-note-transcript__action"
+            data-action="voice-note-transcript#copy"
+            data-voice-note-transcript-target="copyButton"
+          >
+            <i class="ti ti-copy" aria-hidden="true"></i>
+            <span>Copy</span>
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-white btn-sm voice-note-transcript__action"
+            data-action="voice-note-transcript#share"
+            data-voice-note-transcript-target="shareButton"
+          >
+            <i class="ti ti-share-2" aria-hidden="true"></i>
+            <span>Share</span>
+          </button>
+        </div>
+
+        <p
+          class="voice-note-transcript__status"
+          data-voice-note-transcript-target="status"
+          aria-live="polite"
+          hidden
+        ></p>
+
+        <div class="voice-note-transcript__panel" data-voice-note-transcript-target="panel" hidden>
+          <textarea
+            class="voice-note-transcript__text"
+            data-voice-note-transcript-target="text"
+            readonly
+            rows="5"
+            aria-label="Transcript for voice note recorded <%= recorded_at_label %>"
+          ><%= transcript_text %></textarea>
         </div>
       </div>
     </div>

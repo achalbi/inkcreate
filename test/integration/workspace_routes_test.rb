@@ -213,6 +213,75 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_equal "delete", form.at_xpath(".//input[@name='_method']")&.[]("value")
   end
 
+  test "notepad edit page shows transcript actions for existing voice notes" do
+    sign_in!
+
+    entry = @user.notepad_entries.create!(
+      title: "Transcript entry",
+      notes: "Contains a transcribed voice note.",
+      entry_date: Date.current
+    )
+    voice_note = entry.voice_notes.new(
+      duration_seconds: 18,
+      recorded_at: Time.current,
+      byte_size: 128,
+      mime_type: "audio/webm",
+      transcript: "Follow up with pricing details tomorrow morning."
+    )
+    voice_note.audio.attach(
+      io: StringIO.new("voice"),
+      filename: "note.webm",
+      content_type: "audio/webm"
+    )
+    voice_note.save!
+
+    get edit_notepad_entry_path(entry)
+
+    assert_response :success
+    document = Nokogiri::HTML.parse(response.body)
+    card = document.at_xpath("//*[@data-voice-note-transcript-submit-url-value='#{submit_transcript_notepad_entry_voice_note_path(entry, voice_note)}']")
+    textarea = card&.at_xpath(".//textarea[@data-voice-note-transcript-target='text']")
+
+    assert card.present?, "Expected transcript controls for the notepad voice note"
+    assert card.at_xpath(".//button[@data-action='voice-note-transcript#extract']").present?, "Expected extract speech button"
+    assert card.at_xpath(".//button[@data-action='voice-note-transcript#toggle']").present?, "Expected view text button"
+    assert card.at_xpath(".//button[@data-action='voice-note-transcript#copy']").present?, "Expected copy transcript button"
+    assert card.at_xpath(".//button[@data-action='voice-note-transcript#share']").present?, "Expected share transcript button"
+    assert_equal "Follow up with pricing details tomorrow morning.", textarea&.content&.strip
+  end
+
+  test "page edit page shows transcript actions for existing voice notes" do
+    sign_in!
+
+    voice_note = @page.voice_notes.new(
+      duration_seconds: 24,
+      recorded_at: Time.current,
+      byte_size: 128,
+      mime_type: "audio/webm",
+      transcript: "Key decision captured and action owner assigned."
+    )
+    voice_note.audio.attach(
+      io: StringIO.new("voice"),
+      filename: "page-note.webm",
+      content_type: "audio/webm"
+    )
+    voice_note.save!
+
+    get edit_notebook_chapter_page_path(@notebook, @chapter, @page)
+
+    assert_response :success
+    document = Nokogiri::HTML.parse(response.body)
+    card = document.at_xpath("//*[@data-voice-note-transcript-submit-url-value='#{submit_transcript_notebook_chapter_page_voice_note_path(@notebook, @chapter, @page, voice_note)}']")
+    textarea = card&.at_xpath(".//textarea[@data-voice-note-transcript-target='text']")
+
+    assert card.present?, "Expected transcript controls for the page voice note"
+    assert card.at_xpath(".//button[@data-action='voice-note-transcript#extract']").present?, "Expected extract speech button"
+    assert card.at_xpath(".//button[@data-action='voice-note-transcript#toggle']").present?, "Expected view text button"
+    assert card.at_xpath(".//button[@data-action='voice-note-transcript#copy']").present?, "Expected copy transcript button"
+    assert card.at_xpath(".//button[@data-action='voice-note-transcript#share']").present?, "Expected share transcript button"
+    assert_equal "Key decision captured and action owner assigned.", textarea&.content&.strip
+  end
+
   test "page edit page renders the live to-do list section for persisted pages" do
     sign_in!
 

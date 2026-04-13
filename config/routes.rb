@@ -39,7 +39,9 @@ Rails.application.routes.draw do
               patch :reorder
             end
           end
-          resources :voice_notes,       only: %i[create destroy]
+          resources :voice_notes,       only: %i[create destroy] do
+            post :submit_transcript, on: :member
+          end
           resources :scanned_documents, only: %i[create destroy] do
             post :extract_text, on: :member
             post :submit_ocr_result, on: :member
@@ -63,7 +65,9 @@ Rails.application.routes.draw do
           patch :reorder
         end
       end
-      resources :voice_notes,       only: %i[create destroy]
+      resources :voice_notes,       only: %i[create destroy] do
+        post :submit_transcript, on: :member
+      end
       resources :scanned_documents, only: %i[create destroy] do
         post :extract_text, on: :member
         post :submit_ocr_result, on: :member

@@ -166,6 +166,7 @@ class PageEnhancementsFlowTest < ActionDispatch::IntegrationTest
     assert_equal 1, entry_page.scanned_documents.count
     assert entry_page.scanned_documents.first.enhanced_image.attached?
     assert entry_page.scanned_documents.first.document_pdf.attached?
+    assert_equal tiny_pdf_binary, entry_page.scanned_documents.first.document_pdf.download
     assert_nil entry_page.scanned_documents.first.extracted_text
   end
 
@@ -186,6 +187,7 @@ class PageEnhancementsFlowTest < ActionDispatch::IntegrationTest
     end
 
     scanned_document = page.scanned_documents.order(:created_at).last
+    assert_equal tiny_pdf_binary, scanned_document.document_pdf.download
     follow_redirect!
 
     ScannedDocuments::RunOcr.stub :new, ->(scanned_document:) {
@@ -249,6 +251,38 @@ class PageEnhancementsFlowTest < ActionDispatch::IntegrationTest
     assert_equal "google-ml", scanned_document.ocr_engine
     assert_equal "eng", scanned_document.ocr_language
     assert_in_delta 91.0, scanned_document.ocr_confidence, 0.001
+  end
+
+  test "page voice note transcript can be submitted from the browser" do
+    user = build_user(email: "page-voice-transcript@example.com")
+    notebook = user.notebooks.create!(title: "Interviews", status: :active)
+    chapter = notebook.chapters.create!(title: "Calls", description: "Recorded calls")
+    page = chapter.pages.create!(title: "Customer call", notes: "Voice note capture")
+    voice_note = page.voice_notes.new(
+      duration_seconds: 64,
+      recorded_at: Time.current.change(sec: 0),
+      byte_size: 512,
+      mime_type: "audio/webm"
+    )
+    voice_note.audio.attach(
+      io: StringIO.new("voice"),
+      filename: "call-note.webm",
+      content_type: "audio/webm"
+    )
+    voice_note.save!
+
+    sign_in_browser_user(user)
+    get notebook_chapter_page_path(notebook, chapter, page)
+
+    post submit_transcript_notebook_chapter_page_voice_note_path(notebook, chapter, page, voice_note), params: {
+      authenticity_token: authenticity_token_for(notebook_chapter_page_path(notebook, chapter, page)),
+      transcript_result: {
+        text: "Action items reviewed and next steps confirmed."
+      }
+    }
+
+    assert_redirected_to notebook_chapter_page_path(notebook, chapter, page)
+    assert_equal "Action items reviewed and next steps confirmed.", voice_note.reload.transcript
   end
 
   test "user can create a page with only todo items" do
@@ -349,11 +383,20 @@ class PageEnhancementsFlowTest < ActionDispatch::IntegrationTest
       title: title,
       enhancement_filter: "auto",
       tags: ["receipt"].to_json,
-      image_data: tiny_jpeg_data_url
+      image_data: tiny_jpeg_data_url,
+      pdf_data: tiny_pdf_data_url
     }
   end
 
   def tiny_jpeg_data_url
     "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxAQEBUQEBAVFhUVFRUVFRUVFRUVFRUVFRUWFhUVFRUYHSggGBolHRUVITEhJSkrLi4uFx8zODMsNygtLisBCgoKDg0OGxAQGi0lHyUtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAAEAAQMBEQACEQEDEQH/xAAXAAADAQAAAAAAAAAAAAAAAAAAAQMC/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEAMQAAAB6AAAAP/EABQQAQAAAAAAAAAAAAAAAAAAADD/2gAIAQEAAT8Af//EABQRAQAAAAAAAAAAAAAAAAAAADD/2gAIAQIBAT8Af//EABQRAQAAAAAAAAAAAAAAAAAAADD/2gAIAQMBAT8Af//Z"
+  end
+
+  def tiny_pdf_binary
+    "%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n".b
+  end
+
+  def tiny_pdf_data_url
+    "data:application/pdf;base64,#{Base64.strict_encode64(tiny_pdf_binary)}"
   end
 end

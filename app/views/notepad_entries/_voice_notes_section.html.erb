@@ -38,7 +38,8 @@
           <% voice_notes.each do |voice_note| %>
             <%= render "shared/voice_note_list_item",
               voice_note: voice_note,
-              delete_path: notepad_entry_voice_note_path(notepad_entry, voice_note) %>
+              delete_path: notepad_entry_voice_note_path(notepad_entry, voice_note),
+              submit_transcript_path: submit_transcript_notepad_entry_voice_note_path(notepad_entry, voice_note) %>
           <% end %>
         </div>
       </div>

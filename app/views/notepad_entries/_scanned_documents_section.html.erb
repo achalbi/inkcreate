@@ -32,11 +32,23 @@
     <% if docs.any? %>
       <div class="sdoc-list">
         <% docs.each do |doc| %>
+          <% pdf_view_url = doc.document_pdf.attached? ? rails_blob_path(doc.document_pdf, only_path: true, disposition: "inline") : nil %>
+          <% pdf_download_url = doc.document_pdf.attached? ? rails_blob_path(doc.document_pdf, only_path: true, disposition: "attachment") : nil %>
           <div class="sdoc-card" id="<%= dom_id(doc) %>">
             <div class="sdoc-accent-bar"></div>
             <div class="sdoc-inner">
               <div class="sdoc-header">
-                <div class="sdoc-title"><%= doc.title.presence || "Untitled scan" %></div>
+                <% if pdf_view_url.present? %>
+                  <button
+                    type="button"
+                    class="sdoc-title sdoc-title-button"
+                    data-action="click->document-capture#openPdf"
+                    data-pdf-url="<%= pdf_view_url %>"
+                    title="View PDF"
+                  ><%= doc.title.presence || "Untitled scan" %></button>
+                <% else %>
+                  <div class="sdoc-title"><%= doc.title.presence || "Untitled scan" %></div>
+                <% end %>
                 <div class="sdoc-meta">
                   <% if doc.ocr_confidence.present? %>
                     <span class="sdoc-conf-badge <%= doc.confidence_class %>">
@@ -48,16 +60,44 @@
               </div>
 
               <div class="sdoc-body">
-                <% if doc.enhanced_image.attached? %>
-                  <%= image_tag doc.enhanced_image, class: "sdoc-thumb", alt: doc.title %>
+                <% if pdf_view_url.present? %>
+                  <button
+                    type="button"
+                    class="sdoc-preview-button"
+                    data-action="click->document-capture#openPdf"
+                    data-pdf-url="<%= pdf_view_url %>"
+                    title="View PDF"
+                  >
+                    <% if doc.enhanced_image.attached? %>
+                      <%= image_tag doc.enhanced_image, class: "sdoc-thumb", alt: doc.title %>
+                    <% else %>
+                      <div class="sdoc-thumb sdoc-thumb--placeholder">
+                        <i class="ti ti-file-text" aria-hidden="true"></i>
+                      </div>
+                    <% end %>
+                  </button>
                 <% else %>
-                  <div class="sdoc-thumb sdoc-thumb--placeholder">
-                    <i class="ti ti-file-text" aria-hidden="true"></i>
-                  </div>
+                  <% if doc.enhanced_image.attached? %>
+                    <%= image_tag doc.enhanced_image, class: "sdoc-thumb", alt: doc.title %>
+                  <% else %>
+                    <div class="sdoc-thumb sdoc-thumb--placeholder">
+                      <i class="ti ti-file-text" aria-hidden="true"></i>
+                    </div>
+                  <% end %>
                 <% end %>
-                <p class="sdoc-excerpt">
-                  <%= doc.ocr_completed? ? truncate(doc.extracted_text.to_s.strip, length: 220) : "OCR not run yet. Save is complete and the PDF is ready." %>
-                </p>
+                <% if pdf_view_url.present? %>
+                  <button
+                    type="button"
+                    class="sdoc-excerpt sdoc-excerpt-button"
+                    data-action="click->document-capture#openPdf"
+                    data-pdf-url="<%= pdf_view_url %>"
+                    title="View PDF"
+                  ><%= doc.ocr_completed? ? truncate(doc.extracted_text.to_s.strip, length: 220) : "OCR not run yet. Save is complete and the PDF is ready." %></button>
+                <% else %>
+                  <p class="sdoc-excerpt">
+                    <%= doc.ocr_completed? ? truncate(doc.extracted_text.to_s.strip, length: 220) : "OCR not run yet. Save is complete and the PDF is ready." %>
+                  </p>
+                <% end %>
               </div>
 
               <div class="sdoc-actions">
@@ -76,11 +116,24 @@
                   <%= doc.ocr_action_label %>
                 <% end %>
 
-                <% if doc.document_pdf.attached? %>
-                  <%= link_to rails_blob_path(doc.document_pdf, disposition: "attachment"),
+                <% if pdf_view_url.present? %>
+                  <%= link_to pdf_view_url,
                       class: "btn btn-white btn-sm",
+                      target: "_blank",
+                      rel: "noopener",
+                      data: { turbo: false },
+                      title: "View PDF" do %>
+                    <i class="ti ti-eye" aria-hidden="true"></i> View PDF
+                  <% end %>
+                <% end %>
+
+                <% if pdf_download_url.present? %>
+                  <%= link_to pdf_download_url,
+                      class: "btn btn-white btn-sm",
+                      data: { turbo: false },
+                      download: doc.document_pdf.filename.to_s,
                       title: "Download PDF" do %>
-                    <i class="ti ti-download" aria-hidden="true"></i> PDF
+                    <i class="ti ti-download" aria-hidden="true"></i> Download PDF
                   <% end %>
                 <% end %>
 

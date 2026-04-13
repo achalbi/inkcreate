@@ -41,6 +41,22 @@ module NotepadEntries
       end
     end
 
+    def submit_transcript
+      voice_note = @notepad_entry.voice_notes.find(params[:id])
+      voice_note.update!(transcript: normalized_transcript_text)
+      schedule_drive_export
+
+      respond_to do |format|
+        format.html { redirect_to notepad_entry_path(@notepad_entry), notice: "Transcript saved." }
+        format.json { render json: { ok: true, transcript: voice_note.transcript.to_s } }
+      end
+    rescue ActionController::ParameterMissing, ActiveRecord::RecordInvalid, ArgumentError => error
+      respond_to do |format|
+        format.html { redirect_to notepad_entry_path(@notepad_entry), alert: error.message }
+        format.json { render json: { ok: false, error: error.message }, status: :unprocessable_entity }
+      end
+    end
+
     private
 
     def set_notepad_entry
@@ -51,6 +67,10 @@ module NotepadEntries
       params.require(:voice_note).permit(:audio, :duration_seconds, :recorded_at)
     end
 
+    def transcript_result_params
+      params.require(:transcript_result).permit(:text)
+    end
+
     def normalized_duration_seconds
       voice_note_params[:duration_seconds].to_i.clamp(0, VoiceNote::MAX_DURATION_SECONDS)
     end
@@ -59,6 +79,13 @@ module NotepadEntries
       Time.zone.parse(voice_note_params[:recorded_at].to_s)
     rescue ArgumentError, TypeError
       Time.current
+    end
+
+    def normalized_transcript_text
+      transcript = transcript_result_params[:text].to_s.strip
+      return transcript if transcript.present?
+
+      raise ArgumentError, "Transcript text can't be blank."
     end
 
     def schedule_drive_export

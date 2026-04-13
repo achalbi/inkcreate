@@ -1,23 +1,21 @@
 module ScannedDocumentSupport
   private
 
-  def attach_scanned_document_assets(doc, data_url)
-    match = data_url.to_s.match(/\Adata:([\w\/.+-]+);base64,(.+)\z/m)
-    return false unless match
+  def attach_scanned_document_assets(doc, image_data_url, pdf_data: nil)
+    image_payload = decoded_data_url_payload(image_data_url)
+    return false unless image_payload
 
-    content_type = match[1]
-    binary = Base64.decode64(match[2])
-    ext = content_type.split("/").last.presence || "jpg"
+    ext = image_payload[:content_type].split("/").last.presence || "jpg"
     base_filename = scanned_document_filename_base(doc.title)
 
     doc.enhanced_image.attach(
-      io: StringIO.new(binary),
+      io: StringIO.new(image_payload[:binary]),
       filename: "#{base_filename}.#{ext}",
-      content_type: content_type
+      content_type: image_payload[:content_type]
     )
 
     doc.document_pdf.attach(
-      io: StringIO.new(ScannedDocuments::PdfBuilder.new(image_binary: binary).call),
+      io: StringIO.new(scanned_document_pdf_binary(pdf_data, fallback_image_binary: image_payload[:binary])),
       filename: "#{base_filename}.pdf",
       content_type: "application/pdf"
     )
@@ -47,7 +45,11 @@ module ScannedDocumentSupport
       )
       doc.user = user
 
-      attach_scanned_document_assets(doc, normalized_payload["image_data"]) if normalized_payload["image_data"].present?
+      attach_scanned_document_assets(
+        doc,
+        normalized_payload["image_data"],
+        pdf_data: normalized_payload["pdf_data"]
+      ) if normalized_payload["image_data"].present?
       doc.save!
     end
   end
@@ -68,7 +70,8 @@ module ScannedDocumentSupport
       "title",
       "enhancement_filter",
       "tags",
-      "image_data"
+      "image_data",
+      "pdf_data"
     )
   end
 
@@ -79,10 +82,27 @@ module ScannedDocumentSupport
   end
 
   def default_scanned_document_title
-    "Scan — #{Time.zone.today.strftime("%b %-d, %Y")}"
+    "Scan — #{Time.zone.now.strftime("%b %-d, %Y %H:%M:%S")}"
   end
 
   def scanned_document_filename_base(title)
     title.to_s.parameterize.presence || "scan-#{Time.current.to_i}"
+  end
+
+  def decoded_data_url_payload(data_url)
+    match = data_url.to_s.match(/\Adata:([\w\/.+-]+);base64,(.+)\z/m)
+    return unless match
+
+    {
+      content_type: match[1],
+      binary: Base64.decode64(match[2])
+    }
+  end
+
+  def scanned_document_pdf_binary(pdf_data, fallback_image_binary:)
+    pdf_payload = decoded_data_url_payload(pdf_data)
+    return pdf_payload[:binary] if pdf_payload&.dig(:content_type).to_s.include?("pdf")
+
+    ScannedDocuments::PdfBuilder.new(image_binary: fallback_image_binary).call
   end
 end

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Inkcreate</string>
+    <string name="title_activity_main">Inkcreate</string>
+    <string name="package_name">com.inkcreate.mobile</string>
+    <string name="custom_url_scheme">com.inkcreate.mobile</string>
+</resources>

@@ -35,10 +35,29 @@ module Pages
       end
     end
 
+    def submit_transcript
+      voice_note = @page.voice_notes.find(params[:id])
+      voice_note.update!(transcript: normalized_transcript_text)
+
+      respond_to do |format|
+        format.html { redirect_to notebook_chapter_page_path(@notebook, @chapter, @page), notice: "Transcript saved." }
+        format.json { render json: { ok: true, transcript: voice_note.transcript.to_s } }
+      end
+    rescue ActionController::ParameterMissing, ActiveRecord::RecordInvalid, ArgumentError => error
+      respond_to do |format|
+        format.html { redirect_to notebook_chapter_page_path(@notebook, @chapter, @page), alert: error.message }
+        format.json { render json: { ok: false, error: error.message }, status: :unprocessable_entity }
+      end
+    end
+
     private
 
     def voice_note_params
       params.require(:voice_note).permit(:audio, :duration_seconds, :recorded_at)
+    end
+
+    def transcript_result_params
+      params.require(:transcript_result).permit(:text)
     end
 
     def normalized_duration_seconds
@@ -49,6 +68,13 @@ module Pages
       Time.zone.parse(voice_note_params[:recorded_at].to_s)
     rescue ArgumentError, TypeError
       Time.current
+    end
+
+    def normalized_transcript_text
+      transcript = transcript_result_params[:text].to_s.strip
+      return transcript if transcript.present?
+
+      raise ArgumentError, "Transcript text can't be blank."
     end
   end
 end
