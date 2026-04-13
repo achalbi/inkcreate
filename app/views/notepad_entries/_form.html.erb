@@ -171,6 +171,10 @@
 
   <% unless persisted_entry %>
     <div class="row m-t-md">
+      <div class="col-12">
+        <%= render "shared/scanned_documents_form_section", form: form, record: notepad_entry %>
+      </div>
+
       <% if todo_lists_available %>
         <div class="col-12">
           <%= render "notepad_entries/todo_list_form_section", notepad_entry: notepad_entry, form: form %>
@@ -196,6 +200,10 @@
         <%= render "pages/todo_list_unavailable_section" %>
       </div>
     <% end %>
+
+    <div class="col-12">
+      <%= render "notepad_entries/scanned_documents_section", notepad_entry: notepad_entry %>
+    </div>
   </div>
 
   <%= render "notepad_entries/move_to_notebook_section",

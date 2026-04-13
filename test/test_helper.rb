@@ -44,9 +44,15 @@ class ActionDispatch::IntegrationTest
       URI.parse(node["action"]).path == action_path
     end
 
-    raise "No form found for #{action_path}" unless form
+    return form.at_css("input[name='authenticity_token']")["value"] if form
 
-    form.at_css("input[name='authenticity_token']")["value"]
+    capture_node = document.css("[data-document-capture-post-url-value]").find do |node|
+      node["data-document-capture-post-url-value"] == action_path
+    end
+
+    return capture_node["data-document-capture-csrf-value"] if capture_node
+
+    raise "No form or document capture token found for #{action_path}"
   end
 
   def sign_in_browser_user(user, password: "Password123!")

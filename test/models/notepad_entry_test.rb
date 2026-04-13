@@ -18,7 +18,7 @@ class NotepadEntryTest < ActiveSupport::TestCase
     entry = user.notepad_entries.new(entry_date: Date.current)
 
     assert_not entry.valid?
-    assert_includes entry.errors.full_messages, "Add notes, a photo, a voice note, or a to-do item."
+    assert_includes entry.errors.full_messages, "Add notes, a photo, a scanned document, a voice note, or a to-do item."
   end
 
   test "generated title alone does not satisfy content validation" do
@@ -31,7 +31,7 @@ class NotepadEntryTest < ActiveSupport::TestCase
 
     assert_not entry.valid?
     assert_equal "Sunday, Apr 5 - Page 1", entry.title
-    assert_includes entry.errors.full_messages, "Add notes, a photo, a voice note, or a to-do item."
+    assert_includes entry.errors.full_messages, "Add notes, a photo, a scanned document, a voice note, or a to-do item."
   end
 
   test "generates a title from notes when blank" do
@@ -67,6 +67,19 @@ class NotepadEntryTest < ActiveSupport::TestCase
 
     entry = user.notepad_entries.new(entry_date: Date.current, title: "")
     entry.pending_voice_note_uploads = [Object.new]
+
+    assert entry.valid?
+  end
+
+  test "is valid with pending scanned documents and no notes or photos" do
+    user = build_user(email: "retained-scan@example.com")
+
+    entry = user.notepad_entries.new(entry_date: Date.current, title: "")
+    entry.pending_scanned_document_payloads = [{
+      "title" => "Receipt",
+      "extracted_text" => "Total: 42.00",
+      "image_data" => "data:image/jpeg;base64,#{Base64.strict_encode64('scan-bytes')}"
+    }]
 
     assert entry.valid?
   end

@@ -136,6 +136,37 @@ class PageEnhancementsFlowTest < ActionDispatch::IntegrationTest
     upload&.tempfile&.close!
   end
 
+  test "user can create a page with only scanned documents" do
+    user = build_user(email: "scanned-page@example.com")
+    notebook = user.notebooks.create!(title: "Paper trail", status: :active)
+    chapter = notebook.chapters.create!(title: "Receipts", description: "Captured scans")
+
+    sign_in_browser_user(user)
+
+    get new_notebook_chapter_page_path(notebook, chapter)
+
+    assert_response :success
+    assert_select "h5", text: "📄 Scanned Documents"
+
+    assert_difference -> { chapter.pages.count }, +1 do
+      post notebook_chapter_pages_path(notebook, chapter), params: {
+        authenticity_token: authenticity_token_for(notebook_chapter_pages_path(notebook, chapter)),
+        page: {
+          title: "",
+          notes: "",
+          captured_on: Date.current,
+          pending_scanned_documents_json: [scanned_document_payload(title: "Receipt", text: "Total: 42.00")].to_json
+        }
+      }
+    end
+
+    entry_page = chapter.pages.order(:created_at).last
+
+    assert_redirected_to notebook_chapter_page_path(notebook, chapter, entry_page)
+    assert_equal 1, entry_page.scanned_documents.count
+    assert entry_page.scanned_documents.first.enhanced_image.attached?
+  end
+
   test "user can create a page with only todo items" do
     user = build_user(email: "todo-page@example.com")
     notebook = user.notebooks.create!(title: "Operations", status: :active)
@@ -227,5 +258,18 @@ class PageEnhancementsFlowTest < ActionDispatch::IntegrationTest
       content_type,
       original_filename: filename
     )
+  end
+
+  def scanned_document_payload(title:, text:)
+    {
+      title: title,
+      extracted_text: text,
+      ocr_engine: "tesseract",
+      ocr_language: "eng",
+      ocr_confidence: 91,
+      enhancement_filter: "auto",
+      tags: ["receipt"].to_json,
+      image_data: "data:image/jpeg;base64,#{Base64.strict_encode64('scan-bytes')}"
+    }
   end
 end

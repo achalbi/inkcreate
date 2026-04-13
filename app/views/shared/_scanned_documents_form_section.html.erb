@@ -1,0 +1,53 @@
+<%
+  draft_docs = record.pending_scanned_document_payloads
+  content_id = dom_id(record, :scanned_documents_form_content)
+%>
+
+<section
+  class="ibox float-e-margins"
+  data-controller="document-capture"
+  data-document-capture-mode-value="draft"
+>
+  <div class="ibox-title">
+    <div class="detail-photo-gallery-heading">
+      <h5 class="detail-photo-gallery-title">📄 Scanned Documents</h5>
+      <span class="label label-info detail-photo-gallery-count" data-document-capture-target="count"><%= draft_docs.size %></span>
+    </div>
+    <div class="ibox-tools d-flex align-items-center gap-2">
+      <span class="label label-default">Saved with this form</span>
+      <button
+        type="button"
+        class="btn btn-primary btn-sm"
+        data-action="click->document-capture#open"
+        aria-label="Scan a document"
+      >
+        <i class="ti ti-scan"></i> Scan
+      </button>
+      <%= render "shared/ibox_toggle_button", target_id: content_id %>
+    </div>
+  </div>
+
+  <div id="<%= content_id %>" class="ibox-content collapse show">
+    <input
+      type="hidden"
+      name="<%= "#{form.object_name}[pending_scanned_documents_json]" %>"
+      value="<%= record.pending_scanned_documents_json %>"
+      data-document-capture-target="draftPayloadField"
+    >
+
+    <div class="sdoc-list" data-document-capture-target="draftList" <%= "hidden" unless draft_docs.any? %>></div>
+
+    <div class="sdoc-empty-state" data-document-capture-target="draftEmptyState" <%= "hidden" if draft_docs.any? %>>
+      <div class="sdoc-empty-icon">📄</div>
+      <div class="sdoc-empty-title">No scanned documents yet</div>
+      <div class="sdoc-empty-sub">Capture a document now and it will be saved with this form.</div>
+      <button
+        type="button"
+        class="btn btn-primary btn-sm"
+        data-action="click->document-capture#open"
+      >📷 Scan your first document</button>
+    </div>
+  </div>
+
+  <%= render "shared/scanned_document_capture_overlay" %>
+</section>

@@ -153,6 +153,10 @@
           </div>
         <% end %>
 
+        <div class="col-12">
+          <%= render "shared/scanned_documents_form_section", form: form, record: page %>
+        </div>
+
         <% if todo_lists_available %>
           <div class="col-12">
             <%= render "pages/todo_list_form_section", notebook: notebook, chapter: chapter, page: page, form: form %>
@@ -196,5 +200,9 @@
         <%= render "pages/todo_list_unavailable_section" %>
       </div>
     <% end %>
+
+    <div class="col-12">
+      <%= render "pages/scanned_documents_section", notebook: notebook, chapter: chapter, page: page %>
+    </div>
   </div>
 <% end %>

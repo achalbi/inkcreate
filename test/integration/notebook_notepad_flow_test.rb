@@ -141,6 +141,98 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
     assert_equal ["Draft checklist item"], entry.todo_list.todo_items.ordered.pluck(:content)
   end
 
+  test "user can create a notepad entry with only scanned documents" do
+    user = User.create!(
+      email: "notepad-new-scan@example.com",
+      password: "Password123!",
+      password_confirmation: "Password123!",
+      time_zone: "UTC",
+      locale: "en",
+      role: :user
+    )
+
+    sign_in_browser_user(user)
+    get new_notepad_entry_path
+
+    assert_response :success
+    assert_select "h5", text: "📄 Scanned Documents"
+
+    assert_difference -> { user.notepad_entries.count }, +1 do
+      post notepad_entries_path, params: {
+        authenticity_token: authenticity_token_for(notepad_entries_path),
+        notepad_entry: {
+          title: "",
+          notes: "",
+          entry_date: Date.current,
+          pending_scanned_documents_json: [scanned_document_payload(title: "Receipt", text: "Total: 42.00")].to_json
+        }
+      }
+    end
+
+    entry = user.notepad_entries.order(:created_at).last
+
+    assert_redirected_to notepad_entry_path(entry)
+    assert_equal 1, entry.scanned_documents.count
+    assert entry.scanned_documents.first.enhanced_image.attached?
+  end
+
+  test "user can manage scanned documents on a notepad entry" do
+    user = User.create!(
+      email: "notepad-scan@example.com",
+      password: "Password123!",
+      password_confirmation: "Password123!",
+      time_zone: "UTC",
+      locale: "en",
+      role: :user
+    )
+    entry = user.notepad_entries.create!(
+      title: "Inbox scans",
+      notes: "Collect scans here.",
+      entry_date: Date.current
+    )
+
+    sign_in_browser_user(user)
+
+    get notepad_entry_path(entry)
+
+    assert_response :success
+    assert_select "h5", text: "📄 Scanned Documents"
+    assert_select "form.button_to[action='#{notepad_entry_scanned_document_path(entry, 'missing')}']", count: 0
+
+    assert_difference -> { entry.scanned_documents.count }, +1 do
+      post notepad_entry_scanned_documents_path(entry), params: {
+        authenticity_token: authenticity_token_for(notepad_entry_scanned_documents_path(entry)),
+        scanned_document: {
+          title: "Receipt",
+          extracted_text: "Total: 42.00",
+          ocr_engine: "tesseract",
+          ocr_language: "eng",
+          ocr_confidence: "91",
+          enhancement_filter: "auto",
+          tags: ["receipt", "expense"].to_json
+        }
+      }
+    end
+
+    scanned_document = entry.scanned_documents.order(:created_at).last
+
+    assert_redirected_to notepad_entry_path(entry)
+
+    follow_redirect!
+
+    assert_response :success
+    assert_select ".sdoc-title", text: "Receipt"
+    assert_select ".sdoc-excerpt", text: /Total: 42.00/
+
+    assert_difference -> { entry.scanned_documents.count }, -1 do
+      delete notepad_entry_scanned_document_path(entry, scanned_document), params: {
+        authenticity_token: authenticity_token_for(notepad_entry_scanned_document_path(entry, scanned_document))
+      }
+    end
+
+    assert_redirected_to notepad_entry_path(entry)
+  end
+
   test "user cannot access another users notebook" do
     owner = User.create!(
       email: "owner@example.com",
@@ -379,5 +471,18 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
       content_type,
       original_filename: filename
     )
+  end
+
+  def scanned_document_payload(title:, text:)
+    {
+      title: title,
+      extracted_text: text,
+      ocr_engine: "tesseract",
+      ocr_language: "eng",
+      ocr_confidence: 91,
+      enhancement_filter: "auto",
+      tags: ["receipt"].to_json,
+      image_data: "data:image/jpeg;base64,#{Base64.strict_encode64('scan-bytes')}"
+    }
   end
 end

@@ -69,12 +69,14 @@ export default class extends Controller {
     "ocrImagePane", "ocrCanvas", "scanBar", "ocrBar", "ocrProgressText", "ocrProgressPct", "confBadge",
     "engineBar", "engineDot", "engineName", "engineStubBadge", "langSelect", "ocrTextarea",
     "reviewCanvas", "reviewStats", "reviewTitle", "reviewTags", "saveBtn",
-    "viewer", "viewerTitle", "viewerText"
+    "viewer", "viewerTitle", "viewerText",
+    "count", "draftPayloadField", "draftList", "draftEmptyState"
   ];
 
   static values = {
     postUrl: String,
-    csrf: String
+    csrf: String,
+    mode: String
   };
 
   // ── Lifecycle ───────────────────────────────────────────────────────────────
@@ -96,9 +98,11 @@ export default class extends Controller {
     this._torchSupported = false;
     this._torchActive = false;
     this._stillFlashSupported = false;
+    this._draftDocuments = this._readDraftDocuments();
     this._loadOpenCV();
     this._setupCornerDrag();
     this._syncFlashButton();
+    this._renderDraftDocuments();
   }
 
   disconnect() {
@@ -136,6 +140,139 @@ export default class extends Controller {
     this.overlayTarget.classList.remove("dcap-overlay--open");
     document.body.style.overflow = "";
     this.currentScreen = 0;
+  }
+
+  _isDraftMode() {
+    return this.modeValue === "draft" || this.hasDraftPayloadFieldTarget;
+  }
+
+  _readDraftDocuments() {
+    if (!this.hasDraftPayloadFieldTarget) return [];
+
+    try {
+      const parsed = JSON.parse(this.draftPayloadFieldTarget.value || "[]");
+      return Array.isArray(parsed) ? parsed.filter(doc => doc && typeof doc === "object") : [];
+    } catch {
+      return [];
+    }
+  }
+
+  _writeDraftDocuments(documents) {
+    this._draftDocuments = documents;
+
+    if (this.hasDraftPayloadFieldTarget) {
+      this.draftPayloadFieldTarget.value = JSON.stringify(documents);
+    }
+
+    this._renderDraftDocuments();
+  }
+
+  _renderDraftDocuments() {
+    if (!this.hasDraftListTarget) return;
+
+    const documents = this._draftDocuments || [];
+
+    if (this.hasCountTarget) {
+      this.countTarget.textContent = String(documents.length);
+    }
+
+    this.draftListTarget.hidden = documents.length === 0;
+    if (this.hasDraftEmptyStateTarget) {
+      this.draftEmptyStateTarget.hidden = documents.length > 0;
+    }
+
+    this.draftListTarget.innerHTML = documents.map((doc, index) => `
+      <div class="sdoc-card">
+        <div class="sdoc-accent-bar"></div>
+        <div class="sdoc-inner">
+          <div class="sdoc-header">
+            <div class="sdoc-title">${this._escapeHtml(doc.title || "Untitled scan")}</div>
+            <div class="sdoc-meta">
+              <span class="sdoc-conf-badge ${this._confidenceClass(doc.ocr_confidence)}">
+                ${this._escapeHtml(this._confidenceLabel(doc.ocr_confidence))}
+              </span>
+              <span class="sdoc-engine-label">${this._escapeHtml(doc.ocr_engine || "tesseract")} · pending save</span>
+            </div>
+          </div>
+
+          <div class="sdoc-body">
+            ${doc.image_data
+              ? `<img src="${this._escapeAttribute(doc.image_data)}" class="sdoc-thumb" alt="${this._escapeAttribute(doc.title || "Untitled scan")}">`
+              : `<div class="sdoc-thumb sdoc-thumb--placeholder">📄</div>`}
+            <p class="sdoc-excerpt">${this._escapeHtml(this._truncateText(doc.extracted_text || "", 220))}</p>
+          </div>
+
+          <div class="sdoc-actions">
+            <button
+              type="button"
+              class="btn btn-white btn-sm"
+              data-action="click->document-capture#copyText"
+              data-text="${this._escapeAttribute(doc.extracted_text || "")}"
+              title="Copy extracted text"
+            >📋 Copy</button>
+
+            <button
+              type="button"
+              class="btn btn-white btn-sm"
+              data-action="click->document-capture#viewFull"
+              data-text="${this._escapeAttribute(doc.extracted_text || "")}"
+              data-title="${this._escapeAttribute(doc.title || "Untitled scan")}"
+              title="View full text"
+            >🔍 View</button>
+
+            <button
+              type="button"
+              class="btn btn-white btn-sm sdoc-delete-btn"
+              data-action="click->document-capture#removeDraftDocument"
+              data-index="${index}"
+              title="Remove pending scan"
+            >🗑</button>
+          </div>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  removeDraftDocument(event) {
+    const index = Number(event.currentTarget.dataset.index);
+    if (Number.isNaN(index)) return;
+
+    const documents = [...(this._draftDocuments || [])];
+    documents.splice(index, 1);
+    this._writeDraftDocuments(documents);
+  }
+
+  _confidenceLabel(confidence) {
+    const pct = Number(confidence || 0);
+    if (!pct) return "— confidence";
+    if (pct >= 80) return `🟢 ${Math.round(pct)}% confidence`;
+    if (pct >= 50) return `🟡 ${Math.round(pct)}% confidence`;
+    return `🔴 ${Math.round(pct)}% confidence`;
+  }
+
+  _confidenceClass(confidence) {
+    const pct = Number(confidence || 0);
+    if (pct >= 80) return "conf-high";
+    if (pct >= 50) return "conf-mid";
+    return "conf-low";
+  }
+
+  _truncateText(text, maxLength) {
+    if (text.length <= maxLength) return text;
+    return `${text.slice(0, maxLength - 1)}…`;
+  }
+
+  _escapeHtml(value) {
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll("\"", "&quot;")
+      .replaceAll("'", "&#39;");
+  }
+
+  _escapeAttribute(value) {
+    return this._escapeHtml(value).replaceAll("`", "&#96;");
   }
 
   // ── Screen navigation ───────────────────────────────────────────────────────
@@ -1079,37 +1216,57 @@ export default class extends Controller {
     const canvas = this.enhancedCanvas || this.croppedCanvas;
     if (!canvas) { btn.disabled = false; btn.textContent = "Save ✓"; return; }
 
-    // Convert canvas to Blob
-    canvas.toBlob(async blob => {
-      const formData = new FormData();
-      formData.append("scanned_document[title]", this.reviewTitleTarget.value);
-      formData.append("scanned_document[extracted_text]", this.hasOcrTextareaTarget ? this.ocrTextareaTarget.value : "");
-      formData.append("scanned_document[ocr_engine]", this.ocrResult?.engine || this.engineName);
-      formData.append("scanned_document[ocr_language]", this.hasLangSelectTarget ? this.langSelectTarget.value : "eng");
-      formData.append("scanned_document[ocr_confidence]", this.ocrResult?.confidence || 0);
-      formData.append("scanned_document[enhancement_filter]", this.currentFilter);
-      formData.append("scanned_document[tags]", JSON.stringify(
-        (this.reviewTagsTarget.value || "").split(",").map(t => t.trim()).filter(Boolean)
-      ));
-      formData.append("scanned_document[enhanced_image]", blob, "scan.jpg");
+    const payload = this._buildScannedDocumentPayload(canvas);
 
-      try {
-        const resp = await fetch(this.postUrlValue, {
-          method: "POST",
-          body: formData,
-          headers: { "X-CSRF-Token": this.csrfValue, "X-Requested-With": "XMLHttpRequest" }
-        });
-        if (resp.ok || resp.redirected) {
-          window.location.reload();
-        } else {
-          btn.disabled = false; btn.textContent = "Save ✓";
-          alert("Save failed. Please try again.");
-        }
-      } catch {
+    if (this._isDraftMode()) {
+      this._writeDraftDocuments([payload, ...(this._draftDocuments || [])]);
+      btn.disabled = false;
+      btn.textContent = "Save ✓";
+      this.close();
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("scanned_document[title]", payload.title);
+    formData.append("scanned_document[extracted_text]", payload.extracted_text);
+    formData.append("scanned_document[ocr_engine]", payload.ocr_engine);
+    formData.append("scanned_document[ocr_language]", payload.ocr_language);
+    formData.append("scanned_document[ocr_confidence]", payload.ocr_confidence);
+    formData.append("scanned_document[enhancement_filter]", payload.enhancement_filter);
+    formData.append("scanned_document[tags]", payload.tags);
+    formData.append("scanned_document[image_data]", payload.image_data);
+
+    try {
+      const resp = await fetch(this.postUrlValue, {
+        method: "POST",
+        body: formData,
+        headers: { "X-CSRF-Token": this.csrfValue, "X-Requested-With": "XMLHttpRequest" }
+      });
+      if (resp.ok || resp.redirected) {
+        window.location.reload();
+      } else {
         btn.disabled = false; btn.textContent = "Save ✓";
-        alert("Network error. Please try again.");
+        alert("Save failed. Please try again.");
       }
-    }, "image/jpeg", 0.92);
+    } catch {
+      btn.disabled = false; btn.textContent = "Save ✓";
+      alert("Network error. Please try again.");
+    }
+  }
+
+  _buildScannedDocumentPayload(canvas) {
+    return {
+      title: this.reviewTitleTarget.value,
+      extracted_text: this.hasOcrTextareaTarget ? this.ocrTextareaTarget.value : "",
+      ocr_engine: this.ocrResult?.engine || this.engineName,
+      ocr_language: this.hasLangSelectTarget ? this.langSelectTarget.value : "eng",
+      ocr_confidence: this.ocrResult?.confidence || 0,
+      enhancement_filter: this.currentFilter,
+      tags: JSON.stringify(
+        (this.reviewTagsTarget.value || "").split(",").map(tag => tag.trim()).filter(Boolean)
+      ),
+      image_data: canvas.toDataURL("image/jpeg", 0.92)
+    };
   }
 
   // ── Text viewer ──────────────────────────────────────────────────────────────

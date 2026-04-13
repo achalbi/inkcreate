@@ -1,5 +1,6 @@
 class NotepadEntriesController < BrowserController
   GALLERY_ITEMS_PER_PAGE = 9
+  include ScannedDocumentSupport
 
   before_action :require_authenticated_user!
   before_action :set_notepad_entry, only: %i[show edit update destroy destroy_photo]
@@ -31,6 +32,8 @@ class NotepadEntriesController < BrowserController
       attach_pending_photos(@notepad_entry)
       persist_pending_voice_notes(@notepad_entry)
       persist_pending_todo_list(@notepad_entry, notepad_entry_params)
+      persist_pending_scanned_documents(@notepad_entry, payloads: @notepad_entry.pending_scanned_document_payloads, user: current_user)
+      @notepad_entry.pending_scanned_document_payloads = []
       schedule_drive_export(@notepad_entry)
       redirect_to create_redirect_path(@notepad_entry), notice: create_notice_message
     else
@@ -53,6 +56,8 @@ class NotepadEntriesController < BrowserController
       attach_pending_photos(@notepad_entry)
       persist_pending_voice_notes(@notepad_entry)
       persist_pending_todo_list(@notepad_entry, notepad_entry_params)
+      persist_pending_scanned_documents(@notepad_entry, payloads: @notepad_entry.pending_scanned_document_payloads, user: current_user)
+      @notepad_entry.pending_scanned_document_payloads = []
       schedule_drive_export(@notepad_entry)
       redirect_to notepad_entry_path(@notepad_entry), notice: "Notepad entry updated."
     else
@@ -96,6 +101,7 @@ class NotepadEntriesController < BrowserController
       :entry_date,
       :todo_list_enabled,
       :todo_list_hide_completed,
+      :pending_scanned_documents_json,
       retained_photo_signed_ids: [],
       photos: [],
       voice_note_uploads: [],
@@ -114,7 +120,8 @@ class NotepadEntriesController < BrowserController
       :voice_note_recorded_ats,
       :todo_list_enabled,
       :todo_list_hide_completed,
-      :todo_item_contents
+      :todo_item_contents,
+      :pending_scanned_documents_json
     )
   end
 
@@ -157,6 +164,7 @@ class NotepadEntriesController < BrowserController
     entry.pending_todo_list_enabled = attrs[:todo_list_enabled]
     entry.pending_todo_list_hide_completed = attrs[:todo_list_hide_completed]
     entry.pending_todo_item_contents = Array(attrs[:todo_item_contents])
+    entry.pending_scanned_document_payloads = parse_pending_scanned_document_payloads(attrs[:pending_scanned_documents_json])
   end
 
   def raw_voice_note_uploads(raw_attrs)
@@ -263,6 +271,8 @@ class NotepadEntriesController < BrowserController
       move_pending_voice_notes_to_page(page)
       move_voice_notes_to_page(page)
       move_todo_list_to_page(page)
+      persist_pending_scanned_documents(page, payloads: @notepad_entry.pending_scanned_document_payloads, user: current_user)
+      move_scanned_documents_to_page(page)
       @notepad_entry.photos.detach
       @notepad_entry.destroy!
     end
@@ -310,6 +320,8 @@ class NotepadEntriesController < BrowserController
   def assign_pending_page_content_for_move(page)
     page.pending_voice_note_uploads = Array(@notepad_entry.pending_voice_note_uploads)
     page.pending_voice_note_uploads += [Object.new] if VoiceNote.notepad_entries_supported? && @notepad_entry.voice_notes.exists?
+    page.pending_scanned_document_payloads = Array(@notepad_entry.pending_scanned_document_payloads)
+    page.pending_existing_scanned_document_count = @notepad_entry.scanned_documents.count
 
     todo_state = pending_todo_move_state
     page.pending_todo_list_enabled = todo_state[:enabled]
@@ -336,6 +348,12 @@ class NotepadEntriesController < BrowserController
 
     todo_state[:pending_item_contents].each do |content|
       target_list.todo_items.create!(content: content)
+    end
+  end
+
+  def move_scanned_documents_to_page(page)
+    @notepad_entry.scanned_documents.find_each do |scanned_document|
+      scanned_document.update!(page: page, notepad_entry: nil)
     end
   end
 

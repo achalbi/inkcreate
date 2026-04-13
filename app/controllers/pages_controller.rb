@@ -1,4 +1,6 @@
 class PagesController < BrowserController
+  include ScannedDocumentSupport
+
   before_action :require_authenticated_user!
   before_action :set_notebook
   before_action :set_chapter
@@ -20,6 +22,8 @@ class PagesController < BrowserController
       attach_pending_photos(@page)
       persist_pending_voice_notes(@page)
       persist_pending_todo_list(@page, page_params)
+      persist_pending_scanned_documents(@page, payloads: @page.pending_scanned_document_payloads, user: current_user)
+      @page.pending_scanned_document_payloads = []
       schedule_drive_export(@page)
       redirect_to notebook_chapter_page_path(@notebook, @chapter, @page), notice: "Page created."
     else
@@ -37,6 +41,8 @@ class PagesController < BrowserController
       attach_pending_photos(@page)
       persist_pending_voice_notes(@page)
       persist_pending_todo_list(@page, page_params)
+      persist_pending_scanned_documents(@page, payloads: @page.pending_scanned_document_payloads, user: current_user)
+      @page.pending_scanned_document_payloads = []
       schedule_drive_export(@page)
       redirect_to notebook_chapter_page_path(@notebook, @chapter, @page), notice: "Page updated."
     else
@@ -85,6 +91,7 @@ class PagesController < BrowserController
       :captured_on,
       :todo_list_enabled,
       :todo_list_hide_completed,
+      :pending_scanned_documents_json,
       retained_photo_signed_ids: [],
       photos: [],
       voice_note_uploads: [],
@@ -103,7 +110,8 @@ class PagesController < BrowserController
       :voice_note_recorded_ats,
       :todo_list_enabled,
       :todo_list_hide_completed,
-      :todo_item_contents
+      :todo_item_contents,
+      :pending_scanned_documents_json
     )
   end
 
@@ -146,6 +154,7 @@ class PagesController < BrowserController
     page.pending_todo_list_enabled = attrs[:todo_list_enabled]
     page.pending_todo_list_hide_completed = attrs[:todo_list_hide_completed]
     page.pending_todo_item_contents = Array(attrs[:todo_item_contents])
+    page.pending_scanned_document_payloads = parse_pending_scanned_document_payloads(attrs[:pending_scanned_documents_json])
   end
 
   def raw_voice_note_uploads(raw_attrs)

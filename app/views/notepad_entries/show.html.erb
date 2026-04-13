@@ -2,6 +2,7 @@
   todo_lists_available = TodoList.schema_ready? && TodoItem.schema_ready?
   voice_notes_available = VoiceNote.notepad_entries_supported?
   voice_note_count = voice_notes_available ? @notepad_entry.voice_notes.size : 0
+  scanned_document_count = @notepad_entry.scanned_documents.size
   todo_progress_label = if todo_lists_available && @notepad_entry.todo_list&.enabled?
     "#{@notepad_entry.todo_list.completed_count}/#{@notepad_entry.todo_list.total_count} to-dos"
   end
@@ -44,6 +45,7 @@
             <% if voice_notes_available %>
               <span class="label label-default"><%= pluralize(voice_note_count, "voice note") %></span>
             <% end %>
+            <span class="label label-default"><%= pluralize(scanned_document_count, "scanned document") %></span>
             <% if todo_progress_label.present? %>
               <span class="label label-default"><%= todo_progress_label %></span>
             <% end %>
@@ -70,6 +72,10 @@
         <%= render "pages/todo_list_unavailable_section" %>
       </div>
     <% end %>
+
+    <div class="col-12">
+      <%= render "notepad_entries/scanned_documents_section", notepad_entry: @notepad_entry %>
+    </div>
 
     <div class="col-12">
       <div class="ibox">

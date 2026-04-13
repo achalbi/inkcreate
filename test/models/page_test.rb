@@ -45,7 +45,7 @@ class PageTest < ActiveSupport::TestCase
     assert_not page.valid?
     assert_equal "Apr 5, 2026 - Page 1", page.title
     assert_equal "Apr 5, 2026 - Page 1", page.display_title
-    assert_includes page.errors.full_messages, "Add notes, a photo, a voice note, or a to-do item."
+    assert_includes page.errors.full_messages, "Add notes, a photo, a scanned document, a voice note, or a to-do item."
   end
 
   test "generates a title from captured date when notes are blank" do
@@ -99,6 +99,18 @@ class PageTest < ActiveSupport::TestCase
     chapter = build_chapter(email: "page-pending-voice-note@example.com")
     page = chapter.pages.new(title: "", captured_on: Date.current)
     page.pending_voice_note_uploads = [Object.new]
+
+    assert page.valid?
+  end
+
+  test "is valid with pending scanned documents and no notes or photos" do
+    chapter = build_chapter(email: "page-pending-scan@example.com")
+    page = chapter.pages.new(title: "", captured_on: Date.current)
+    page.pending_scanned_document_payloads = [{
+      "title" => "Receipt",
+      "extracted_text" => "Total: 42.00",
+      "image_data" => "data:image/jpeg;base64,#{Base64.strict_encode64('scan-bytes')}"
+    }]
 
     assert page.valid?
   end

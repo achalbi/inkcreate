@@ -1,10 +1,10 @@
 <%
-  docs = page.scanned_documents.includes(:enhanced_image_attachment).recent_first
-  post_url = notebook_chapter_page_scanned_documents_path(notebook, chapter, page)
+  docs = notepad_entry.scanned_documents.includes(:enhanced_image_attachment).recent_first
+  post_url = notepad_entry_scanned_documents_path(notepad_entry)
 %>
 
 <section
-  id="<%= dom_id(page, :scanned_documents_section) %>"
+  id="<%= dom_id(notepad_entry, :scanned_documents_section) %>"
   class="ibox float-e-margins"
   data-controller="document-capture"
   data-document-capture-post-url-value="<%= post_url %>"
@@ -24,11 +24,11 @@
       >
         <i class="ti ti-scan"></i> Scan
       </button>
-      <%= render "shared/ibox_toggle_button", target_id: dom_id(page, :scanned_documents_content) %>
+      <%= render "shared/ibox_toggle_button", target_id: dom_id(notepad_entry, :scanned_documents_content) %>
     </div>
   </div>
 
-  <div id="<%= dom_id(page, :scanned_documents_content) %>" class="ibox-content collapse show">
+  <div id="<%= dom_id(notepad_entry, :scanned_documents_content) %>" class="ibox-content collapse show">
     <% if docs.any? %>
       <div class="sdoc-list">
         <% docs.each do |doc| %>
@@ -74,7 +74,7 @@
                   title="View full text"
                 >🔍 View</button>
 
-                <%= button_to notebook_chapter_page_scanned_document_path(notebook, chapter, page, doc),
+                <%= button_to notepad_entry_scanned_document_path(notepad_entry, doc),
                     method: :delete,
                     form: { data: { turbo_confirm: "Delete this scan?" } },
                     class: "btn btn-white btn-sm sdoc-delete-btn",
@@ -101,5 +101,4 @@
   </div>
 
   <%= render "shared/scanned_document_capture_overlay" %>
-
 </section>

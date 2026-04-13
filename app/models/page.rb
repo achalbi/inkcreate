@@ -5,6 +5,8 @@ class Page < ApplicationRecord
   attr_accessor :pending_voice_note_uploads,
     :pending_voice_note_duration_seconds,
     :pending_voice_note_recorded_ats,
+    :pending_scanned_document_payloads,
+    :pending_existing_scanned_document_count,
     :pending_todo_item_contents,
     :pending_todo_list_enabled,
     :pending_todo_list_hide_completed
@@ -50,6 +52,25 @@ class Page < ApplicationRecord
 
   def pending_todo_item_contents
     Array(@pending_todo_item_contents).filter_map { |content| content.to_s.squish.presence }
+  end
+
+  def pending_scanned_document_payloads
+    Array(@pending_scanned_document_payloads).filter_map do |payload|
+      hash = case payload
+      when ActionController::Parameters
+        payload.to_unsafe_h
+      when Hash
+        payload
+      else
+        nil
+      end
+
+      hash&.stringify_keys
+    end
+  end
+
+  def pending_scanned_documents_json
+    pending_scanned_document_payloads.to_json
   end
 
   def pending_todo_list_enabled?
@@ -100,9 +121,10 @@ class Page < ApplicationRecord
     return if plain_notes.present?
     return if photos.attached? || pending_photo_blobs.any?
     return if voice_notes_available? && (voice_notes.exists? || pending_voice_note_uploads.any?)
+    return if scanned_documents.exists? || pending_scanned_document_payloads.any? || pending_existing_scanned_document_count.to_i.positive?
     return if todo_items_present?
 
-    errors.add(:base, "Add notes, a photo, a voice note, or a to-do item.")
+    errors.add(:base, "Add notes, a photo, a scanned document, a voice note, or a to-do item.")
   end
 
   def todo_items_present?
