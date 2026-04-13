@@ -92,6 +92,8 @@ export default class extends Controller {
     this.autoCaptureTriggered = false;
     this.engineName = "tesseract";
     this.ocrEngine = createEngine("tesseract");
+    this._flashOn = false;
+    this._torchSupported = false;
     this._loadOpenCV();
     this._setupCornerDrag();
   }
@@ -184,6 +186,13 @@ export default class extends Controller {
         this.videoTarget.play();
         this._startDetectionLoop();
       };
+      // Check if this device supports torch (rear camera flash)
+      const track = this._stream.getVideoTracks()[0];
+      const capabilities = track?.getCapabilities?.() || {};
+      this._torchSupported = !!(capabilities.torch);
+      if (this.hasFlashBtnTarget) {
+        this.flashBtnTarget.style.visibility = this._torchSupported ? "visible" : "hidden";
+      }
     } catch(err) {
       const type = err.name === "NotFoundError" || err.name === "DevicesNotFoundError"
         ? "notfound"
@@ -231,6 +240,8 @@ export default class extends Controller {
     };
 
     const { icon, title, sub, showRetry } = messages[type] || messages.unavailable;
+    // No camera → flash is meaningless
+    if (this.hasFlashBtnTarget) this.flashBtnTarget.style.visibility = "hidden";
 
     container.innerHTML = `
       <div class="dcap-fallback">
@@ -361,9 +372,11 @@ export default class extends Controller {
 
   captureFrame() {
     this.autoCaptureTriggered = false;
-    // Flash
-    this.flashOverlayTarget.classList.add("dcap-flash--active");
-    setTimeout(() => this.flashOverlayTarget.classList.remove("dcap-flash--active"), 180);
+    // Only fire the screen-flash animation when flash is enabled
+    if (this._flashOn) {
+      this.flashOverlayTarget.classList.add("dcap-flash--active");
+      setTimeout(() => this.flashOverlayTarget.classList.remove("dcap-flash--active"), 180);
+    }
     const video = this.videoTarget;
     if (video.srcObject && video.readyState >= 2) {
       const c = document.createElement("canvas");
@@ -423,9 +436,19 @@ export default class extends Controller {
     return c;
   }
 
-  toggleFlash() {
+  async toggleFlash() {
     this._flashOn = !this._flashOn;
-    this.flashBtnTarget.textContent = this._flashOn ? "🔦" : "⚡";
+    const btn = this.flashBtnTarget;
+    btn.textContent = this._flashOn ? "🔦" : "⚡";
+    btn.classList.toggle("dcap-icon-btn--active", this._flashOn);
+    btn.setAttribute("aria-label", this._flashOn ? "Flash on" : "Flash off");
+    // Apply torch to the live camera track if supported
+    if (this._torchSupported && this._stream) {
+      const track = this._stream.getVideoTracks()[0];
+      try {
+        await track.applyConstraints({ advanced: [{ torch: this._flashOn }] });
+      } catch { /* torch constraint rejected — silently ignore */ }
+    }
   }
 
   toggleAuto() {

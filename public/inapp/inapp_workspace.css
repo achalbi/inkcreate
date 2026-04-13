@@ -7746,6 +7746,7 @@ body.task-modal-open { overflow: hidden; }
 
 .dcap-icon-btn:hover { opacity: 1; background: rgba(255,255,255,0.12); }
 .dcap-icon-btn--accent { color: #ff5f4e; }
+.dcap-icon-btn--active { opacity: 1; background: rgba(255,220,80,0.18); color: #ffd84f; }
 
 /* ── Screen 1: Camera ──────────────────────────────────────── */
 .dcap-cam-container {
