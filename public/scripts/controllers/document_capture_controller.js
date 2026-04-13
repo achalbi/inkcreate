@@ -62,7 +62,7 @@ export default class extends Controller {
   static targets = [
     "overlay", "stageBar",
     "screen1", "screen2", "screen3", "screen4", "screen5",
-    "video", "drawCanvas", "camContainer", "cameraFallback", "flashOverlay", "flashBtn",
+    "video", "drawCanvas", "camContainer", "cameraFallback", "flashOverlay", "flashBtn", "flashHint", "nativeCameraInput",
     "camStatus", "autoDot", "autoLabel", "autoCapLabel", "autoBadge", "fileInput",
     "detectContainer", "detectCanvas", "quadSvg", "cornerHandle", "loupeCanvas", "detectHint",
     "enhanceCanvas", "filterStrip", "brightness", "contrast", "brightnessVal", "contrastVal",
@@ -244,7 +244,7 @@ export default class extends Controller {
         this._torchActive = await this._applyTorchState(true);
       }
 
-      this._flashOn = this._torchActive || this._stillFlashSupported;
+      this._flashOn = this._torchActive || this._stillFlashSupported || this._supportsNativeCameraFlashFallback();
     }
 
     this._syncFlashButton();
@@ -274,7 +274,23 @@ export default class extends Controller {
   }
 
   _hasFlashSupport() {
+    return this._hasBrowserFlashSupport() || this._supportsNativeCameraFlashFallback();
+  }
+
+  _hasBrowserFlashSupport() {
     return this._torchSupported || this._stillFlashSupported;
+  }
+
+  _supportsNativeCameraFlashFallback() {
+    if (!this.hasNativeCameraInputTarget) return false;
+
+    const userAgent = navigator.userAgent || "";
+    const mobileUserAgent = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
+    const coarsePointer = typeof window.matchMedia === "function"
+      ? window.matchMedia("(pointer: coarse)").matches
+      : false;
+
+    return Boolean(navigator.userAgentData?.mobile || mobileUserAgent || coarsePointer || navigator.maxTouchPoints > 1);
   }
 
   async _applyTorchState(enabled) {
@@ -306,6 +322,7 @@ export default class extends Controller {
     const button = this.flashBtnTarget;
     const supported = this._hasFlashSupport();
     const active = this._flashOn && supported;
+    const usingNativeFallback = !this._hasBrowserFlashSupport() && this._supportsNativeCameraFlashFallback();
 
     button.style.visibility = supported ? "visible" : "hidden";
     button.disabled = !supported;
@@ -313,7 +330,23 @@ export default class extends Controller {
     button.classList.toggle("dcap-icon-btn--active", active);
     button.setAttribute("aria-label", supported ? (active ? "Flash on" : "Flash off") : "Flash unavailable");
     button.setAttribute("aria-pressed", active ? "true" : "false");
-    button.title = supported ? (active ? "Turn flash off" : "Turn flash on") : "Flash unavailable on this camera";
+    button.title = supported
+      ? usingNativeFallback
+        ? (active ? "Flash will use the device camera app on capture" : "Use the device camera app for flash")
+        : (active ? "Turn flash off" : "Turn flash on")
+      : "Flash unavailable on this camera";
+
+    if (!this.hasFlashHintTarget) return;
+
+    let note = "";
+    if (usingNativeFallback) {
+      note = "Flash may open your device camera app when you capture.";
+    } else if (active && this._stillFlashSupported && !this._torchActive) {
+      note = "Flash will fire when the photo is taken.";
+    }
+
+    this.flashHintTarget.hidden = note.length === 0;
+    this.flashHintTarget.textContent = note;
   }
 
   _setCameraUIVisible(visible) {
@@ -375,6 +408,8 @@ export default class extends Controller {
               ${l}
             </button>`).join("")}
         </div>
+        ${this._supportsNativeCameraFlashFallback() ? `
+        <button class="btn btn-white btn-sm" data-action="click->document-capture#openNativeCamera">📷 Camera app</button>` : ""}
         <button class="btn btn-white btn-sm" data-action="click->document-capture#pickGallery">📁 Upload</button>
       </div>`);
   }
@@ -489,6 +524,13 @@ export default class extends Controller {
 
   async captureFrame() {
     this.autoCaptureTriggered = false;
+    if (this._flashOn && !this._torchActive && !this._stillFlashSupported && this._supportsNativeCameraFlashFallback()) {
+      if (this.hasCamStatusTarget) {
+        this.camStatusTarget.textContent = "Opening device camera for flash capture…";
+      }
+      this.openNativeCamera();
+      return;
+    }
     // Only fire the screen-flash animation when flash is enabled
     if (this._flashOn) {
       this.flashOverlayTarget.classList.add("dcap-flash--active");
@@ -578,6 +620,25 @@ export default class extends Controller {
     this._renderDetectCanvas();
   }
 
+  openNativeCamera(event) {
+    event?.preventDefault();
+
+    if (!this.hasNativeCameraInputTarget) return;
+
+    this.nativeCameraInputTarget.value = "";
+
+    if (typeof this.nativeCameraInputTarget.showPicker === "function") {
+      try {
+        this.nativeCameraInputTarget.showPicker();
+        return;
+      } catch {
+        // Fall back to click when the picker API is blocked.
+      }
+    }
+
+    this.nativeCameraInputTarget.click();
+  }
+
   pickGallery() { this.fileInputTarget.click(); }
 
   handleFile(e) {
@@ -643,7 +704,7 @@ export default class extends Controller {
       this._torchActive = await this._applyTorchState(true);
     }
 
-    this._flashOn = this._torchActive || this._stillFlashSupported;
+    this._flashOn = this._torchActive || this._stillFlashSupported || this._supportsNativeCameraFlashFallback();
     this._syncFlashButton();
   }
 

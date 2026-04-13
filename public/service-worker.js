@@ -1,4 +1,4 @@
-const SHELL_CACHE = "inkcreate-shell-v10";
+const SHELL_CACHE = "inkcreate-shell-v11";
 const OFFLINE_URL = "/offline.html";
 const DB_NAME = "inkcreate-pwa";
 const DB_VERSION = 3;
@@ -34,6 +34,7 @@ self.addEventListener("install", (event) => {
       "/scripts/controllers/offline_status_controller.js",
       "/scripts/controllers/install_prompt_controller.js",
       "/scripts/controllers/camera_controller.js",
+      "/scripts/controllers/document_capture_controller.js",
       "/scripts/controllers/queue_controller.js",
       "/scripts/controllers/search_filters_controller.js",
       "/scripts/controllers/notification_preferences_controller.js"

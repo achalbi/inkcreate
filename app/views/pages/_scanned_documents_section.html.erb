@@ -117,6 +117,7 @@
         <span class="dcap-topbar-title">Scan Document</span>
         <button class="dcap-icon-btn" data-action="click->document-capture#toggleFlash" data-document-capture-target="flashBtn" aria-label="Flash">⚡</button>
       </div>
+      <div class="dcap-flash-note" data-document-capture-target="flashHint" hidden></div>
       <div class="dcap-cam-container" data-document-capture-target="camContainer">
         <video class="dcap-video" data-document-capture-target="video" autoplay playsinline muted></video>
         <canvas class="dcap-draw-canvas" data-document-capture-target="drawCanvas"></canvas>
@@ -146,6 +147,7 @@
         </div>
       </div>
       <input type="file" accept="image/*" class="dcap-file-input" data-document-capture-target="fileInput" data-action="change->document-capture#handleFile" />
+      <input type="file" accept="image/*" capture="environment" class="dcap-file-input" data-document-capture-target="nativeCameraInput" data-action="change->document-capture#handleFile" />
     </div>
 
     <%# ── Stage 2: Detect & Adjust ────────────────────────────────────── %>

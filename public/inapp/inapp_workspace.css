@@ -7747,6 +7747,15 @@ body.task-modal-open { overflow: hidden; }
 .dcap-icon-btn:hover { opacity: 1; background: rgba(255,255,255,0.12); }
 .dcap-icon-btn--accent { color: #ff5f4e; }
 .dcap-icon-btn--active { opacity: 1; background: rgba(255,220,80,0.18); color: #ffd84f; }
+.dcap-flash-note {
+  padding: 6px 14px 8px;
+  background: rgba(255, 216, 79, 0.12);
+  color: rgba(255,255,255,0.84);
+  font-size: 0.74rem;
+  line-height: 1.35;
+  text-align: right;
+}
+.dcap-flash-note[hidden] { display: none; }
 
 /* ── Screen 1: Camera ──────────────────────────────────────── */
 .dcap-cam-container {
