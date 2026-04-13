@@ -14,10 +14,10 @@ import com.google.mlkit.genai.common.audio.AudioSource
 import com.google.mlkit.genai.speechrecognition.SpeechRecognition
 import com.google.mlkit.genai.speechrecognition.SpeechRecognizer
 import com.google.mlkit.genai.speechrecognition.SpeechRecognizerOptions
+import com.google.mlkit.genai.speechrecognition.SpeechRecognizerOptions.Builder as SpeechRecognizerOptionsBuilder
 import com.google.mlkit.genai.speechrecognition.SpeechRecognizerRequest
+import com.google.mlkit.genai.speechrecognition.SpeechRecognizerRequest.Builder as SpeechRecognizerRequestBuilder
 import com.google.mlkit.genai.speechrecognition.SpeechRecognizerResponse
-import com.google.mlkit.genai.speechrecognition.speechRecognizerOptions
-import com.google.mlkit.genai.speechrecognition.speechRecognizerRequest
 import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
@@ -121,12 +121,13 @@ class InkcreateSpeechRecognitionPlugin : Plugin() {
     }
 
     private fun createSpeechRecognizer(locale: Locale, preferredMode: Int): SpeechRecognizer {
-        return SpeechRecognition.getClient(
-            speechRecognizerOptions {
+        val options =
+            SpeechRecognizerOptionsBuilder().apply {
                 this.locale = locale
                 this.preferredMode = preferredMode
-            }
-        )
+            }.build()
+
+        return SpeechRecognition.getClient(options)
     }
 
     private suspend fun ensureFeatureAvailable(recognizer: SpeechRecognizer, preferredMode: Int) {
@@ -180,9 +181,9 @@ class InkcreateSpeechRecognitionPlugin : Plugin() {
     }
 
     private fun buildRecognitionRequest(descriptor: ParcelFileDescriptor): SpeechRecognizerRequest {
-        return speechRecognizerRequest {
+        return SpeechRecognizerRequestBuilder().apply {
             audioSource = AudioSource.fromPfd(descriptor)
-        }
+        }.build()
     }
 
     private suspend fun downloadAudioToCache(audioUrl: String): File = withContext(Dispatchers.IO) {

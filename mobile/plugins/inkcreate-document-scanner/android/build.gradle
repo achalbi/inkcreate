@@ -4,7 +4,7 @@ ext {
 }
 
 buildscript {
-    ext.kotlin_version = project.hasProperty("kotlin_version") ? rootProject.ext.kotlin_version : "1.9.24"
+    ext.kotlin_version = project.hasProperty("kotlin_version") ? rootProject.ext.kotlin_version : "2.2.20"
     repositories {
         google()
         mavenCentral()
@@ -60,6 +60,6 @@ dependencies {
     implementation project(":capacitor-android")
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     implementation "androidx.core:core-ktx:$androidxCoreKTXVersion"
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:1.9.24"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     implementation "com.google.android.gms:play-services-mlkit-document-scanner:16.0.0"
 }

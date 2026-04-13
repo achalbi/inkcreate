@@ -62,8 +62,17 @@ export default class extends Controller {
   async open(event) {
     event?.preventDefault();
 
-    const handledByNativeScanner = await this._openWithNativeDocumentScanner();
-    if (handledByNativeScanner) return;
+    if (this._shouldUseNativeDocumentScanner()) {
+      const handledByNativeScanner = await this._openWithNativeDocumentScanner();
+      if (handledByNativeScanner) return;
+    }
+
+    // Installed Android PWAs are still browser contexts, so ML Kit won't be available.
+    // Prefer the native camera capture intent on the original user gesture there.
+    if (this._shouldPreferAndroidPwaNativeCamera()) {
+      this.openNativeCamera(event);
+      return;
+    }
 
     this.overlayTarget.removeAttribute("aria-hidden");
     this.overlayTarget.classList.add("dcap-overlay--open");
@@ -1138,8 +1147,31 @@ export default class extends Controller {
     return Boolean(this._isNativeAndroidApp() && this._nativeDocumentScannerPlugin());
   }
 
+  _shouldPreferAndroidPwaNativeCamera() {
+    return Boolean(
+      !this._shouldUseNativeDocumentScanner() &&
+      !this._isNativeCapacitorApp() &&
+      this.hasNativeCameraInputTarget &&
+      this._isAndroidDevice() &&
+      this._isStandaloneDisplayMode()
+    );
+  }
+
   _isNativeAndroidApp() {
     return this._capacitorPlatform() === "android" && this._isNativeCapacitorApp();
+  }
+
+  _isAndroidDevice() {
+    const userAgent = navigator.userAgent || "";
+    const platform = navigator.userAgentData?.platform || "";
+    return /Android/i.test(userAgent) || /Android/i.test(platform);
+  }
+
+  _isStandaloneDisplayMode() {
+    if (window.matchMedia?.("(display-mode: standalone)").matches) return true;
+    if (window.matchMedia?.("(display-mode: fullscreen)").matches) return true;
+    if (window.matchMedia?.("(display-mode: minimal-ui)").matches) return true;
+    return document.referrer.startsWith("android-app://");
   }
 
   _capacitorPlatform() {
