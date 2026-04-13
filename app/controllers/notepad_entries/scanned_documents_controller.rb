@@ -1,7 +1,7 @@
-module Pages
+module NotepadEntries
   class ScannedDocumentsController < BaseController
     def create
-      doc = @page.scanned_documents.new(scanned_document_params)
+      doc = @notepad_entry.scanned_documents.new(scanned_document_params)
       doc.user = current_user
 
       # Attach the enhanced image — sent as a multipart file upload from the browser
@@ -19,32 +19,32 @@ module Pages
 
       if doc.save
         respond_to do |fmt|
-          fmt.html { redirect_to notebook_chapter_page_path(@notebook, @chapter, @page), notice: "Document saved." }
+          fmt.html { redirect_to notepad_entry_path(@notepad_entry), notice: "Document saved." }
           fmt.json { render json: { ok: true } }
         end
       else
         respond_to do |fmt|
-          fmt.html { redirect_to notebook_chapter_page_path(@notebook, @chapter, @page), alert: doc.errors.full_messages.to_sentence }
+          fmt.html { redirect_to notepad_entry_path(@notepad_entry), alert: doc.errors.full_messages.to_sentence }
           fmt.json { render json: { ok: false, error: doc.errors.full_messages.to_sentence }, status: :unprocessable_entity }
         end
       end
     end
 
     def destroy
-      doc = @page.scanned_documents.find(params[:id])
+      doc = @notepad_entry.scanned_documents.find(params[:id])
       doc.destroy!
       respond_to do |fmt|
-        fmt.html { redirect_back fallback_location: notebook_chapter_page_path(@notebook, @chapter, @page), notice: "Document deleted." }
+        fmt.html { redirect_back fallback_location: notepad_entry_path(@notepad_entry), notice: "Document deleted." }
         fmt.json { render json: { ok: true } }
       end
     end
 
     def run_ocr
-      doc = @page.scanned_documents.find(params[:id])
+      doc = @notepad_entry.scanned_documents.find(params[:id])
 
       unless doc.enhanced_image.attached?
         respond_to do |fmt|
-          fmt.html { redirect_back fallback_location: notebook_chapter_page_path(@notebook, @chapter, @page), alert: "No image to run OCR on." }
+          fmt.html { redirect_back fallback_location: notepad_entry_path(@notepad_entry), alert: "No image to run OCR on." }
           fmt.json { render json: { ok: false, error: "No image attached" }, status: :unprocessable_entity }
         end
         return
@@ -60,12 +60,12 @@ module Pages
           ocr_confidence: result[:confidence]
         )
         respond_to do |fmt|
-          fmt.html { redirect_back fallback_location: notebook_chapter_page_path(@notebook, @chapter, @page), notice: "OCR complete." }
+          fmt.html { redirect_back fallback_location: notepad_entry_path(@notepad_entry), notice: "OCR complete." }
           fmt.json { render json: { ok: true, extracted_text: result[:text], confidence: result[:confidence] } }
         end
       else
         respond_to do |fmt|
-          fmt.html { redirect_back fallback_location: notebook_chapter_page_path(@notebook, @chapter, @page), alert: "OCR failed." }
+          fmt.html { redirect_back fallback_location: notepad_entry_path(@notepad_entry), alert: "OCR failed." }
           fmt.json { render json: { ok: false, error: "OCR failed" }, status: :unprocessable_entity }
         end
       end
@@ -80,13 +80,12 @@ module Pages
     end
 
     def attach_image(doc, data_url)
-      # data_url looks like "data:image/jpeg;base64,/9j/4AAQ..."
       match = data_url.match(/\Adata:([\w\/]+);base64,(.+)\z/m)
       return unless match
 
-      content_type = match[1]               # e.g. "image/jpeg"
+      content_type = match[1]
       binary       = Base64.decode64(match[2])
-      ext          = content_type.split("/").last  # "jpeg"
+      ext          = content_type.split("/").last
 
       doc.enhanced_image.attach(
         io:           StringIO.new(binary),

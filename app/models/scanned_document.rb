@@ -4,6 +4,7 @@ class ScannedDocument < ApplicationRecord
   belongs_to :notepad_entry, optional: true
 
   has_one_attached :enhanced_image
+  has_one_attached :pdf_document
 
   validates :title, presence: true
   validates :ocr_engine, inclusion: { in: %w[tesseract google-ml cloud-vision], allow_blank: true }

@@ -40,7 +40,11 @@ Rails.application.routes.draw do
             end
           end
           resources :voice_notes,       only: %i[create destroy]
-          resources :scanned_documents, only: %i[create destroy]
+          resources :scanned_documents, only: %i[create destroy] do
+            member do
+              patch :run_ocr
+            end
+          end
         end
       end
     end
@@ -60,7 +64,11 @@ Rails.application.routes.draw do
         end
       end
       resources :voice_notes,       only: %i[create destroy]
-      resources :scanned_documents, only: %i[create destroy]
+      resources :scanned_documents, only: %i[create destroy] do
+        member do
+          patch :run_ocr
+        end
+      end
     end
   end
 
