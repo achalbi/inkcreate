@@ -62,7 +62,7 @@ export default class extends Controller {
   static targets = [
     "overlay", "stageBar",
     "screen1", "screen2", "screen3", "screen4", "screen5",
-    "video", "drawCanvas", "camContainer", "flashOverlay", "flashBtn",
+    "video", "drawCanvas", "camContainer", "cameraFallback", "flashOverlay", "flashBtn",
     "camStatus", "autoDot", "autoLabel", "autoCapLabel", "autoBadge", "fileInput",
     "detectContainer", "detectCanvas", "quadSvg", "cornerHandle", "loupeCanvas", "detectHint",
     "enhanceCanvas", "filterStrip", "brightness", "contrast", "brightnessVal", "contrastVal",
@@ -94,8 +94,10 @@ export default class extends Controller {
     this.ocrEngine = createEngine("tesseract");
     this._flashOn = false;
     this._torchSupported = false;
+    this._stillFlashSupported = false;
     this._loadOpenCV();
     this._setupCornerDrag();
+    this._syncFlashButton();
   }
 
   disconnect() {
@@ -159,6 +161,8 @@ export default class extends Controller {
     this._stopCamera();
     this.stableCount = 0;
     this.autoCaptureTriggered = false;
+    this._setCameraFallbackVisible(false);
+    this._setCameraUIVisible(true);
 
     // mediaDevices is only available on secure contexts (HTTPS or localhost)
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -186,13 +190,7 @@ export default class extends Controller {
         this.videoTarget.play();
         this._startDetectionLoop();
       };
-      // Check if this device supports torch (rear camera flash)
-      const track = this._stream.getVideoTracks()[0];
-      const capabilities = track?.getCapabilities?.() || {};
-      this._torchSupported = !!(capabilities.torch);
-      if (this.hasFlashBtnTarget) {
-        this.flashBtnTarget.style.visibility = this._torchSupported ? "visible" : "hidden";
-      }
+      await this._refreshFlashSupport();
     } catch(err) {
       const type = err.name === "NotFoundError" || err.name === "DevicesNotFoundError"
         ? "notfound"
@@ -205,7 +203,8 @@ export default class extends Controller {
   }
 
   async retryCamera() {
-    this.camContainerTarget.innerHTML = "";
+    this._setCameraFallbackVisible(false);
+    this._setCameraUIVisible(true);
     await this._startCamera();
   }
 
@@ -213,11 +212,123 @@ export default class extends Controller {
     if (this._stream) { this._stream.getTracks().forEach(t => t.stop()); this._stream = null; }
     if (this._detectionTimer) { clearInterval(this._detectionTimer); this._detectionTimer = null; }
     if (this._simTimer) { clearTimeout(this._simTimer); this._simTimer = null; }
+    if (this.hasVideoTarget) {
+      this.videoTarget.pause?.();
+      this.videoTarget.srcObject = null;
+      this.videoTarget.onloadedmetadata = null;
+    }
+    if (this.hasCamStatusTarget) {
+      this.camStatusTarget.textContent = "Align document within the frame";
+      this.camStatusTarget.classList.remove("dcap-status--detected");
+    }
+    this._clearCanvas(this.drawCanvasTarget);
+    this._torchSupported = false;
+    this._stillFlashSupported = false;
+    this._syncFlashButton();
+  }
+
+  _getVideoTrack() {
+    return this._stream?.getVideoTracks?.()?.[0] || null;
+  }
+
+  async _refreshFlashSupport() {
+    const track = this._getVideoTrack();
+    this._torchSupported = this._detectTorchSupport(track);
+    this._stillFlashSupported = await this._detectStillFlashSupport(track);
+
+    if (this._torchSupported && this._flashOn) {
+      const applied = await this._applyTorchState(true);
+      if (!applied && !this._stillFlashSupported) this._flashOn = false;
+    } else if (this._flashOn && !this._hasFlashSupport()) {
+      this._flashOn = false;
+    }
+
+    this._syncFlashButton();
+  }
+
+  _detectTorchSupport(track) {
+    if (!track) return false;
+
+    const capabilities = track.getCapabilities?.() || {};
+    if (typeof capabilities.torch === "boolean") return capabilities.torch;
+
+    return false;
+  }
+
+  async _detectStillFlashSupport(track) {
+    if (!track) return false;
+    if (typeof window.ImageCapture !== "function") return false;
+
+    try {
+      const imageCapture = new window.ImageCapture(track);
+      const photoCapabilities = await imageCapture.getPhotoCapabilities?.();
+      return Array.isArray(photoCapabilities?.fillLightMode)
+        && photoCapabilities.fillLightMode.includes("flash");
+    } catch {
+      return false;
+    }
+  }
+
+  _hasFlashSupport() {
+    return this._torchSupported || this._stillFlashSupported;
+  }
+
+  async _applyTorchState(enabled) {
+    const track = this._getVideoTrack();
+    if (!track?.applyConstraints) return false;
+
+    const constraintAttempts = [
+      { advanced: [{ torch: enabled }] },
+      { torch: enabled }
+    ];
+
+    for (const constraints of constraintAttempts) {
+      try {
+        await track.applyConstraints(constraints);
+        const appliedState = track.getSettings?.().torch;
+        if (typeof appliedState === "boolean" && appliedState !== enabled) continue;
+        return true;
+      } catch {
+        // Try the next constraint shape for browsers that implement torch differently.
+      }
+    }
+
+    return false;
+  }
+
+  _syncFlashButton() {
+    if (!this.hasFlashBtnTarget) return;
+
+    const button = this.flashBtnTarget;
+    const supported = this._hasFlashSupport();
+    const active = this._flashOn && supported;
+
+    button.style.visibility = supported ? "visible" : "hidden";
+    button.disabled = !supported;
+    button.textContent = active ? "🔦" : "⚡";
+    button.classList.toggle("dcap-icon-btn--active", active);
+    button.setAttribute("aria-label", supported ? (active ? "Flash on" : "Flash off") : "Flash unavailable");
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+    button.title = supported ? (active ? "Turn flash off" : "Turn flash on") : "Flash unavailable on this camera";
+  }
+
+  _setCameraUIVisible(visible) {
+    if (this.hasVideoTarget) this.videoTarget.hidden = !visible;
+    if (this.hasDrawCanvasTarget) this.drawCanvasTarget.hidden = !visible;
+    if (this.hasFlashOverlayTarget) this.flashOverlayTarget.hidden = !visible;
+    if (this.hasCamStatusTarget) this.camStatusTarget.hidden = !visible;
+    if (this.hasAutoBadgeTarget) this.autoBadgeTarget.hidden = !visible;
+    this.camContainerTarget.querySelector(".dcap-cam-frame")?.toggleAttribute("hidden", !visible);
+  }
+
+  _setCameraFallbackVisible(visible, html = "") {
+    if (!this.hasCameraFallbackTarget) return;
+
+    this.cameraFallbackTarget.hidden = !visible;
+    this.cameraFallbackTarget.innerHTML = visible ? html : "";
   }
 
   _showCameraFallback(type = "unavailable") {
-    const container = this.camContainerTarget;
-
     const messages = {
       denied: {
         icon: "🔒",
@@ -241,9 +352,11 @@ export default class extends Controller {
 
     const { icon, title, sub, showRetry } = messages[type] || messages.unavailable;
     // No camera → flash is meaningless
-    if (this.hasFlashBtnTarget) this.flashBtnTarget.style.visibility = "hidden";
-
-    container.innerHTML = `
+    this._torchSupported = false;
+    this._stillFlashSupported = false;
+    this._syncFlashButton();
+    this._setCameraUIVisible(false);
+    this._setCameraFallbackVisible(true, `
       <div class="dcap-fallback">
         <div class="dcap-fallback-icon">${icon}</div>
         <div class="dcap-fallback-title">${title}</div>
@@ -259,7 +372,7 @@ export default class extends Controller {
             </button>`).join("")}
         </div>
         <button class="btn btn-white btn-sm" data-action="click->document-capture#pickGallery">📁 Upload</button>
-      </div>`;
+      </div>`);
   }
 
   _sampleLabels() { return ["Meeting Notes", "Invoice", "Research Notes"]; }
@@ -370,25 +483,76 @@ export default class extends Controller {
 
   _clearCanvas(c) { if (c) c.getContext("2d").clearRect(0, 0, c.width, c.height); }
 
-  captureFrame() {
+  async captureFrame() {
     this.autoCaptureTriggered = false;
     // Only fire the screen-flash animation when flash is enabled
     if (this._flashOn) {
       this.flashOverlayTarget.classList.add("dcap-flash--active");
       setTimeout(() => this.flashOverlayTarget.classList.remove("dcap-flash--active"), 180);
     }
-    const video = this.videoTarget;
-    if (video.srcObject && video.readyState >= 2) {
-      const c = document.createElement("canvas");
-      c.width = video.videoWidth || 640;
-      c.height = video.videoHeight || 480;
-      c.getContext("2d").drawImage(video, 0, 0);
-      this.capturedImage = c;
-    } else {
-      this.capturedImage = this._buildSampleCanvas(0);
-    }
+    this.capturedImage = await this._captureCurrentFrame() || this._buildSampleCanvas(0);
     this._stopCamera();
     setTimeout(() => { this._showScreen(2); this._renderDetectCanvas(); }, 180);
+  }
+
+  async _captureCurrentFrame() {
+    const track = this._getVideoTrack();
+    if (this._flashOn && !this._torchSupported && this._stillFlashSupported && track) {
+      const stillPhoto = await this._captureStillPhotoWithFlash(track);
+      if (stillPhoto) return stillPhoto;
+    }
+
+    return this._captureVideoFrame();
+  }
+
+  _captureVideoFrame() {
+    const video = this.videoTarget;
+    if (!(video?.srcObject) || video.readyState < 2) {
+      return null;
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    canvas.getContext("2d").drawImage(video, 0, 0);
+    return canvas;
+  }
+
+  async _captureStillPhotoWithFlash(track) {
+    if (typeof window.ImageCapture !== "function") return null;
+
+    try {
+      const imageCapture = new window.ImageCapture(track);
+      const blob = await imageCapture.takePhoto({ fillLightMode: "flash" });
+      return await this._canvasFromBlob(blob);
+    } catch {
+      return null;
+    }
+  }
+
+  async _canvasFromBlob(blob) {
+    if (!(blob instanceof Blob)) return null;
+
+    return await new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(blob);
+
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        canvas.getContext("2d").drawImage(img, 0, 0);
+        URL.revokeObjectURL(url);
+        resolve(canvas);
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve(null);
+      };
+
+      img.src = url;
+    });
   }
 
   useSample(e) {
@@ -437,18 +601,22 @@ export default class extends Controller {
   }
 
   async toggleFlash() {
-    this._flashOn = !this._flashOn;
-    const btn = this.flashBtnTarget;
-    btn.textContent = this._flashOn ? "🔦" : "⚡";
-    btn.classList.toggle("dcap-icon-btn--active", this._flashOn);
-    btn.setAttribute("aria-label", this._flashOn ? "Flash on" : "Flash off");
-    // Apply torch to the live camera track if supported
-    if (this._torchSupported && this._stream) {
-      const track = this._stream.getVideoTracks()[0];
-      try {
-        await track.applyConstraints({ advanced: [{ torch: this._flashOn }] });
-      } catch { /* torch constraint rejected — silently ignore */ }
+    if (!this._hasFlashSupport() || !this._stream) {
+      this._syncFlashButton();
+      return;
     }
+
+    const nextState = !this._flashOn;
+    if (this._torchSupported) {
+      const applied = await this._applyTorchState(nextState);
+      if (applied || this._stillFlashSupported) {
+        this._flashOn = nextState;
+      }
+    } else {
+      this._flashOn = nextState;
+    }
+
+    this._syncFlashButton();
   }
 
   toggleAuto() {
