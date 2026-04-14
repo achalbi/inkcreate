@@ -12,14 +12,8 @@
     <div class="detail-photo-gallery-heading">
       <h5 class="detail-photo-gallery-title">Scanned documents</h5>
       <span class="label label-info detail-photo-gallery-count" data-document-capture-target="count"><%= draft_docs.size %></span>
-      <span
-        class="label label-default detail-photo-gallery-runtime"
-        data-document-capture-target="scannerModeBadge"
-        title="Browser capture flow is active in this environment."
-      >Web scan mode</span>
     </div>
     <div class="ibox-tools d-flex align-items-center gap-2">
-      <span class="label label-default">Saved with this form</span>
       <button
         type="button"
         class="btn btn-primary btn-sm"
@@ -42,14 +36,14 @@
 
     <div class="sdoc-list" data-document-capture-target="draftList" <%= "hidden" unless draft_docs.any? %>></div>
 
-    <div class="sdoc-empty-state" data-document-capture-target="draftEmptyState" <%= "hidden" if draft_docs.any? %>>
+	    <div class="sdoc-empty-state" data-document-capture-target="draftEmptyState" <%= "hidden" if draft_docs.any? %>>
       <div class="sdoc-empty-icon">
         <i class="ti ti-file-text" aria-hidden="true"></i>
-      </div>
-      <div class="sdoc-empty-title">No scanned documents yet</div>
-      <div class="sdoc-empty-sub">Capture a document as a PDF now and run OCR later when you need text extraction.</div>
-      <button
-        type="button"
+	      </div>
+	      <div class="sdoc-empty-title">No scanned documents yet</div>
+	      <div class="sdoc-empty-sub">Capture a document as a PDF to keep receipts, notes, and pages together.</div>
+	      <button
+	        type="button"
         class="btn btn-primary btn-sm"
         data-action="click->document-capture#open"
       ><i class="ti ti-scan" aria-hidden="true"></i> Scan your first document</button>

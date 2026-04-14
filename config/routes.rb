@@ -53,6 +53,10 @@ Rails.application.routes.draw do
   end
 
   resources :notepad_entries, path: "notepad" do
+    collection do
+      post :quick_create
+    end
+
     member do
       delete "photos/:attachment_id", action: :destroy_photo, as: :photo
     end

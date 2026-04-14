@@ -108,6 +108,50 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
     upload&.tempfile&.close!
   end
 
+  test "notepad quick create from index creates the daily page before edit loads" do
+    user = User.create!(
+      email: "notepad-quick-create@example.com",
+      password: "Password123!",
+      password_confirmation: "Password123!",
+      time_zone: "UTC",
+      locale: "en",
+      role: :user
+    )
+
+    sign_in_browser_user(user)
+
+    get notepad_entries_path(date: "2026-04-10")
+
+    assert_response :success
+    assert_select "form.button_to[action='#{quick_create_notepad_entries_path(date: "2026-04-10")}'] button.workspace-fab", count: 1
+
+    assert_difference -> { user.notepad_entries.count }, +1 do
+      post quick_create_notepad_entries_path(date: "2026-04-10"), params: {
+        authenticity_token: authenticity_token_for(quick_create_notepad_entries_path(date: "2026-04-10"))
+      }
+    end
+
+    entry = user.notepad_entries.order(:created_at).last
+
+    assert_redirected_to edit_notepad_entry_path(entry)
+    assert_equal Date.new(2026, 4, 10), entry.entry_date
+    assert_equal "Friday, Apr 10 - Page 1", entry.title
+    assert_equal "", entry.notes.to_s
+    follow_redirect!
+    assert_response :success
+
+    patch notepad_entry_path(entry), params: {
+      authenticity_token: authenticity_token_for(notepad_entry_path(entry)),
+      notepad_entry: {
+        title: entry.title,
+        notes: "",
+        entry_date: "2026-04-10"
+      }
+    }
+
+    assert_redirected_to notepad_entry_path(entry)
+  end
+
   test "user can create a notepad entry with only a to-do list item" do
     user = User.create!(
       email: "notepad-todo@example.com",
@@ -156,7 +200,8 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h5", text: "Scanned documents"
-    assert_select "[data-document-capture-target='scannerModeBadge']", text: "Web scan mode"
+    assert_no_match "Web scan mode", response.body
+    assert_no_match "Saved with this form", response.body
 
     assert_difference -> { user.notepad_entries.count }, +1 do
       post notepad_entries_path, params: {
@@ -201,7 +246,7 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h5", text: "Scanned documents"
-    assert_select "[data-document-capture-target='scannerModeBadge']", text: "Web scan mode"
+    assert_no_match "Web scan mode", response.body
     assert_select "form.button_to[action='#{notepad_entry_scanned_document_path(entry, 'missing')}']", count: 0
 
     assert_difference -> { entry.scanned_documents.count }, +1 do

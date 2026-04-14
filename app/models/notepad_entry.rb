@@ -8,7 +8,8 @@ class NotepadEntry < ApplicationRecord
     :pending_scanned_document_payloads,
     :pending_todo_item_contents,
     :pending_todo_list_enabled,
-    :pending_todo_list_hide_completed
+    :pending_todo_list_hide_completed,
+    :allow_blank_content
 
   belongs_to :user
   has_many_attached :photos
@@ -107,6 +108,7 @@ class NotepadEntry < ApplicationRecord
   end
 
   def content_present
+    return if allow_blank_content?
     return if plain_notes.present?
     return if photos.attached? || pending_photo_blobs.any?
     return if voice_notes_available? && (voice_notes.exists? || pending_voice_note_uploads.any?)
@@ -132,5 +134,9 @@ class NotepadEntry < ApplicationRecord
 
   def todo_lists_available?
     TodoList.schema_ready? && TodoItem.schema_ready?
+  end
+
+  def allow_blank_content?
+    ActiveModel::Type::Boolean.new.cast(@allow_blank_content) == true
   end
 end

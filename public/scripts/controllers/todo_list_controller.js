@@ -8,7 +8,6 @@ export default class extends Controller {
     "enabledField",
     "hideCompletedField",
     "items",
-    "filterButton",
     "filterEmpty",
     "deleteModal",
     "deleteForm",
@@ -17,9 +16,7 @@ export default class extends Controller {
 
   static values = {
     mode: { type: String, default: "persisted" },
-    draftFieldName: { type: String, default: "page[todo_item_contents][]" },
-    filter: { type: String, default: "all" },
-    storageKey: String
+    draftFieldName: { type: String, default: "page[todo_item_contents][]" }
   };
 
   connect() {
@@ -29,7 +26,6 @@ export default class extends Controller {
       ? this.deleteMessageTarget.textContent.trim()
       : "This item will be removed from the list.";
     this.boundResetDeleteConfirmation = this.resetDeleteConfirmation.bind(this);
-    this.restorePersistedFilter();
     this.renderDraftItems();
     this.renderPersistedState();
     this.resizeAllTextareas();
@@ -73,16 +69,6 @@ export default class extends Controller {
 
     this.pendingDraftItems.splice(index, 1);
     this.renderDraftItems();
-  }
-
-  setFilter(event) {
-    if (this.modeValue !== "persisted") {
-      return;
-    }
-
-    this.filterValue = event.params.filter || event.currentTarget.dataset.filter || "all";
-    this.persistFilter();
-    this.renderPersistedState();
   }
 
   async submit(event) {
@@ -343,102 +329,18 @@ export default class extends Controller {
       return;
     }
 
-    const filter = this.currentFilter();
     const items = this.hasItemsTarget
       ? Array.from(this.itemsTarget.querySelectorAll(".todo-list-item"))
       : [];
 
-    this.updateFilterButtons(filter);
-
-    let visibleCount = 0;
     items.forEach((item) => {
-      const completed = item.classList.contains("is-completed");
-      const show =
-        filter === "all" ||
-        (filter === "active" && !completed) ||
-        (filter === "done" && completed);
-
-      item.hidden = !show;
-      if (show) {
-        visibleCount += 1;
-      }
+      item.hidden = false;
     });
 
     if (this.hasFilterEmptyTarget) {
-      this.filterEmptyTarget.textContent = this.emptyStateMessage(filter, items.length);
-      this.filterEmptyTarget.hidden = visibleCount > 0;
+      this.filterEmptyTarget.textContent = "Add your first item to get started.";
+      this.filterEmptyTarget.hidden = items.length > 0;
     }
-  }
-
-  currentFilter() {
-    return ["all", "active", "done"].includes(this.filterValue) ? this.filterValue : "all";
-  }
-
-  updateFilterButtons(activeFilter) {
-    if (!this.hasFilterButtonTarget) {
-      return;
-    }
-
-    this.filterButtonTargets.forEach((button) => {
-      const isActive = (button.dataset.filter || "all") === activeFilter;
-      button.classList.toggle("is-active", isActive);
-      button.setAttribute("aria-pressed", isActive ? "true" : "false");
-    });
-  }
-
-  emptyStateMessage(filter, totalCount) {
-    if (totalCount === 0) {
-      return "Add your first item to get started.";
-    }
-
-    if (filter === "done") {
-      return "No completed items yet.";
-    }
-
-    if (filter === "active") {
-      return "All tasks are complete.";
-    }
-
-    return "No items match this view.";
-  }
-
-  restorePersistedFilter() {
-    if (this.modeValue !== "persisted") {
-      return;
-    }
-
-    try {
-      if (!this.hasStorageKeyValue || !window.sessionStorage) {
-        return;
-      }
-
-      const storedFilter = window.sessionStorage.getItem(this.storageCacheKey());
-      if (storedFilter) {
-        this.filterValue = storedFilter;
-      }
-    } catch (_error) {
-      // Ignore unavailable session storage.
-    }
-  }
-
-  persistFilter() {
-    if (this.modeValue !== "persisted") {
-      return;
-    }
-
-    try {
-      if (!this.hasStorageKeyValue || !window.sessionStorage) {
-        return;
-      }
-
-      window.sessionStorage.setItem(this.storageCacheKey(), this.currentFilter());
-    } catch (_error) {
-      // Ignore unavailable session storage.
-    }
-  }
-
-  storageCacheKey() {
-    return `todo-list-filter:${this.storageKeyValue}`;
   }
 
   resetDeleteConfirmation() {

@@ -15,13 +15,13 @@ import QuickCaptureController from "/scripts/controllers/quick_capture_controlle
 import FooterActionMenuController from "/scripts/controllers/footer_action_menu_controller.js";
 import VoiceRecorderController from "/scripts/controllers/voice_recorder_controller.js";
 import VoiceNotePlayerController from "/scripts/controllers/voice_note_player_controller.js";
-import VoiceNoteTranscriptController from "/scripts/controllers/voice_note_transcript_controller.js";
 import TodoListController from "/scripts/controllers/todo_list_controller.js";
 import ReminderFormController from "/scripts/controllers/reminder_form_controller.js";
 import DevicePushController from "/scripts/controllers/device_push_controller.js";
 import ReminderDismissConfirmController from "/scripts/controllers/reminder_dismiss_confirm_controller.js";
 import TaskManagerController from "/scripts/controllers/task_manager_controller.js";
 import DocumentCaptureController from "/scripts/controllers/document_capture_controller.js";
+import SectionShortcutsController from "/scripts/controllers/section_shortcuts_controller.js";
 import { enableNotificationsForInstall } from "/scripts/notification_preferences.js";
 
 const AUTO_DISMISS_DELAY_MS = 5000;
@@ -82,13 +82,13 @@ application.register("quick-capture", QuickCaptureController);
 application.register("footer-action-menu", FooterActionMenuController);
 application.register("voice-recorder", VoiceRecorderController);
 application.register("voice-note-player", VoiceNotePlayerController);
-application.register("voice-note-transcript", VoiceNoteTranscriptController);
 application.register("todo-list", TodoListController);
 application.register("reminder-form", ReminderFormController);
 application.register("device-push", DevicePushController);
 application.register("reminder-dismiss-confirm", ReminderDismissConfirmController);
 application.register("task-manager", TaskManagerController);
 application.register("document-capture", DocumentCaptureController);
+application.register("section-shortcuts", SectionShortcutsController);
 
 document.addEventListener("DOMContentLoaded", () => scheduleTimedMessages());
 document.addEventListener("turbo:load", () => scheduleTimedMessages());

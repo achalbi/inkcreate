@@ -140,5 +140,8 @@
     </section>
   <% end %>
 
-  <%= render "shared/workspace_fab", path: new_notepad_entry_path, title: "Create new page" %>
+  <%= render "shared/workspace_fab",
+    path: quick_create_notepad_entries_path(date: @selected_entry_date&.iso8601),
+    method: :post,
+    title: "Create new page" %>
 </div>

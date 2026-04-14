@@ -219,7 +219,7 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_equal "delete", form.at_xpath(".//input[@name='_method']")&.[]("value")
   end
 
-  test "notepad edit page shows transcript actions for existing voice notes" do
+  test "notepad edit page hides transcript actions for existing voice notes" do
     sign_in!
 
     entry = @user.notepad_entries.create!(
@@ -245,18 +245,17 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     document = Nokogiri::HTML.parse(response.body)
-    card = document.at_xpath("//*[@data-voice-note-transcript-submit-url-value='#{submit_transcript_notepad_entry_voice_note_path(entry, voice_note)}']")
-    textarea = card&.at_xpath(".//textarea[@data-voice-note-transcript-target='text']")
+    card = document.at_css("article.voice-note-list-card")
 
-    assert card.present?, "Expected transcript controls for the notepad voice note"
-    assert card.at_xpath(".//button[@data-action='voice-note-transcript#extract']").present?, "Expected extract speech button"
-    assert card.at_xpath(".//button[@data-action='voice-note-transcript#toggle']").present?, "Expected view text button"
-    assert card.at_xpath(".//button[@data-action='voice-note-transcript#copy']").present?, "Expected copy transcript button"
-    assert card.at_xpath(".//button[@data-action='voice-note-transcript#share']").present?, "Expected share transcript button"
-    assert_equal "Follow up with pricing details tomorrow morning.", textarea&.content&.strip
+    assert card.present?, "Expected a rendered notepad voice note card"
+    assert card.at_xpath(".//a[@download='note.webm']").present?, "Expected the download action to remain available"
+    assert card.at_xpath(".//button[@data-bs-target='##{ActionView::RecordIdentifier.dom_id(voice_note, :delete_confirm_modal)}']").present?, "Expected the delete action to remain available"
+    assert_nil card["data-controller"], "Voice note card should no longer mount transcript controls"
+    assert_nil card.at_xpath(".//*[contains(@class, 'voice-note-transcript')]"), "Transcript UI should not render"
+    refute_includes response.body, submit_transcript_notepad_entry_voice_note_path(entry, voice_note)
   end
 
-  test "page edit page shows transcript actions for existing voice notes" do
+  test "page edit page hides transcript actions for existing voice notes" do
     sign_in!
 
     voice_note = @page.voice_notes.new(
@@ -277,15 +276,97 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     document = Nokogiri::HTML.parse(response.body)
-    card = document.at_xpath("//*[@data-voice-note-transcript-submit-url-value='#{submit_transcript_notebook_chapter_page_voice_note_path(@notebook, @chapter, @page, voice_note)}']")
-    textarea = card&.at_xpath(".//textarea[@data-voice-note-transcript-target='text']")
+    card = document.at_css("article.voice-note-list-card")
 
-    assert card.present?, "Expected transcript controls for the page voice note"
-    assert card.at_xpath(".//button[@data-action='voice-note-transcript#extract']").present?, "Expected extract speech button"
-    assert card.at_xpath(".//button[@data-action='voice-note-transcript#toggle']").present?, "Expected view text button"
-    assert card.at_xpath(".//button[@data-action='voice-note-transcript#copy']").present?, "Expected copy transcript button"
-    assert card.at_xpath(".//button[@data-action='voice-note-transcript#share']").present?, "Expected share transcript button"
-    assert_equal "Key decision captured and action owner assigned.", textarea&.content&.strip
+    assert card.present?, "Expected a rendered page voice note card"
+    assert card.at_xpath(".//a[@download='page-note.webm']").present?, "Expected the download action to remain available"
+    assert card.at_xpath(".//button[@data-bs-target='##{ActionView::RecordIdentifier.dom_id(voice_note, :delete_confirm_modal)}']").present?, "Expected the delete action to remain available"
+    assert_nil card["data-controller"], "Voice note card should no longer mount transcript controls"
+    assert_nil card.at_xpath(".//*[contains(@class, 'voice-note-transcript')]"), "Transcript UI should not render"
+    refute_includes response.body, submit_transcript_notebook_chapter_page_voice_note_path(@notebook, @chapter, @page, voice_note)
+  end
+
+  test "notepad show page keeps scanned document cards focused on pdf actions" do
+    sign_in!
+
+    entry = @user.notepad_entries.create!(
+      title: "Scanned document page",
+      notes: "Contains a saved scan.",
+      entry_date: Date.current
+    )
+    scanned_document = entry.scanned_documents.new(
+      user: @user,
+      title: "Receipt",
+      extracted_text: "Total due 42.00",
+      ocr_engine: "tesseract",
+      ocr_language: "eng",
+      ocr_confidence: 88
+    )
+    scanned_document.enhanced_image.attach(
+      io: StringIO.new("image"),
+      filename: "receipt.jpg",
+      content_type: "image/jpeg"
+    )
+    scanned_document.document_pdf.attach(
+      io: StringIO.new("%PDF-1.4 receipt"),
+      filename: "receipt.pdf",
+      content_type: "application/pdf"
+    )
+    scanned_document.save!
+
+    get notepad_entry_path(entry)
+
+    assert_response :success
+    document = Nokogiri::HTML.parse(response.body)
+    card = document.at_css("##{ActionView::RecordIdentifier.dom_id(scanned_document)}")
+
+    assert card.present?, "Expected a rendered scanned document card"
+    assert_equal "PDF ready · #{scanned_document.created_at.strftime("%-d %b")}", card.at_css(".sdoc-engine-label")&.text&.strip
+    assert_equal "Open the PDF to review this scanned document.", card.at_css(".sdoc-excerpt")&.text&.strip
+    assert_nil card.at_xpath(".//form[contains(@action, '#{extract_text_notepad_entry_scanned_document_path(entry, scanned_document)}')]"), "OCR action should not render"
+    assert_nil card.at_xpath(".//*[@data-action='click->document-capture#copyText']"), "Copy extracted text action should not render"
+    assert_nil card.at_xpath(".//*[@data-action='click->document-capture#viewFull']"), "View extracted text action should not render"
+    assert_nil card.at_css(".sdoc-conf-badge"), "OCR confidence badge should not render"
+    refute_includes response.body, "Total due 42.00"
+  end
+
+  test "page show page keeps scanned document cards focused on pdf actions" do
+    sign_in!
+
+    scanned_document = @page.scanned_documents.new(
+      user: @user,
+      title: "Agenda",
+      extracted_text: "Action items and owners.",
+      ocr_engine: "tesseract",
+      ocr_language: "eng",
+      ocr_confidence: 91
+    )
+    scanned_document.enhanced_image.attach(
+      io: StringIO.new("image"),
+      filename: "agenda.jpg",
+      content_type: "image/jpeg"
+    )
+    scanned_document.document_pdf.attach(
+      io: StringIO.new("%PDF-1.4 agenda"),
+      filename: "agenda.pdf",
+      content_type: "application/pdf"
+    )
+    scanned_document.save!
+
+    get notebook_chapter_page_path(@notebook, @chapter, @page)
+
+    assert_response :success
+    document = Nokogiri::HTML.parse(response.body)
+    card = document.at_css("##{ActionView::RecordIdentifier.dom_id(scanned_document)}")
+
+    assert card.present?, "Expected a rendered scanned document card"
+    assert_equal "PDF ready · #{scanned_document.created_at.strftime("%-d %b")}", card.at_css(".sdoc-engine-label")&.text&.strip
+    assert_equal "Open the PDF to review this scanned document.", card.at_css(".sdoc-excerpt")&.text&.strip
+    assert_nil card.at_xpath(".//form[contains(@action, '#{extract_text_notebook_chapter_page_scanned_document_path(@notebook, @chapter, @page, scanned_document)}')]"), "OCR action should not render"
+    assert_nil card.at_xpath(".//*[@data-action='click->document-capture#copyText']"), "Copy extracted text action should not render"
+    assert_nil card.at_xpath(".//*[@data-action='click->document-capture#viewFull']"), "View extracted text action should not render"
+    assert_nil card.at_css(".sdoc-conf-badge"), "OCR confidence badge should not render"
+    refute_includes response.body, "Action items and owners."
   end
 
   test "page edit page renders the live to-do list section for persisted pages" do
@@ -299,9 +380,9 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "form[action='#{notebook_chapter_page_todo_items_path(@notebook, @chapter, @page)}'] textarea[name='todo_item[content]']", count: 1
-    assert_select ".todo-list-filters__button", text: "All"
-    assert_select ".todo-list-filters__button", text: "Active"
-    assert_select ".todo-list-filters__button", text: "Done"
+    assert_select "form[action='#{notebook_chapter_page_todo_items_path(@notebook, @chapter, @page)}'] .todo-list-composer__badge .ti-checkbox", count: 1
+    assert_select "form[action='#{notebook_chapter_page_todo_items_path(@notebook, @chapter, @page)}'] .todo-list-composer__submit", text: /Add/
+    assert_select ".todo-list-filters__button", count: 0
     assert_select ".todo-list-item__input[title='Pack charger']", count: 1
     assert_select ".todo-list-item__input[title='Review notes']", count: 1
     assert_select ".todo-list-section__hint", text: /Drag to reorder/
@@ -316,10 +397,13 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "textarea[data-todo-list-target='draftInput']", count: 1
+    assert_select ".todo-list-composer__badge .ti-checkbox", count: 1
+    assert_select ".todo-list-composer__submit", text: /Add/
     assert_select "input[name='page[todo_list_enabled]'][value='false']", count: 1
     assert_no_match "Enable list", response.body
     assert_no_match "Enable to-do list", response.body
     assert_no_match "Enable the checklist and queue items before saving this page.", response.body
+    assert_no_match "Saved with this form", response.body
     assert_match "Add checklist items before saving.", response.body
   end
 
@@ -339,9 +423,9 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "form[action='#{notepad_entry_todo_items_path(entry)}'] textarea[name='todo_item[content]']", count: 1
-    assert_select ".todo-list-filters__button", text: "All"
-    assert_select ".todo-list-filters__button", text: "Active"
-    assert_select ".todo-list-filters__button", text: "Done"
+    assert_select "form[action='#{notepad_entry_todo_items_path(entry)}'] .todo-list-composer__badge .ti-checkbox", count: 1
+    assert_select "form[action='#{notepad_entry_todo_items_path(entry)}'] .todo-list-composer__submit", text: /Add/
+    assert_select ".todo-list-filters__button", count: 0
     assert_select ".todo-list-item__input[title='Pack charger']", count: 1
     assert_select ".todo-list-item__input[title='Review notes']", count: 1
     assert_select ".todo-list-section__hint", text: /Drag to reorder/
@@ -357,10 +441,13 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "textarea[data-todo-list-target='draftInput']", count: 1
+    assert_select ".todo-list-composer__badge .ti-checkbox", count: 1
+    assert_select ".todo-list-composer__submit", text: /Add/
     assert_select "input[name='notepad_entry[todo_list_enabled]'][value='false']", count: 1
     assert_no_match "Enable list", response.body
     assert_no_match "Enable to-do list", response.body
     assert_no_match "Enable the checklist and queue items before saving this page.", response.body
+    assert_no_match "Saved with this form", response.body
     assert_match "Add checklist items before saving.", response.body
   end
 
@@ -455,11 +542,129 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_no_match "Manage photos", response.body
+    assert_no_match "Web scan mode", response.body
+    assert_no_match "Native scanner available", response.body
     assert_select ".detail-photo-gallery-actions-form", count: 1
     assert_select ".ibox-title .ibox-tools button.photo-section-camera-button", count: 1
     assert_select ".ibox-title .ibox-tools button.photo-section-upload-button", count: 1
     assert_select ".ibox-title .ibox-tools button.photo-section-info-button", count: 1
+    assert_select ".ibox-title .ibox-tools .notebook-overview-delete-button", count: 0
+    assert_select "nav.detail-section-shortcuts[data-controller='section-shortcuts']", count: 1
+    assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(entry, :overview_section)}']", count: 1
+    assert_select "nav.detail-section-shortcuts a.is-active[aria-current='location'][href='##{ActionView::RecordIdentifier.dom_id(entry, :overview_section)}']", count: 1
+    assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(entry, :photos_section)}']", count: 1
+    assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(entry, :voice_notes_section)}']", count: 1
+    assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(entry, :todo_list_section)}']", count: 1
+    assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(entry, :scanned_documents_section)}']", count: 1
     assert_select "a[data-pswp-remove-path='#{photo_notepad_entry_path(entry, entry_attachment)}']", count: 1
+  end
+
+  test "notepad show page renders a quick edit modal for title and notes" do
+    sign_in!
+
+    entry = @user.notepad_entries.create!(
+      title: "Quick edit page",
+      notes: "Original notes",
+      entry_date: Date.current
+    )
+
+    get notepad_entry_path(entry)
+
+    assert_response :success
+    modal_id = ActionView::RecordIdentifier.dom_id(entry, :quick_edit_modal)
+    document = Nokogiri::HTML.parse(response.body)
+    button = document.at_xpath("//button[@data-bs-toggle='modal' and @data-bs-target='##{modal_id}']")
+    modal = document.at_xpath("//*[@id='#{modal_id}']")
+    form = modal&.at_xpath(".//form[@method='post']")
+    title_input = modal&.at_xpath(".//input[@name='notepad_entry[title]']")
+    notes_input = modal&.at_xpath(".//input[@name='notepad_entry[notes]']")
+    trix_editor = modal&.at_xpath(".//trix-editor[@input='#{notes_input&.[]('id')}']")
+
+    assert button.present?, "Expected quick edit trigger button on the notepad show page"
+    assert modal.present?, "Expected quick edit modal to be rendered on the notepad show page"
+    assert form.present?, "Expected quick edit modal form to be rendered"
+    assert_equal notepad_entry_path(entry), URI.parse(form["action"]).path
+    assert_equal "patch", form.at_xpath(".//input[@name='_method']")&.[]("value")
+    assert form.at_xpath(".//input[@name='quick_edit_modal'][@value='1']").present?, "Expected quick edit modal marker"
+    assert title_input.present?, "Expected title field in quick edit modal"
+    assert notes_input.present?, "Expected notes field in quick edit modal"
+    assert trix_editor.present?, "Expected rich-text editor in quick edit modal"
+    assert_nil modal.at_xpath(".//input[@name='notepad_entry[entry_date]']"), "Quick edit modal should not expose entry date"
+  end
+
+  test "notepad quick edit updates title and notes without changing other content" do
+    sign_in!
+
+    entry = @user.notepad_entries.create!(
+      title: "Original title",
+      notes: "Original notes",
+      entry_date: Date.current
+    )
+    todo_list = entry.create_todo_list!(enabled: true, hide_completed: false)
+    todo_list.todo_items.create!(content: "Follow up", position: 1)
+
+    get notepad_entry_path(entry)
+
+    patch notepad_entry_path(entry), params: {
+      authenticity_token: authenticity_token_for(notepad_entry_path(entry)),
+      quick_edit_modal: "1",
+      notepad_entry: {
+        title: "Updated title",
+        notes: "Updated notes"
+      }
+    }
+
+    assert_redirected_to notepad_entry_path(entry)
+
+    entry.reload
+    assert_equal "Updated title", entry.title
+    assert_equal "Updated notes", entry.plain_notes
+    assert_equal Date.current, entry.entry_date
+    assert entry.todo_list.enabled?
+    assert_equal ["Follow up"], entry.todo_list.todo_items.order(:position).pluck(:content)
+  end
+
+  test "notepad quick edit keeps the modal open on validation errors" do
+    sign_in!
+
+    entry = @user.notepad_entries.create!(
+      title: "Original title",
+      notes: "Original notes",
+      entry_date: Date.current
+    )
+
+    get notepad_entry_path(entry)
+
+    patch notepad_entry_path(entry), params: {
+      authenticity_token: authenticity_token_for(notepad_entry_path(entry)),
+      quick_edit_modal: "1",
+      notepad_entry: {
+        title: "",
+        notes: ""
+      }
+    }
+
+    assert_response :unprocessable_entity
+    assert_select ".notepad-entry-quick-edit-modal.show", count: 1
+    assert_match "Please fix the following:", response.body
+    assert_match "Add notes, a photo, a scanned document, a voice note, or a to-do item.", response.body
+  end
+
+  test "notepad edit page keeps delete control in the page details action bar" do
+    sign_in!
+
+    entry = @user.notepad_entries.create!(
+      title: "Editable page",
+      notes: "Needs save and delete actions.",
+      entry_date: Date.current
+    )
+
+    get edit_notepad_entry_path(entry)
+
+    assert_response :success
+    assert_select ".ibox-title .ibox-tools button.page-details-save-button", count: 1
+    assert_select ".ibox-title .ibox-tools a.notebook-overview-delete-button[href='#{notepad_entry_path(entry)}'][data-turbo-method='delete']", count: 1
+    assert_select ".workspace-form-actions .notebook-overview-delete-button", count: 0
   end
 
   test "notebook and page views still render when page enhancement tables are unavailable" do

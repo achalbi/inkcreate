@@ -11,7 +11,7 @@ export default class extends Controller {
     "enhanceCanvas", "filterStrip", "brightness", "contrast", "brightnessVal", "contrastVal",
     "reviewCanvas", "reviewStats", "reviewTitle", "reviewTags", "saveBtn",
     "viewer", "viewerTitle", "viewerText",
-    "count", "draftPayloadField", "draftList", "draftEmptyState", "scannerModeBadge"
+    "count", "draftPayloadField", "draftList", "draftEmptyState"
   ];
 
   static values = {
@@ -24,7 +24,6 @@ export default class extends Controller {
   connect() {
     this.currentScreen = 0;
     this.autoCapture = true;
-    this.nativeScannerAvailable = this._shouldUseNativeDocumentScanner();
     this.capturedImage = null;
     this.croppedCanvas = null;
     this.enhancedCanvas = null;
@@ -42,7 +41,6 @@ export default class extends Controller {
     this._setupCornerDrag();
     this._syncFlashButton();
     this._renderDraftDocuments();
-    this._renderScannerModeBadge();
   }
 
   disconnect() {
@@ -138,7 +136,7 @@ export default class extends Controller {
             ${doc.image_data
               ? `<img src="${this._escapeAttribute(doc.image_data)}" class="sdoc-thumb" alt="${this._escapeAttribute(doc.title || "Untitled scan")}">`
               : `<div class="sdoc-thumb sdoc-thumb--placeholder"><i class="ti ti-file-text" aria-hidden="true"></i></div>`}
-            <p class="sdoc-excerpt">OCR will be available after this scan is saved.</p>
+            <p class="sdoc-excerpt">Save this scan to keep the PDF with the rest of this page.</p>
           </div>
 
           <div class="sdoc-actions">
@@ -187,21 +185,6 @@ export default class extends Controller {
       second: "2-digit",
       hour12: false
     })}`;
-  }
-
-  _renderScannerModeBadge() {
-    if (!this.hasScannerModeBadgeTarget) return;
-
-    const nativeAvailable = Boolean(this.nativeScannerAvailable);
-    const badge = this.scannerModeBadgeTarget;
-
-    badge.textContent = nativeAvailable ? "Native scanner available" : "Web scan mode";
-    badge.classList.remove("label-default", "label-success");
-    badge.classList.add("label", nativeAvailable ? "label-success" : "label-default");
-    badge.title = nativeAvailable
-      ? "Google ML Kit document scanner is available in this native Android app."
-      : "Browser capture flow is active in this environment.";
-    badge.setAttribute("aria-label", badge.textContent);
   }
 
   _nextAutoScanTitle(baseTitle = this._defaultScanTitle()) {
@@ -1161,8 +1144,6 @@ export default class extends Controller {
 
     try {
       const result = await this._runNativeDocumentScanner();
-      this.nativeScannerAvailable = true;
-      this._renderScannerModeBadge();
       if (this._isNativeDocumentScanCancelled(result)) return true;
 
       const payload = this._buildNativeScannedDocumentPayload(result);
@@ -1174,9 +1155,6 @@ export default class extends Controller {
       return true;
     } catch (error) {
       if (this._isNativeDocumentScanCancelled(error)) return true;
-
-      this.nativeScannerAvailable = false;
-      this._renderScannerModeBadge();
       console.warn("Native document scanner failed, falling back to browser capture.", error);
       return false;
     }

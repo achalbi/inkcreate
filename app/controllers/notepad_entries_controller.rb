@@ -23,6 +23,18 @@ class NotepadEntriesController < BrowserController
     @notepad_entry.title = @notepad_entry.display_title
   end
 
+  def quick_create
+    entry_date = selected_entry_date || Time.zone.today
+    @notepad_entry = current_user.notepad_entries.new(entry_date: entry_date, title: "")
+    @notepad_entry.allow_blank_content = true
+
+    if @notepad_entry.save
+      redirect_to edit_notepad_entry_path(@notepad_entry), notice: "Daily page created."
+    else
+      redirect_to notepad_entries_path(date: entry_date.iso8601, view: index_view_mode), alert: @notepad_entry.errors.full_messages.to_sentence
+    end
+  end
+
   def create
     @notepad_entry = current_user.notepad_entries.new(notepad_entry_attributes)
     preserve_pending_photos(@notepad_entry, notepad_entry_params)
@@ -44,8 +56,11 @@ class NotepadEntriesController < BrowserController
   def edit; end
 
   def update
+    return quick_update_notepad_entry if quick_edit_request?
+
     preserve_pending_photos(@notepad_entry, notepad_entry_params)
     assign_pending_content_from_params(@notepad_entry, notepad_entry_params, raw_notepad_entry_attributes)
+    @notepad_entry.allow_blank_content = allow_blank_content_for_update?(notes_value: notepad_entry_attributes[:notes])
 
     if moving_to_notebook_chapter?
       @notepad_entry.assign_attributes(notepad_entry_attributes)
@@ -232,6 +247,21 @@ class NotepadEntriesController < BrowserController
     Drive::ScheduleRecordExport.new(record: entry).call
   end
 
+  def quick_edit_request?
+    params[:quick_edit_modal].to_s == "1"
+  end
+
+  def quick_update_notepad_entry
+    @notepad_entry.allow_blank_content = allow_blank_content_for_update?(notes_value: notepad_entry_params[:notes])
+
+    if @notepad_entry.update(notepad_entry_params.slice(:title, :notes))
+      redirect_to notepad_entry_path(@notepad_entry), notice: "Notepad entry updated."
+    else
+      @show_quick_edit_modal = true
+      render :show, status: :unprocessable_entity
+    end
+  end
+
   def moving_to_notebook_chapter?
     params[:intent].to_s == "move_to_notebook"
   end
@@ -387,6 +417,23 @@ class NotepadEntriesController < BrowserController
     return if chapter.blank?
 
     "#{chapter.notebook.title} > #{chapter.title}"
+  end
+
+  def allow_blank_content_for_update?(notes_value:)
+    blank_notepad_entry_shell? &&
+      notes_value.to_s.blank? &&
+      @notepad_entry.retained_photo_signed_ids.empty? &&
+      @notepad_entry.pending_voice_note_uploads.empty? &&
+      @notepad_entry.pending_scanned_document_payloads.empty? &&
+      @notepad_entry.pending_todo_item_contents.empty?
+  end
+
+  def blank_notepad_entry_shell?
+    @notepad_entry.notes.to_s.blank? &&
+      !@notepad_entry.photos.attached? &&
+      !@notepad_entry.voice_notes.exists? &&
+      !@notepad_entry.scanned_documents.exists? &&
+      !@notepad_entry.todo_items.exists?
   end
 
   def create_redirect_path(entry)

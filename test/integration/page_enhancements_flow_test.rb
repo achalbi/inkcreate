@@ -147,7 +147,8 @@ class PageEnhancementsFlowTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h5", text: "Scanned documents"
-    assert_select "[data-document-capture-target='scannerModeBadge']", text: "Web scan mode"
+    assert_no_match "Web scan mode", response.body
+    assert_no_match "Saved with this form", response.body
 
     assert_difference -> { chapter.pages.count }, +1 do
       post notebook_chapter_pages_path(notebook, chapter), params: {

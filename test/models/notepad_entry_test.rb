@@ -34,6 +34,19 @@ class NotepadEntryTest < ActiveSupport::TestCase
     assert_includes entry.errors.full_messages, "Add notes, a photo, a scanned document, a voice note, or a to-do item."
   end
 
+  test "allows a blank daily page shell when explicitly requested" do
+    user = build_user(email: "blank-shell@example.com")
+
+    entry = user.notepad_entries.new(
+      entry_date: Date.new(2026, 4, 5),
+      title: ""
+    )
+    entry.allow_blank_content = true
+
+    assert entry.valid?
+    assert_equal "Sunday, Apr 5 - Page 1", entry.title
+  end
+
   test "generates a title from notes when blank" do
     user = build_user(email: "generated-title@example.com")
 

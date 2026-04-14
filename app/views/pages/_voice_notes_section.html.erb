@@ -8,7 +8,8 @@
 %>
 
 <section
-  class="ibox float-e-margins"
+  id="<%= dom_id(page, :voice_notes_section) %>"
+  class="ibox float-e-margins detail-section-anchor"
   data-controller="voice-recorder"
   data-voice-recorder-auto-submit-on-save-value="false"
   data-voice-recorder-mode-value="<%= recorder_mode %>"
@@ -30,8 +31,6 @@
       </button>
       <% if page.persisted? %>
         <span class="label label-default">Saved to this page</span>
-      <% else %>
-        <span class="label label-default">Saved with this form</span>
       <% end %>
       <%= render "shared/ibox_toggle_button", target_id: content_id %>
     </div>
@@ -51,8 +50,7 @@
           <% voice_notes.each do |voice_note| %>
             <%= render "shared/voice_note_list_item",
               voice_note: voice_note,
-              delete_path: notebook_chapter_page_voice_note_path(notebook, chapter, page, voice_note),
-              submit_transcript_path: submit_transcript_notebook_chapter_page_voice_note_path(notebook, chapter, page, voice_note) %>
+              delete_path: notebook_chapter_page_voice_note_path(notebook, chapter, page, voice_note) %>
           <% end %>
         </div>
       </div>

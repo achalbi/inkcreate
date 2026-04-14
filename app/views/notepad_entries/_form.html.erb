@@ -41,6 +41,15 @@
             >
               <i class="ti ti-device-floppy" aria-hidden="true"></i>
             </button>
+            <% if persisted_entry %>
+              <%= link_to notepad_entry_path(notepad_entry),
+                class: "btn btn-sm btn-icon notebook-overview-delete-button",
+                title: "Delete page",
+                aria: { label: "Delete page" },
+                data: { turbo_method: :delete, turbo_confirm: "Delete this page?" } do %>
+                <i class="ti ti-trash" aria-hidden="true"></i>
+              <% end %>
+            <% end %>
             <%= render "shared/ibox_toggle_button", target_id: "notepad-entry-form-content" %>
           </div>
         </div>

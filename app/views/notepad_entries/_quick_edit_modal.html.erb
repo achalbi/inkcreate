@@ -1,0 +1,72 @@
+<%
+  modal_id = dom_id(notepad_entry, :quick_edit_modal)
+  label_id = "#{modal_id}_label"
+  notes_input_id = dom_id(notepad_entry, :quick_edit_notes_input)
+  open = local_assigns.fetch(:open, false)
+  modal_classes = ["modal", "fade", "notepad-entry-quick-edit-modal"]
+  modal_classes << "show" if open
+%>
+
+<div
+  class="<%= modal_classes.join(" ") %>"
+  id="<%= modal_id %>"
+  tabindex="-1"
+  aria-labelledby="<%= label_id %>"
+  aria-hidden="<%= open ? "false" : "true" %>"
+  <% if open %>style="display: block;"<% end %>
+>
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <%= form_with model: notepad_entry, url: notepad_entry_path(notepad_entry), method: :patch do |form| %>
+        <%= hidden_field_tag :quick_edit_modal, "1" %>
+
+        <div class="modal-header">
+          <div>
+            <div class="notepad-entry-quick-edit-modal__eyebrow">Quick edit</div>
+            <h5 class="modal-title" id="<%= label_id %>">Edit page details</h5>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body notepad-entry-quick-edit-modal__body">
+          <% if notepad_entry.errors.any? %>
+            <% error_body = capture do %>
+              <ul class="m-b-none m-t-sm">
+                <% notepad_entry.errors.full_messages.each do |message| %>
+                  <li><%= message %></li>
+                <% end %>
+              </ul>
+            <% end %>
+            <%= render "shared/inline_alert", type: :danger, title: "Please fix the following:", body_html: error_body, extra_classes: "m-b-none" %>
+          <% end %>
+
+          <div class="form-group">
+            <%= form.label :title, class: "control-label" %>
+            <%= form.text_field :title, class: "form-control", placeholder: "Daily review, meeting recap, ideas, or notes" %>
+          </div>
+
+          <div class="form-group m-b-none">
+            <%= form.label :notes, class: "control-label" %>
+            <%= form.hidden_field :notes, id: notes_input_id %>
+            <trix-editor
+              input="<%= notes_input_id %>"
+              class="workspace-rich-text-editor notepad-entry-notes-field"
+              placeholder="Write the day's notes, observations, reminders, or quick captures."
+              data-controller="rich-text"
+              data-action="trix-file-accept->rich-text#preventFileAccept"
+            ></trix-editor>
+          </div>
+        </div>
+
+        <div class="modal-footer notepad-entry-quick-edit-modal__footer">
+          <button type="button" class="btn btn-white btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <%= form.submit "Save changes", class: "btn btn-primary btn-sm" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<% if open %>
+  <div class="modal-backdrop fade show"></div>
+<% end %>

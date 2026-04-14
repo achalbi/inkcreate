@@ -3,31 +3,43 @@
   voice_notes_available = VoiceNote.notepad_entries_supported?
   voice_note_count = voice_notes_available ? @notepad_entry.voice_notes.size : 0
   scanned_document_count = @notepad_entry.scanned_documents.size
+  quick_edit_modal_id = dom_id(@notepad_entry, :quick_edit_modal)
+  overview_section_id = dom_id(@notepad_entry, :overview_section)
+  photos_section_id = dom_id(@notepad_entry, :photos_section)
+  voice_notes_section_id = dom_id(@notepad_entry, :voice_notes_section)
+  todo_list_section_id = dom_id(@notepad_entry, :todo_list_section)
+  scanned_documents_section_id = dom_id(@notepad_entry, :scanned_documents_section)
+  section_shortcuts = [
+    { label: "Overview", icon: "ti-file-text", target: overview_section_id },
+    { label: "Photos", icon: "ti-photo", target: photos_section_id }
+  ]
+  section_shortcuts << { label: "Voice notes", icon: "ti-microphone", target: voice_notes_section_id } if voice_notes_available
+  section_shortcuts << { label: "To-do list", icon: "ti-checkbox", target: todo_list_section_id } if todo_lists_available
+  section_shortcuts << { label: "Scanned documents", icon: "ti-scan", target: scanned_documents_section_id }
   todo_progress_label = if todo_lists_available && @notepad_entry.todo_list&.enabled?
     "#{@notepad_entry.todo_list.completed_count}/#{@notepad_entry.todo_list.total_count} to-dos"
   end
 %>
 
 <div class="wrapper wrapper-content animated fadeInRight">
-  <%= render "shared/workspace_breadcrumbs",
-    items: [["Home", dashboard_path], ["Notepad", notepad_entries_path], @notepad_entry.display_title] %>
+  <!-- <%= render "shared/workspace_breadcrumbs",
+    items: [["Home", dashboard_path], ["Notepad", notepad_entries_path], @notepad_entry.display_title] %> --> 
 
-  <section class="ibox float-e-margins">
+  <section id="<%= overview_section_id %>" class="ibox float-e-margins detail-section-anchor">
     <div class="ibox-title">
       <h5>Page overview</h5>
       <div class="ibox-tools">
         <span class="label label-info">Daily page</span>
-        <%= link_to edit_notepad_entry_path(@notepad_entry), class: "btn btn-sm btn-icon notebook-overview-edit-button", title: "Edit page", aria: { label: "Edit page" } do %>
+        <button
+          type="button"
+          class="btn btn-sm btn-icon notebook-overview-edit-button"
+          title="Edit page"
+          aria-label="Edit page"
+          data-bs-toggle="modal"
+          data-bs-target="#<%= quick_edit_modal_id %>"
+        >
           <i class="ti ti-edit" aria-hidden="true"></i>
-        <% end %>
-        <%= button_to notepad_entry_path(@notepad_entry),
-          method: :delete,
-          form: { class: "notebook-overview-delete-form", onsubmit: "return confirm('Delete this page?');" },
-          class: "btn btn-sm btn-icon notebook-overview-delete-button",
-          title: "Delete page",
-          aria: { label: "Delete page" } do %>
-          <i class="ti ti-trash" aria-hidden="true"></i>
-        <% end %>
+        </button>
         <%= render "shared/ibox_toggle_button", target_id: dom_id(@notepad_entry, :overview_content) %>
       </div>
     </div>
@@ -56,28 +68,26 @@
     </div>
   </section>
 
-  <section class="row notes-gallery-row">
-    <% if voice_notes_available %>
-      <div class="col-12">
-        <%= render "notepad_entries/voice_notes_section", notepad_entry: @notepad_entry %>
-      </div>
-    <% end %>
-
-    <% if todo_lists_available %>
-      <div class="col-12">
-        <%= render "notepad_entries/todo_list_section", notepad_entry: @notepad_entry %>
-      </div>
-    <% else %>
-      <div class="col-12">
-        <%= render "pages/todo_list_unavailable_section" %>
-      </div>
-    <% end %>
-
-    <div class="col-12">
-      <%= render "notepad_entries/scanned_documents_section", notepad_entry: @notepad_entry %>
+  <nav class="detail-section-shortcuts" aria-label="Jump to daily page sections" data-controller="section-shortcuts">
+    <div class="detail-section-shortcuts__rail">
+      <% section_shortcuts.each_with_index do |shortcut, index| %>
+        <a
+          href="#<%= shortcut[:target] %>"
+          class="detail-section-shortcut<%= " is-active" if index.zero? %>"
+          title="<%= shortcut[:label] %>"
+          aria-label="Jump to <%= shortcut[:label] %>"
+          <% if index.zero? %>aria-current="location"<% end %>
+          data-section-shortcuts-target="link"
+          data-action="click->section-shortcuts#markActive"
+        >
+          <i class="ti <%= shortcut[:icon] %>" aria-hidden="true"></i>
+        </a>
+      <% end %>
     </div>
+  </nav>
 
-    <div class="col-12">
+  <section class="row notes-gallery-row">
+    <div id="<%= photos_section_id %>" class="col-12 detail-section-anchor">
       <div class="ibox">
         <%= form_with model: @notepad_entry,
           data: { photo_capture_auto_save: true, controller: "photo-capture" },
@@ -131,5 +141,27 @@
         <% end %>
       </div>
     </div>
+
+    <% if voice_notes_available %>
+      <div class="col-12">
+        <%= render "notepad_entries/voice_notes_section", notepad_entry: @notepad_entry %>
+      </div>
+    <% end %>
+
+    <% if todo_lists_available %>
+      <div class="col-12">
+        <%= render "notepad_entries/todo_list_section", notepad_entry: @notepad_entry %>
+      </div>
+    <% else %>
+      <div class="col-12">
+        <%= render "pages/todo_list_unavailable_section" %>
+      </div>
+    <% end %>
+
+    <div class="col-12">
+      <%= render "notepad_entries/scanned_documents_section", notepad_entry: @notepad_entry %>
+    </div>
   </section>
 </div>
+
+<%= render "notepad_entries/quick_edit_modal", notepad_entry: @notepad_entry, open: @show_quick_edit_modal == true %>

@@ -13,7 +13,8 @@
 %>
 
 <section
-  class="ibox"
+  id="<%= dom_id(notepad_entry, :voice_notes_section) %>"
+  class="ibox detail-section-anchor"
   data-controller="voice-recorder"
   data-voice-recorder-auto-submit-on-save-value="<%= auto_submit_on_save %>"
   data-voice-recorder-mode-value="<%= recorder_mode %>"
@@ -33,9 +34,6 @@
         <i class="ti ti-microphone" aria-hidden="true"></i>
         <span>Record</span>
       </button>
-      <% unless notepad_entry.persisted? %>
-        <span class="label label-default">Saved with this form</span>
-      <% end %>
       <%= render "shared/ibox_toggle_button", target_id: content_id %>
     </div>
   </div>
@@ -54,8 +52,7 @@
           <% voice_notes.each do |voice_note| %>
             <%= render "shared/voice_note_list_item",
               voice_note: voice_note,
-              delete_path: notepad_entry_voice_note_path(notepad_entry, voice_note),
-              submit_transcript_path: submit_transcript_notepad_entry_voice_note_path(notepad_entry, voice_note) %>
+              delete_path: notepad_entry_voice_note_path(notepad_entry, voice_note) %>
           <% end %>
         </div>
       </div>

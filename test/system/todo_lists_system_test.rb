@@ -21,22 +21,13 @@ class TodoListsSystemTest < ApplicationSystemTestCase
     assert_no_text "3 / 3 done"
     assert_text "0 / 3 done"
     assert_no_button "Disable list"
-    assert_selector(".todo-list-filters__button.is-active", text: "All")
+    assert_no_selector(".todo-list-filters__button")
 
     within todo_item_card("Pack microphones") do
       find("button[aria-label='Mark complete']").click
     end
 
     assert_text "1 / 3 done"
-
-    click_button "Active"
-    within ".todo-list-items" do
-      assert_no_text "Pack microphones"
-      assert_text "Confirm venue"
-      assert_text "Email recap"
-    end
-
-    click_button "All"
     within ".todo-list-items" do
       assert_text "Pack microphones"
       assert_text "Confirm venue"
@@ -58,7 +49,9 @@ class TodoListsSystemTest < ApplicationSystemTestCase
 
     assert_current_path notebook_chapter_page_path(notebook, chapter, work_page)
     assert_text "Reminder created."
-    assert_text "Edit reminder"
+    within todo_item_card("Email recap") do
+      assert_selector("button[aria-label='Edit reminder']", visible: :all)
+    end
 
     work_page.reload
 

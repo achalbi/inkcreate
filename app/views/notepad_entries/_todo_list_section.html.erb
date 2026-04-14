@@ -4,16 +4,13 @@
   reminders_available = Reminder.schema_ready?
   completed_count = todo_items.count(&:completed?)
   progress_percent = todo_items.any? ? ((completed_count.to_f / todo_items.size) * 100).round : 0
-  initial_filter = todo_list&.hide_completed? ? "active" : "all"
 %>
 
 <section
   id="<%= dom_id(notepad_entry, :todo_list_section) %>"
-  class="ibox"
+  class="ibox detail-section-anchor"
   data-controller="todo-list"
   data-todo-list-mode-value="persisted"
-  data-todo-list-filter-value="<%= initial_filter %>"
-  data-todo-list-storage-key-value="<%= dom_id(notepad_entry, :todo_list_section) %>"
 >
   <div class="ibox-title">
     <div class="detail-photo-gallery-heading">
@@ -32,24 +29,22 @@
     <form action="<%= notepad_entry_todo_items_path(notepad_entry) %>" method="post" data-action="submit->todo-list#submit" class="todo-list-composer todo-list-composer--prompt">
       <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
       <div class="todo-list-composer__field">
-        <textarea name="todo_item[content]" class="form-control todo-list-composer__input" placeholder="What needs to be done?" aria-label="Add a to-do item" rows="1" data-action="input->todo-list#resizeTextarea"></textarea>
+        <span class="todo-list-composer__badge" aria-hidden="true">
+          <i class="ti ti-checkbox" aria-hidden="true"></i>
+        </span>
+        <div class="todo-list-composer__content">
+          <textarea name="todo_item[content]" class="form-control todo-list-composer__input" placeholder="Capture your thoughts or action plan..." aria-label="Add a to-do item" rows="1" data-action="input->todo-list#resizeTextarea"></textarea>
+        </div>
       </div>
       <button type="submit" class="btn btn-primary todo-list-composer__submit todo-list-composer__submit--icon" aria-label="Add to-do item">
-        <i class="ti ti-arrow-right" aria-hidden="true"></i>
+        <i class="ti ti-plus" aria-hidden="true"></i>
+        <span class="todo-list-composer__submit-label">Add</span>
       </button>
     </form>
 
     <% if todo_items.any? %>
       <div class="todo-list-section__utilities">
         <div class="todo-list-section__hint">Drag to reorder. Tap the circle to complete.</div>
-      </div>
-
-      <div class="todo-list-filters" role="toolbar" aria-label="To-do list filters">
-        <div class="todo-list-filters__group" role="tablist" aria-label="Filter to-do items">
-          <button type="button" class="todo-list-filters__button <%= "is-active" if initial_filter == "all" %>" data-action="todo-list#setFilter" data-todo-list-filter-param="all" data-filter="all" data-todo-list-target="filterButton" aria-pressed="<%= initial_filter == "all" %>">All</button>
-          <button type="button" class="todo-list-filters__button <%= "is-active" if initial_filter == "active" %>" data-action="todo-list#setFilter" data-todo-list-filter-param="active" data-filter="active" data-todo-list-target="filterButton" aria-pressed="<%= initial_filter == "active" %>">Active</button>
-          <button type="button" class="todo-list-filters__button <%= "is-active" if initial_filter == "done" %>" data-action="todo-list#setFilter" data-todo-list-filter-param="done" data-filter="done" data-todo-list-target="filterButton" aria-pressed="<%= initial_filter == "done" %>">Done</button>
-        </div>
       </div>
 
       <div class="todo-list-progress" aria-label="Checklist progress">
