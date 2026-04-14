@@ -11,7 +11,7 @@ export default class extends Controller {
     "enhanceCanvas", "filterStrip", "brightness", "contrast", "brightnessVal", "contrastVal",
     "reviewCanvas", "reviewStats", "reviewTitle", "reviewTags", "saveBtn",
     "viewer", "viewerTitle", "viewerText",
-    "count", "draftPayloadField", "draftList", "draftEmptyState"
+    "count", "draftPayloadField", "draftList", "draftEmptyState", "scannerModeBadge"
   ];
 
   static values = {
@@ -24,6 +24,7 @@ export default class extends Controller {
   connect() {
     this.currentScreen = 0;
     this.autoCapture = true;
+    this.nativeScannerAvailable = this._shouldUseNativeDocumentScanner();
     this.capturedImage = null;
     this.croppedCanvas = null;
     this.enhancedCanvas = null;
@@ -41,6 +42,7 @@ export default class extends Controller {
     this._setupCornerDrag();
     this._syncFlashButton();
     this._renderDraftDocuments();
+    this._renderScannerModeBadge();
   }
 
   disconnect() {
@@ -65,13 +67,6 @@ export default class extends Controller {
     if (this._shouldUseNativeDocumentScanner()) {
       const handledByNativeScanner = await this._openWithNativeDocumentScanner();
       if (handledByNativeScanner) return;
-    }
-
-    // Installed Android PWAs are still browser contexts, so ML Kit won't be available.
-    // Prefer the native camera capture intent on the original user gesture there.
-    if (this._shouldPreferAndroidPwaNativeCamera()) {
-      this.openNativeCamera(event);
-      return;
     }
 
     this.overlayTarget.removeAttribute("aria-hidden");
@@ -192,6 +187,21 @@ export default class extends Controller {
       second: "2-digit",
       hour12: false
     })}`;
+  }
+
+  _renderScannerModeBadge() {
+    if (!this.hasScannerModeBadgeTarget) return;
+
+    const nativeAvailable = Boolean(this.nativeScannerAvailable);
+    const badge = this.scannerModeBadgeTarget;
+
+    badge.textContent = nativeAvailable ? "Native scanner available" : "Web scan mode";
+    badge.classList.remove("label-default", "label-success");
+    badge.classList.add("label", nativeAvailable ? "label-success" : "label-default");
+    badge.title = nativeAvailable
+      ? "Google ML Kit document scanner is available in this native Android app."
+      : "Browser capture flow is active in this environment.";
+    badge.setAttribute("aria-label", badge.textContent);
   }
 
   _nextAutoScanTitle(baseTitle = this._defaultScanTitle()) {
@@ -1151,6 +1161,8 @@ export default class extends Controller {
 
     try {
       const result = await this._runNativeDocumentScanner();
+      this.nativeScannerAvailable = true;
+      this._renderScannerModeBadge();
       if (this._isNativeDocumentScanCancelled(result)) return true;
 
       const payload = this._buildNativeScannedDocumentPayload(result);
@@ -1163,6 +1175,8 @@ export default class extends Controller {
     } catch (error) {
       if (this._isNativeDocumentScanCancelled(error)) return true;
 
+      this.nativeScannerAvailable = false;
+      this._renderScannerModeBadge();
       console.warn("Native document scanner failed, falling back to browser capture.", error);
       return false;
     }
@@ -1172,31 +1186,8 @@ export default class extends Controller {
     return Boolean(this._isNativeAndroidApp() && this._nativeDocumentScannerPlugin());
   }
 
-  _shouldPreferAndroidPwaNativeCamera() {
-    return Boolean(
-      !this._shouldUseNativeDocumentScanner() &&
-      !this._isNativeCapacitorApp() &&
-      this.hasNativeCameraInputTarget &&
-      this._isAndroidDevice() &&
-      this._isStandaloneDisplayMode()
-    );
-  }
-
   _isNativeAndroidApp() {
     return this._capacitorPlatform() === "android" && this._isNativeCapacitorApp();
-  }
-
-  _isAndroidDevice() {
-    const userAgent = navigator.userAgent || "";
-    const platform = navigator.userAgentData?.platform || "";
-    return /Android/i.test(userAgent) || /Android/i.test(platform);
-  }
-
-  _isStandaloneDisplayMode() {
-    if (window.matchMedia?.("(display-mode: standalone)").matches) return true;
-    if (window.matchMedia?.("(display-mode: fullscreen)").matches) return true;
-    if (window.matchMedia?.("(display-mode: minimal-ui)").matches) return true;
-    return document.referrer.startsWith("android-app://");
   }
 
   _capacitorPlatform() {

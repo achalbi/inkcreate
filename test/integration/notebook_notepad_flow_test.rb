@@ -156,6 +156,7 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h5", text: "Scanned documents"
+    assert_select "[data-document-capture-target='scannerModeBadge']", text: "Web scan mode"
 
     assert_difference -> { user.notepad_entries.count }, +1 do
       post notepad_entries_path, params: {
@@ -200,6 +201,7 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h5", text: "Scanned documents"
+    assert_select "[data-document-capture-target='scannerModeBadge']", text: "Web scan mode"
     assert_select "form.button_to[action='#{notepad_entry_scanned_document_path(entry, 'missing')}']", count: 0
 
     assert_difference -> { entry.scanned_documents.count }, +1 do
