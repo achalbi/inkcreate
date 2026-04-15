@@ -16,6 +16,9 @@ class AppSettingTest < ActiveSupport::TestCase
     user = build_user(email: "privacy-defaults@example.com")
     app_setting = user.ensure_app_setting!
 
+    assert app_setting.backup_enabled?
+    assert_nil app_setting.backup_provider
+    assert_not app_setting.google_drive_backup?
     assert app_setting.allow_ocr_processing?
     assert app_setting.include_photos_in_backups?
     assert app_setting.keep_deleted_chapters_recoverable?

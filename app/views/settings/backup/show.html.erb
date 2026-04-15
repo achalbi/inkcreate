@@ -1,4 +1,6 @@
 <div class="workspace-page settings-page settings-page--backup">
+  <% backup_enabled_value = @app_setting.backup_enabled.nil? ? true : @app_setting.backup_enabled %>
+  <% backup_provider_value = @app_setting.backup_provider.presence || "google_drive" %>
   <%= render "shared/workspace_header",
     breadcrumbs: [["Home", dashboard_path], ["Settings", settings_path], "Backup"],
     eyebrow: "Backup",
@@ -25,13 +27,16 @@
           <%= form_with model: @app_setting, url: settings_backup_path, method: :patch do |form| %>
             <div class="mb-3">
               <%= form.label :backup_enabled, "Enable backups", class: "form-label" %>
-              <%= form.select :backup_enabled, [["No", false], ["Yes", true]], {}, class: "form-select" %>
+              <%= form.select :backup_enabled,
+                options_for_select([["No", false], ["Yes", true]], backup_enabled_value),
+                {},
+                class: "form-select" %>
             </div>
 
             <div class="mb-4">
               <%= form.label :backup_provider, "Provider", class: "form-label" %>
               <%= form.select :backup_provider,
-                options_for_select([["None", ""], ["Google Drive", "google_drive"]], @app_setting.backup_provider),
+                options_for_select([["None", ""], ["Google Drive", "google_drive"]], backup_provider_value),
                 {},
                 class: "form-select" %>
             </div>
