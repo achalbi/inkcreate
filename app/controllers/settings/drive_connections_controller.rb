@@ -14,10 +14,10 @@ module Settings
     end
 
     def update
-      return redirect_to(settings_path, alert: "Connect Google Drive before choosing a backup folder.") unless current_user.google_drive_connected?
+      return redirect_to(settings_return_path, alert: "Connect Google Drive before choosing a backup folder.") unless current_user.google_drive_connected?
 
       folder_id = Drive::FolderReference.extract(drive_connection_params[:folder_reference])
-      return redirect_to(settings_path, alert: "Enter a valid Google Drive folder link or folder ID.") if folder_id.blank?
+      return redirect_to(settings_return_path, alert: "Enter a valid Google Drive folder link or folder ID.") if folder_id.blank?
 
       current_user.update!(google_drive_folder_id: folder_id)
       Drive::BackfillRecordExports.new(user: current_user).call
@@ -110,10 +110,14 @@ module Settings
     end
 
     def settings_return_path
+      allowed_paths = [settings_path, settings_backup_path, settings_privacy_path]
+      requested_path = params[:return_to].presence
+      return requested_path if allowed_paths.include?(requested_path)
+
       referer_path = URI.parse(request.referer.to_s).path if request.referer.present?
-      [settings_path, settings_backup_path, settings_privacy_path].find { |path| path == referer_path } || settings_path
+      allowed_paths.find { |path| path == referer_path } || settings_backup_path
     rescue URI::InvalidURIError
-      settings_path
+      settings_backup_path
     end
 
     def drive_connection_params

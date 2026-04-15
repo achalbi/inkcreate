@@ -1,4 +1,5 @@
 <div class="workspace-page">
+    <% capture_backup_ready = current_user.google_drive_ready? && current_user.ensure_app_setting!.include_media_in_backups? %>
     <!-- <%= render "shared/workspace_header",
       breadcrumbs: [["Home", dashboard_path], @capture.display_title],
       eyebrow: "Capture detail",
@@ -16,8 +17,17 @@
           <%= link_to "Preview image", preview_capture_path(@capture), class: "button button-secondary", target: "_blank", rel: "noreferrer" %>
           <%= button_to "Extract text", extract_text_capture_path(@capture), class: "button button-primary", form_class: "inline-form" %>
           <%= button_to "Generate summary", generate_summary_capture_path(@capture), class: "button button-secondary", form_class: "inline-form" %>
-          <%= button_to "Backup to Drive", backup_capture_path(@capture), class: "button button-secondary", form_class: "inline-form" %>
+          <%= button_to "Backup to Drive",
+            backup_capture_path(@capture),
+            class: "button button-secondary",
+            form_class: "inline-form",
+            disabled: !capture_backup_ready %>
         </div>
+        <% unless capture_backup_ready %>
+          <p class="text-secondary">
+            Connect Google Drive, choose a backup folder, and keep media backups enabled in Settings before exporting a capture package.
+          </p>
+        <% end %>
 
         <%= form_with model: @capture, url: capture_path(@capture), scope: :capture, class: "auth-form" do |form| %>
           <div class="field">
@@ -72,7 +82,7 @@
           </div>
           <div class="stack-note">
             <strong>Backup: <%= @capture.backup_status.humanize %></strong>
-            <p>Latest backup attempts remain visible and retryable from this detail surface.</p>
+            <p>Drive backup exports a full capture package and can be retried from this detail surface.</p>
           </div>
           <div class="stack-note">
             <strong>Sync: <%= @capture.sync_status.humanize %></strong>

@@ -1,6 +1,7 @@
 class NotepadEntriesController < BrowserController
   GALLERY_ITEMS_PER_PAGE = 9
   include ScannedDocumentSupport
+  include DriveRecordExportScheduling
 
   before_action :require_authenticated_user!
   before_action :set_notepad_entry, only: %i[show edit update destroy destroy_photo]
@@ -41,12 +42,13 @@ class NotepadEntriesController < BrowserController
     assign_pending_content_from_params(@notepad_entry, notepad_entry_params, raw_notepad_entry_attributes)
 
     if @notepad_entry.save
-      attach_pending_photos(@notepad_entry)
-      persist_pending_voice_notes(@notepad_entry)
-      persist_pending_todo_list(@notepad_entry, notepad_entry_params)
-      persist_pending_scanned_documents(@notepad_entry, payloads: @notepad_entry.pending_scanned_document_payloads, user: current_user)
-      @notepad_entry.pending_scanned_document_payloads = []
-      schedule_drive_export(@notepad_entry)
+      with_deferred_drive_record_export(@notepad_entry) do
+        attach_pending_photos(@notepad_entry)
+        persist_pending_voice_notes(@notepad_entry)
+        persist_pending_todo_list(@notepad_entry, notepad_entry_params)
+        persist_pending_scanned_documents(@notepad_entry, payloads: @notepad_entry.pending_scanned_document_payloads, user: current_user)
+        @notepad_entry.pending_scanned_document_payloads = []
+      end
       redirect_to create_redirect_path(@notepad_entry), notice: create_notice_message
     else
       render :new, status: :unprocessable_entity
@@ -68,12 +70,13 @@ class NotepadEntriesController < BrowserController
     end
 
     if @notepad_entry.update(notepad_entry_attributes)
-      attach_pending_photos(@notepad_entry)
-      persist_pending_voice_notes(@notepad_entry)
-      persist_pending_todo_list(@notepad_entry, notepad_entry_params)
-      persist_pending_scanned_documents(@notepad_entry, payloads: @notepad_entry.pending_scanned_document_payloads, user: current_user)
-      @notepad_entry.pending_scanned_document_payloads = []
-      schedule_drive_export(@notepad_entry)
+      with_deferred_drive_record_export(@notepad_entry) do
+        attach_pending_photos(@notepad_entry)
+        persist_pending_voice_notes(@notepad_entry)
+        persist_pending_todo_list(@notepad_entry, notepad_entry_params)
+        persist_pending_scanned_documents(@notepad_entry, payloads: @notepad_entry.pending_scanned_document_payloads, user: current_user)
+        @notepad_entry.pending_scanned_document_payloads = []
+      end
       redirect_to notepad_entry_path(@notepad_entry), notice: "Notepad entry updated."
     else
       render :edit, status: :unprocessable_entity
@@ -243,10 +246,6 @@ class NotepadEntriesController < BrowserController
     Time.current
   end
 
-  def schedule_drive_export(entry)
-    Drive::ScheduleRecordExport.new(record: entry).call
-  end
-
   def quick_edit_request?
     params[:quick_edit_modal].to_s == "1"
   end
@@ -255,6 +254,7 @@ class NotepadEntriesController < BrowserController
     @notepad_entry.allow_blank_content = allow_blank_content_for_update?(notes_value: notepad_entry_params[:notes])
 
     if @notepad_entry.update(notepad_entry_params.slice(:title, :notes))
+      schedule_drive_export(@notepad_entry)
       redirect_to notepad_entry_path(@notepad_entry), notice: "Notepad entry updated."
     else
       @show_quick_edit_modal = true
@@ -295,20 +295,20 @@ class NotepadEntriesController < BrowserController
     page.retained_photo_signed_ids = photo_signed_ids_for_move
     assign_pending_page_content_for_move(page)
 
-    NotepadEntry.transaction do
-      page.save!
-      attach_pending_photos(page)
-      move_pending_voice_notes_to_page(page)
-      move_voice_notes_to_page(page)
-      move_todo_list_to_page(page)
-      persist_pending_scanned_documents(page, payloads: @notepad_entry.pending_scanned_document_payloads, user: current_user)
-      move_scanned_documents_to_page(page)
-      reset_moved_associations!(@notepad_entry, :voice_notes, :todo_list, :scanned_documents)
-      @notepad_entry.photos.detach
-      @notepad_entry.destroy!
+    with_deferred_drive_record_export(page) do
+      NotepadEntry.transaction do
+        page.save!
+        attach_pending_photos(page)
+        move_pending_voice_notes_to_page(page)
+        move_voice_notes_to_page(page)
+        move_todo_list_to_page(page)
+        persist_pending_scanned_documents(page, payloads: @notepad_entry.pending_scanned_document_payloads, user: current_user)
+        move_scanned_documents_to_page(page)
+        reset_moved_associations!(@notepad_entry, :voice_notes, :todo_list, :scanned_documents)
+        @notepad_entry.photos.detach
+        @notepad_entry.destroy!
+      end
     end
-
-    schedule_drive_export(page)
     redirect_to notebook_chapter_page_path(chapter.notebook, chapter, page),
       notice: "Daily page moved to #{chapter.notebook.title} / #{chapter.title}."
   rescue ActiveRecord::RecordInvalid

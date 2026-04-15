@@ -119,10 +119,10 @@
       </section>
     </div>
 
-    <div class="col-12">
+    <div class="col-lg-6">
       <section class="ibox">
         <div class="ibox-title">
-          <h5>Status history</h5>
+          <h5>Capture backup history</h5>
           <span class="badge rounded-pill text-bg-light"><%= @backup_records.size %> recent records</span>
         </div>
         <div class="ibox-content">
@@ -137,12 +137,45 @@
                     </div>
                     <span class="badge rounded-pill text-bg-light"><%= backup_record.status.humanize %></span>
                   </div>
-                  <div class="text-secondary small break-anywhere"><%= backup_record.error_message.presence || backup_record.remote_path.presence || "Backup record ready." %></div>
+                  <div class="text-secondary small break-anywhere"><%= backup_record_detail_text(backup_record) %></div>
                 </article>
               <% end %>
             </div>
           <% else %>
             <%= render "shared/empty_state", title: "No backup records yet", description: "Run a manual backup from a capture detail page to seed the history." %>
+          <% end %>
+        </div>
+      </section>
+    </div>
+
+    <div class="col-lg-6">
+      <section class="ibox">
+        <div class="ibox-title">
+          <h5>Record export history</h5>
+          <span class="badge rounded-pill text-bg-light"><%= @record_exports.size %> recent exports</span>
+        </div>
+        <div class="ibox-content">
+          <% if @record_exports.any? %>
+            <div class="vstack gap-3">
+              <% @record_exports.each do |google_drive_export| %>
+                <article class="border rounded-4 p-3">
+                  <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                    <div class="min-w-0">
+                      <div class="text-uppercase text-secondary fw-semibold small mb-1"><%= google_drive_export.exportable_type.to_s.humanize %></div>
+                      <% if (destination_path = google_drive_export_path(google_drive_export)).present? %>
+                        <div class="fw-semibold break-anywhere"><%= link_to google_drive_export_title(google_drive_export), destination_path, class: "text-decoration-none" %></div>
+                      <% else %>
+                        <div class="fw-semibold break-anywhere"><%= google_drive_export_title(google_drive_export) %></div>
+                      <% end %>
+                    </div>
+                    <span class="badge rounded-pill text-bg-light"><%= google_drive_export.status.humanize %></span>
+                  </div>
+                  <div class="text-secondary small break-anywhere"><%= google_drive_export_detail_text(google_drive_export) %></div>
+                </article>
+              <% end %>
+            </div>
+          <% else %>
+            <%= render "shared/empty_state", title: "No record exports yet", description: "Enable Drive backup and edit a notebook or notepad page to start the export history." %>
           <% end %>
         </div>
       </section>

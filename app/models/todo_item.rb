@@ -1,4 +1,6 @@
 class TodoItem < ApplicationRecord
+  include DriveRecordExportableChange
+
   belongs_to :todo_list
   has_one :reminder, as: :target, dependent: :destroy
 
@@ -27,6 +29,10 @@ class TodoItem < ApplicationRecord
   end
 
   private
+
+  def drive_record_export_owner
+    owner
+  end
 
   def normalize_content
     self.content = content.to_s.squish

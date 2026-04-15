@@ -13,13 +13,16 @@ module Pages
           recorded_at: recorded_at,
           byte_size: byte_size,
           mime_type: mime_type
-        ) || @page.voice_notes.create!(
-          audio: upload,
-          duration_seconds: duration_seconds,
-          recorded_at: recorded_at,
-          byte_size: byte_size,
-          mime_type: mime_type
-        )
+        ) || begin
+          created_voice_note = @page.voice_notes.create!(
+            audio: upload,
+            duration_seconds: duration_seconds,
+            recorded_at: recorded_at,
+            byte_size: byte_size,
+            mime_type: mime_type
+          )
+          created_voice_note
+        end
       end
 
       if request.format.json?

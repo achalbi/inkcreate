@@ -27,10 +27,12 @@ class CapturesController < BrowserController
   end
 
   def backup
-    return redirect_to(capture_path(@capture), alert: "Photo backups are turned off in Privacy settings.") unless current_user.ensure_app_setting!.include_photos_in_backups?
-
-    Backups::ScheduleCaptureBackup.new(capture: @capture, user: current_user).call
-    redirect_to capture_path(@capture), notice: "Backup scheduled."
+    result = Backups::ScheduleCaptureBackup.new(capture: @capture, user: current_user).call
+    if result.scheduled?
+      redirect_to capture_path(@capture), notice: "Backup scheduled."
+    else
+      redirect_to capture_path(@capture), alert: Backups::ScheduleCaptureBackup.message_for(result.skip_reason)
+    end
   end
 
   def preview

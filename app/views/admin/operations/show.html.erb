@@ -48,9 +48,18 @@
   <div class="col-12 col-sm-6 col-xl-3">
     <div class="card metric-card border-0 surface-card">
       <div class="card-body">
-        <h6 class="mb-3 text-secondary">Drive exports</h6>
-        <h3 class="fw-bold mb-1"><%= @drive_active_count %></h3>
-        <p class="metric-trend text-soft-primary mb-0"><%= pluralize(@drive_failed_count, "Drive export") %> have failed</p>
+        <h6 class="mb-3 text-secondary">Drive backup exports</h6>
+        <h3 class="fw-bold mb-1"><%= @drive_backup_active_count %></h3>
+        <p class="metric-trend text-soft-primary mb-0"><%= pluralize(@drive_backup_failed_count, "Drive backup export") %> have failed</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="card metric-card border-0 surface-card">
+      <div class="card-body">
+        <h6 class="mb-3 text-secondary">Record exports</h6>
+        <h3 class="fw-bold mb-1"><%= @record_export_active_count %></h3>
+        <p class="metric-trend text-soft-primary mb-0"><%= pluralize(@record_export_failed_count, "record export") %> have failed</p>
       </div>
     </div>
   </div>
@@ -91,10 +100,19 @@
         <div class="admin-note">
           <div class="d-flex justify-content-between gap-3">
             <div>
-              <h6 class="mb-1">Drive export failures</h6>
+              <h6 class="mb-1">Drive backup export failures</h6>
               <p class="text-secondary small mb-0">Exports affect trust in backup and sharing flows.</p>
             </div>
-            <span class="status-pill failed"><%= @drive_failed_count %></span>
+            <span class="status-pill failed"><%= @drive_backup_failed_count %></span>
+          </div>
+        </div>
+        <div class="admin-note mt-3">
+          <div class="d-flex justify-content-between gap-3">
+            <div>
+              <h6 class="mb-1">Record export failures</h6>
+              <p class="text-secondary small mb-0">Notebook and notepad record exports should stay observable when Drive is enabled.</p>
+            </div>
+            <span class="status-pill failed"><%= @record_export_failed_count %></span>
           </div>
         </div>
       </div>
@@ -148,7 +166,10 @@
             <tbody>
               <% @recent_backup_records.each do |record| %>
                 <tr>
-                  <td><span class="break-anywhere"><%= record.capture.display_title %></span></td>
+                  <td>
+                    <div class="fw-semibold break-anywhere"><%= record.capture.display_title %></div>
+                    <div class="text-secondary small break-anywhere"><%= backup_record_detail_text(record) %></div>
+                  </td>
                   <td><span class="break-anywhere"><%= record.user.email %></span></td>
                   <td><%= record.provider %></td>
                   <td><span class="status-pill <%= record.status %>"><%= record.status.humanize %></span></td>
@@ -164,7 +185,7 @@
 
     <div class="card border-0 surface-card">
       <div class="card-body p-4">
-        <h2 class="fs-5 mb-3">Recent sync and Drive export jobs</h2>
+        <h2 class="fs-5 mb-3">Recent sync and Drive backup jobs</h2>
         <div class="admin-scroll-table">
           <table class="table align-middle mb-0">
             <thead class="table-light">
@@ -191,12 +212,54 @@
 
               <% @recent_drive_syncs.each do |sync| %>
                 <tr>
-                  <td>Drive export</td>
-                  <td><span class="break-anywhere"><%= sync.capture.display_title %></span></td>
+                  <td>
+                    <div>Drive backup export</div>
+                    <div class="text-secondary small"><%= sync.mode.humanize %></div>
+                  </td>
+                  <td>
+                    <div class="fw-semibold break-anywhere"><%= sync.capture.display_title %></div>
+                    <div class="text-secondary small break-anywhere"><%= drive_sync_detail_text(sync) %></div>
+                  </td>
                   <td><span class="break-anywhere"><%= sync.user.email %></span></td>
                   <td><span class="status-pill <%= sync.status %>"><%= sync.status.humanize %></span></td>
                   <td>n/a</td>
                   <td><%= sync.updated_at.strftime("%b %-d, %Y") %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card border-0 surface-card mt-3">
+      <div class="card-body p-4">
+        <h2 class="fs-5 mb-3">Recent record exports</h2>
+        <div class="admin-scroll-table">
+          <table class="table align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Record</th>
+                <th>User</th>
+                <th>Status</th>
+                <th>Last success</th>
+                <th>Last attempt</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @recent_google_drive_exports.each do |google_drive_export| %>
+                <tr>
+                  <td>
+                    <div class="fw-semibold break-anywhere"><%= google_drive_export_title(google_drive_export) %></div>
+                    <div class="text-secondary small"><%= google_drive_export.exportable_type.to_s.humanize %></div>
+                    <% if google_drive_export.error_message.present? %>
+                      <div class="text-secondary small break-anywhere"><%= google_drive_export.error_message %></div>
+                    <% end %>
+                  </td>
+                  <td><span class="break-anywhere"><%= google_drive_export.user.email %></span></td>
+                  <td><span class="status-pill <%= google_drive_export.status %>"><%= google_drive_export.status.humanize %></span></td>
+                  <td><%= google_drive_export.exported_at&.strftime("%b %-d, %Y") || "Not yet" %></td>
+                  <td><%= google_drive_export.last_attempted_at&.strftime("%b %-d, %Y") || "Not attempted" %></td>
                 </tr>
               <% end %>
             </tbody>

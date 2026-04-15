@@ -36,4 +36,61 @@ module ApplicationHelper
       format("%02d:%02d", minutes, seconds)
     end
   end
+
+  def google_drive_export_title(google_drive_export)
+    exportable = google_drive_export.exportable
+    return "#{google_drive_export.exportable_type} ##{google_drive_export.exportable_id}" unless exportable
+
+    exportable.respond_to?(:display_title) ? exportable.display_title : "#{google_drive_export.exportable_type} ##{google_drive_export.exportable_id}"
+  end
+
+  def google_drive_export_path(google_drive_export)
+    case google_drive_export.exportable
+    when Page
+      page = google_drive_export.exportable
+      notebook_chapter_page_path(page.notebook, page.chapter, page)
+    when NotepadEntry
+      notepad_entry_path(google_drive_export.exportable)
+    end
+  end
+
+  def google_drive_export_detail_text(google_drive_export)
+    google_drive_export.error_message.presence ||
+      google_drive_export.metadata.to_h["folder_path"].presence ||
+      google_drive_export.remote_folder_id.presence ||
+      "Record export ready."
+  end
+
+  def backup_record_detail_text(backup_record)
+    return backup_record.error_message if backup_record.error_message.present?
+
+    metadata = backup_record.metadata.to_h
+    remote_path = backup_record.remote_path.presence
+    remote_path ||= Array(metadata["folder_path"]).presence&.join(" / ")
+
+    if metadata["package_type"] == "capture"
+      return "Capture package: #{remote_path}" if remote_path.present?
+
+      return "Capture package ready."
+    end
+
+    remote_path.presence || "Backup record ready."
+  end
+
+  def drive_sync_detail_text(drive_sync)
+    return drive_sync.error_message if drive_sync.error_message.present?
+
+    metadata = drive_sync.metadata.to_h
+    remote_path = Array(metadata["folder_path"]).presence&.join(" / ")
+    remote_path ||= metadata["remote_folder_id"].presence
+    remote_path ||= drive_sync.drive_folder_id.presence
+
+    if metadata["package_type"] == "capture"
+      return "Capture package: #{remote_path}" if remote_path.present?
+
+      return "Capture package ready."
+    end
+
+    remote_path.presence || "Drive backup export ready."
+  end
 end

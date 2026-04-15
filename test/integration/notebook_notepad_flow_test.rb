@@ -340,12 +340,17 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to notepad_entry_path(entry)
+    scanned_document.reload
+    assert_equal "Total: 42.00", scanned_document.extracted_text
+    assert_equal "tesseract", scanned_document.ocr_engine
+    assert_equal "eng", scanned_document.ocr_language
+    assert_in_delta 88.0, scanned_document.ocr_confidence, 0.001
 
     follow_redirect!
 
     assert_response :success
     assert_select ".sdoc-title", text: "Receipt"
-    assert_select ".sdoc-excerpt", text: /Total: 42.00/
+    assert_select ".sdoc-excerpt", text: /Open the PDF to review this scanned document\./
 
     assert_difference -> { entry.scanned_documents.count }, -1 do
       delete notepad_entry_scanned_document_path(entry, scanned_document), params: {
@@ -802,7 +807,7 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
     assert_nil voice_note.page
     assert entry.todo_list.enabled?
     assert entry.todo_list.hide_completed?
-    assert_equal ["Share summary", "Archive notes"], entry.todo_list.todo_items.ordered.pluck(:content)
+    assert_equal ["Archive notes", "Share summary"], entry.todo_list.todo_items.ordered.pluck(:content)
     assert_equal entry, reminder.target.todo_list.notepad_entry
     assert_equal entry, scanned_document.notepad_entry
     assert_nil scanned_document.page

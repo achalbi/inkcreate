@@ -45,18 +45,7 @@ module Ocr
         payload: { capture_id: capture.id, ocr_job_id: ocr_job.id, provider: ocr_job.provider }
       )
 
-      if capture.drive_sync_mode_automatic? &&
-         capture.user.google_drive_connected? &&
-         capture.user.google_drive_folder_id.present? &&
-         capture.user.ensure_app_setting!.include_photos_in_backups?
-        drive_sync = capture.drive_syncs.create!(
-          user: capture.user,
-          drive_folder_id: capture.user.google_drive_folder_id,
-          mode: :automatic,
-          status: :pending
-        )
-        Async::Dispatcher.enqueue_drive_export(drive_sync.id)
-      end
+      schedule_automatic_backup if capture.drive_sync_mode_automatic?
     rescue StandardError => error
       ocr_job.update!(status: :failed, finished_at: Time.current, error_message: error.message)
       capture.update!(status: :failed, ocr_status: :failed)
@@ -73,6 +62,14 @@ module Ocr
     private
 
     attr_reader :ocr_job, :capture
+
+    def schedule_automatic_backup
+      Backups::ScheduleCaptureBackup.new(
+        capture: capture,
+        user: capture.user,
+        mode: :automatic
+      ).call
+    end
 
     def download_source_file
       file = Tempfile.new(["capture-source", File.extname(capture.storage_object_key)])

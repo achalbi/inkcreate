@@ -31,6 +31,10 @@ class AppSetting < ApplicationRecord
     privacy_option_enabled?("include_photos_in_backups")
   end
 
+  def include_media_in_backups?
+    include_photos_in_backups?
+  end
+
   def keep_deleted_chapters_recoverable?
     privacy_option_enabled?("keep_deleted_chapters_recoverable")
   end

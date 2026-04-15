@@ -10,8 +10,6 @@ module NotepadEntries
       recorded_at = normalized_recorded_at
       byte_size = upload.size
       mime_type = upload.content_type.to_s
-      created = false
-
       voice_note = @notepad_entry.with_lock do
         find_duplicate_voice_note(
           duration_seconds: duration_seconds,
@@ -19,7 +17,6 @@ module NotepadEntries
           byte_size: byte_size,
           mime_type: mime_type
         ) || begin
-          created = true
           @notepad_entry.voice_notes.create!(
             audio: upload,
             duration_seconds: duration_seconds,
@@ -29,8 +26,6 @@ module NotepadEntries
           )
         end
       end
-
-      schedule_drive_export if created
 
       if request.format.json?
         render json: { ok: true, message: "Voice note saved.", id: voice_note.id }
@@ -48,7 +43,6 @@ module NotepadEntries
     def destroy
       voice_note = @notepad_entry.voice_notes.find(params[:id])
       voice_note.destroy!
-      schedule_drive_export
 
       if request.format.json?
         render json: { ok: true, message: "Voice note deleted." }
@@ -60,7 +54,6 @@ module NotepadEntries
     def submit_transcript
       voice_note = @notepad_entry.voice_notes.find(params[:id])
       voice_note.update!(transcript: normalized_transcript_text)
-      schedule_drive_export
 
       respond_to do |format|
         format.html { redirect_to notepad_entry_path(@notepad_entry), notice: "Transcript saved." }
@@ -111,10 +104,6 @@ module NotepadEntries
         byte_size: byte_size,
         mime_type: mime_type
       )
-    end
-
-    def schedule_drive_export
-      Drive::ScheduleRecordExport.new(record: @notepad_entry).call
     end
 
     def ensure_voice_notes_supported!

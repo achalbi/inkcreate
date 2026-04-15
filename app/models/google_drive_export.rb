@@ -9,6 +9,8 @@ class GoogleDriveExport < ApplicationRecord
   belongs_to :user
   belongs_to :exportable, polymorphic: true
 
+  scope :recent_first, -> { order(updated_at: :desc, created_at: :desc) }
+
   validate :remote_photo_file_ids_must_be_a_hash
 
   private

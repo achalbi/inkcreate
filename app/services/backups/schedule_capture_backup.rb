@@ -1,37 +1,117 @@
 module Backups
   class ScheduleCaptureBackup
-    def initialize(capture:, user:)
+    Result = Struct.new(:backup_record, :skip_reason, keyword_init: true) do
+      def scheduled?
+        backup_record.present?
+      end
+    end
+
+    def initialize(capture:, user:, mode: :manual)
       @capture = capture
       @user = user
+      @mode = mode.to_sym
     end
 
     def call
-      raise ArgumentError, "Google Drive backup is not configured" unless user.google_drive_connected? && user.google_drive_folder_id.present?
-      raise ArgumentError, "Photo backups are turned off in Privacy settings" unless user.ensure_app_setting!.include_photos_in_backups?
+      if skip_reason.present?
+        log_skip(reason: skip_reason)
+        return Result.new(skip_reason: skip_reason)
+      end
 
       backup_record = capture.backup_records.create!(
         user: user,
         provider: "google_drive",
         status: :pending,
-        remote_path: user.google_drive_folder_id,
-        metadata: { requested_at: Time.current.iso8601 }
+        remote_path: planned_remote_path,
+        metadata: {
+          requested_at: Time.current.iso8601,
+          requested_mode: mode.to_s,
+          package_type: "capture",
+          folder_path: planned_folder_segments
+        }
       )
 
       drive_sync = capture.drive_syncs.create!(
         user: user,
         drive_folder_id: user.google_drive_folder_id,
-        mode: :manual,
+        mode: mode,
         status: :pending,
-        metadata: { backup_record_id: backup_record.id }
+        metadata: {
+          backup_record_id: backup_record.id,
+          requested_mode: mode.to_s,
+          package_type: "capture",
+          folder_path: planned_folder_segments
+        }
       )
 
       capture.update!(backup_status: :pending)
       Async::Dispatcher.enqueue_drive_export(drive_sync.id)
-      backup_record
+      Observability::EventLogger.info(
+        event: "drive.capture_backup.enqueued",
+        payload: log_payload(backup_record: backup_record, drive_sync: drive_sync).merge(reason: "scheduled")
+      )
+      Result.new(backup_record: backup_record)
     end
 
     private
 
-    attr_reader :capture, :user
+    attr_reader :capture, :user, :mode
+
+    def skip_reason
+      return @skip_reason if defined?(@skip_reason)
+
+      @skip_reason =
+        if user.blank?
+          "missing_user"
+        elsif !user.google_drive_connected?
+          "drive_not_connected"
+        elsif user.google_drive_folder_id.blank?
+          "drive_folder_missing"
+        elsif !user.ensure_app_setting!.include_media_in_backups?
+          "media_backups_disabled"
+        end
+    end
+
+    def planned_folder_segments
+      [Drive::ExportCapture::CAPTURES_FOLDER_NAME, Drive::ExportLayout.record_folder_name(capture)]
+    end
+
+    def planned_remote_path
+      planned_folder_segments.join(" / ")
+    end
+
+    def log_skip(reason:)
+      Observability::EventLogger.info(
+        event: "drive.capture_backup.skipped",
+        payload: log_payload.merge(reason: reason)
+      )
+    end
+
+    def log_payload(backup_record: nil, drive_sync: nil)
+      {
+        capture_id: capture.id,
+        user_id: user&.id,
+        backup_record_id: backup_record&.id,
+        drive_sync_id: drive_sync&.id,
+        mode: mode,
+        drive_ready: user&.google_drive_ready? == true,
+        media_backups_enabled: user&.ensure_app_setting!&.include_media_in_backups? == true
+      }
+    end
+
+    class << self
+      def message_for(skip_reason)
+        case skip_reason
+        when "drive_not_connected"
+          "Connect Google Drive before exporting a capture package."
+        when "drive_folder_missing"
+          "Choose a Google Drive folder before exporting a capture package."
+        when "media_backups_disabled"
+          "Media backups are turned off in Privacy settings."
+        else
+          "Capture backup could not be scheduled right now."
+        end
+      end
+    end
   end
 end

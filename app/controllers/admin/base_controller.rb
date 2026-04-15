@@ -21,7 +21,8 @@ module Admin
         BackupRecord.status_failed.count +
         SyncJob.status_failed.count +
         SyncJob.status_conflict.count +
-        DriveSync.status_failed.count
+        DriveSync.status_failed.count +
+        GoogleDriveExport.status_failed.count
 
       @admin_shell_metrics = {
         users: User.count,

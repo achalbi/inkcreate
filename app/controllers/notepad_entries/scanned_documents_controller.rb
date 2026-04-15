@@ -1,6 +1,7 @@
 module NotepadEntries
   class ScannedDocumentsController < BrowserController
     include ScannedDocumentSupport
+    include DriveRecordExportScheduling
 
     before_action :require_authenticated_user!
     before_action :set_notepad_entry

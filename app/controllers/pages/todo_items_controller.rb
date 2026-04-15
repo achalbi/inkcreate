@@ -1,5 +1,7 @@
 module Pages
   class TodoItemsController < BaseController
+    include DriveRecordExportScheduling
+
     before_action :set_todo_list
     before_action :set_todo_item, only: %i[update destroy toggle reorder]
 
@@ -32,7 +34,10 @@ module Pages
 
     def reorder
       new_position = params.require(:todo_item).fetch(:position).to_i
-      move_to_position!(@todo_item, new_position)
+      with_suppressed_drive_record_export_callbacks do
+        move_to_position!(@todo_item, new_position)
+      end
+      schedule_drive_export(@page)
       render_section(message: "To-do item reordered.")
     rescue ActionController::ParameterMissing
       render_error("Choose a new position for the to-do item.")

@@ -14,6 +14,49 @@ class AdminNavigationTest < ActionDispatch::IntegrationTest
   end
 
   test "admin dashboard links resolve to admin pages" do
+    drive_user = User.create!(
+      email: "drive-user@example.com",
+      password: "Password123!",
+      password_confirmation: "Password123!",
+      time_zone: "UTC",
+      locale: "en",
+      role: :user
+    )
+    entry = drive_user.notepad_entries.create!(
+      title: "Drive export source",
+      notes: "Ready for admin visibility.",
+      entry_date: Date.current
+    )
+    drive_user.google_drive_exports.create!(
+      exportable: entry,
+      status: :failed,
+      error_message: "Drive export failed",
+      remote_photo_file_ids: {}
+    )
+    capture = drive_user.captures.create!(
+      title: "Operations capture",
+      original_filename: "ops.jpg",
+      content_type: "image/jpeg",
+      byte_size: 1024,
+      storage_bucket: "test-bucket",
+      storage_object_key: "users/#{drive_user.id}/uploads/test/ops.jpg",
+      page_type: "blank"
+    )
+    drive_user.backup_records.create!(
+      capture: capture,
+      provider: "google_drive",
+      status: :failed,
+      error_message: "Backup package upload failed"
+    )
+    drive_user.drive_syncs.create!(
+      capture: capture,
+      drive_folder_id: "drive-folder-123",
+      status: :failed,
+      mode: :automatic,
+      error_message: "Drive sync package failed",
+      metadata: { "package_type" => "capture", "folder_path" => ["Captures", "Operations capture (abcd1234)"] }
+    )
+
     sign_in_as(@admin)
 
     get admin_dashboard_path
@@ -37,6 +80,11 @@ class AdminNavigationTest < ActionDispatch::IntegrationTest
     get admin_operations_path
     assert_response :success
     assert_select "h1", /Watch OCR, sync, and backup queues before they become support issues/
+    assert_select "h6", text: "Record exports"
+    assert_select "h2", text: "Recent record exports"
+    assert_select "td", text: /Drive export source/
+    assert_select "td", text: /Backup package upload failed/
+    assert_select "td", text: /Drive sync package failed/
   end
 
   private

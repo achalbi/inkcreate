@@ -1,4 +1,7 @@
 ENV["RAILS_ENV"] ||= "test"
+ENV["ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY"] ||= "1" * 32
+ENV["ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY"] ||= "2" * 32
+ENV["ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT"] ||= "3" * 32
 require_relative "../config/environment"
 require "rails/test_help"
 require "nokogiri"
@@ -54,6 +57,12 @@ class ActionDispatch::IntegrationTest
     end
 
     return capture_node["data-document-capture-csrf-value"] if capture_node
+
+    if response.redirect?
+      redirect_target = URI.parse(response.redirect_url).request_uri
+      get redirect_target
+      return authenticity_token_for(action_path)
+    end
 
     raise "No form or document capture token found for #{action_path}"
   end

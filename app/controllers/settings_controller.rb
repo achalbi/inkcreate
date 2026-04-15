@@ -23,6 +23,7 @@ class SettingsController < BrowserController
   def load_settings_dashboard
     @app_setting = current_user.ensure_app_setting!
     @backup_records = current_user.backup_records.recent_first.limit(20)
+    @record_exports = current_user.google_drive_exports.includes(:exportable).recent_first.limit(20)
     @devices_available = Device.schema_ready?
     @devices = @devices_available ? current_user.devices.recent_first : []
     @current_device = @devices_available ? current_device_record : nil
@@ -48,6 +49,8 @@ class SettingsController < BrowserController
   end
 
   def canonical_time_zone_name(zone_name)
+    return if zone_name.blank?
+
     ActiveSupport::TimeZone[zone_name]&.tzinfo&.name || zone_name.presence
   end
 end

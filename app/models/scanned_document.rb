@@ -1,4 +1,6 @@
 class ScannedDocument < ApplicationRecord
+  include DriveRecordExportableChange
+
   belongs_to :user
   belongs_to :page,          optional: true
   belongs_to :notepad_entry, optional: true
@@ -53,6 +55,10 @@ class ScannedDocument < ApplicationRecord
   end
 
   private
+
+  def drive_record_export_owner
+    page || notepad_entry
+  end
 
   def exactly_one_owner
     if page_id.present? && notepad_entry_id.present?

@@ -1,4 +1,6 @@
 class VoiceNote < ApplicationRecord
+  include DriveRecordExportableChange
+
   MAX_DURATION_SECONDS = 120.minutes.to_i
 
   belongs_to :page, optional: true
@@ -22,6 +24,10 @@ class VoiceNote < ApplicationRecord
   end
 
   private
+
+  def drive_record_export_owner
+    page || notepad_entry
+  end
 
   def sync_audio_metadata
     return unless audio.attached?

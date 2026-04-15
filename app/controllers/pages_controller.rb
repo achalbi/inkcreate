@@ -1,5 +1,6 @@
 class PagesController < BrowserController
   include ScannedDocumentSupport
+  include DriveRecordExportScheduling
 
   before_action :require_authenticated_user!
   before_action :set_notebook
@@ -20,12 +21,13 @@ class PagesController < BrowserController
     assign_pending_content_from_params(@page, page_params, raw_page_attributes)
 
     if @page.save
-      attach_pending_photos(@page)
-      persist_pending_voice_notes(@page)
-      persist_pending_todo_list(@page, page_params)
-      persist_pending_scanned_documents(@page, payloads: @page.pending_scanned_document_payloads, user: current_user)
-      @page.pending_scanned_document_payloads = []
-      schedule_drive_export(@page)
+      with_deferred_drive_record_export(@page) do
+        attach_pending_photos(@page)
+        persist_pending_voice_notes(@page)
+        persist_pending_todo_list(@page, page_params)
+        persist_pending_scanned_documents(@page, payloads: @page.pending_scanned_document_payloads, user: current_user)
+        @page.pending_scanned_document_payloads = []
+      end
       redirect_to notebook_chapter_page_path(@notebook, @chapter, @page), notice: "Page created."
     else
       render :new, status: :unprocessable_entity
@@ -47,12 +49,13 @@ class PagesController < BrowserController
     assign_pending_content_from_params(@page, page_params, raw_page_attributes)
 
     if @page.update(page_attributes)
-      attach_pending_photos(@page)
-      persist_pending_voice_notes(@page)
-      persist_pending_todo_list(@page, page_params)
-      persist_pending_scanned_documents(@page, payloads: @page.pending_scanned_document_payloads, user: current_user)
-      @page.pending_scanned_document_payloads = []
-      schedule_drive_export(@page)
+      with_deferred_drive_record_export(@page) do
+        attach_pending_photos(@page)
+        persist_pending_voice_notes(@page)
+        persist_pending_todo_list(@page, page_params)
+        persist_pending_scanned_documents(@page, payloads: @page.pending_scanned_document_payloads, user: current_user)
+        @page.pending_scanned_document_payloads = []
+      end
       redirect_to notebook_chapter_page_path(@notebook, @chapter, @page), notice: "Page updated."
     else
       render :edit, status: :unprocessable_entity
@@ -263,10 +266,6 @@ class PagesController < BrowserController
     page.pending_todo_item_contents = []
   end
 
-  def schedule_drive_export(record)
-    Drive::ScheduleRecordExport.new(record: record).call
-  end
-
   def move_page_to_chapter
     destination_chapter = move_destination_chapter
 
@@ -277,15 +276,15 @@ class PagesController < BrowserController
 
     source_chapter = @page.chapter
 
-    Page.transaction do
-      @page.update!(
-        chapter: destination_chapter,
-        position: next_page_position_for(destination_chapter)
-      )
-      normalize_page_positions!(source_chapter)
+    with_deferred_drive_record_export(@page) do
+      Page.transaction do
+        @page.update!(
+          chapter: destination_chapter,
+          position: next_page_position_for(destination_chapter)
+        )
+        normalize_page_positions!(source_chapter)
+      end
     end
-
-    schedule_drive_export(@page)
 
     redirect_to notebook_chapter_page_path(destination_chapter.notebook, destination_chapter, @page),
       notice: "Page moved to #{destination_chapter.notebook.title} / #{destination_chapter.title}."
@@ -308,19 +307,19 @@ class PagesController < BrowserController
     entry.allow_blank_content = true
     entry.retained_photo_signed_ids = photo_signed_ids_for_move
 
-    Page.transaction do
-      entry.save!
-      attach_pending_photos(entry)
-      move_voice_notes_to_notepad(entry)
-      move_todo_list_to_notepad(entry)
-      move_scanned_documents_to_notepad(entry)
-      reset_moved_associations!(@page, :voice_notes, :todo_list, :scanned_documents)
-      @page.photos.detach
-      @page.destroy!
-      normalize_page_positions!(source_chapter)
+    with_deferred_drive_record_export(entry) do
+      Page.transaction do
+        entry.save!
+        attach_pending_photos(entry)
+        move_voice_notes_to_notepad(entry)
+        move_todo_list_to_notepad(entry)
+        move_scanned_documents_to_notepad(entry)
+        reset_moved_associations!(@page, :voice_notes, :todo_list, :scanned_documents)
+        @page.photos.detach
+        @page.destroy!
+        normalize_page_positions!(source_chapter)
+      end
     end
-
-    schedule_drive_export(entry)
 
     redirect_to notepad_entry_path(entry),
       notice: "Page moved to notepad for #{entry.entry_date.strftime("%b %-d, %Y")}."

@@ -282,11 +282,16 @@ class PageEnhancementsFlowTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to notebook_chapter_page_path(notebook, chapter, page)
+    scanned_document.reload
+    assert_equal "Total: 42.00", scanned_document.extracted_text
+    assert_equal "tesseract", scanned_document.ocr_engine
+    assert_equal "eng", scanned_document.ocr_language
+    assert_in_delta 88.0, scanned_document.ocr_confidence, 0.001
 
     follow_redirect!
 
     assert_response :success
-    assert_select ".sdoc-excerpt", text: /Total: 42.00/
+    assert_select ".sdoc-excerpt", text: /Open the PDF to review this scanned document\./
   end
 
   test "user can store a native OCR result on a saved page scan" do

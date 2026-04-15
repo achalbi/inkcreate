@@ -41,13 +41,22 @@ module Api
 
       def export_to_drive
         capture = current_user.captures.find(params[:id])
-        unless current_user.ensure_app_setting!.include_photos_in_backups?
-          return render json: { error: "Photo backups are turned off in Privacy settings." }, status: :forbidden
+        result = Backups::ScheduleCaptureBackup.new(capture:, user: current_user).call
+        unless result.scheduled?
+          status =
+            if result.skip_reason == "media_backups_disabled"
+              :forbidden
+            else
+              :unprocessable_entity
+            end
+
+          return render json: {
+            error: Backups::ScheduleCaptureBackup.message_for(result.skip_reason),
+            reason: result.skip_reason
+          }, status: status
         end
 
-        backup_record = Backups::ScheduleCaptureBackup.new(capture:, user: current_user).call
-
-        render json: { backup_record_id: backup_record.id }, status: :accepted
+        render json: { backup_record_id: result.backup_record.id }, status: :accepted
       end
 
       def generate_summary

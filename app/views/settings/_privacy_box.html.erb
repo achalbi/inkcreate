@@ -25,8 +25,8 @@
         </section>
 
         <section class="border rounded-4 p-3 bg-light-subtle">
-          <div class="fw-semibold mb-1">Include photos in Drive backups</div>
-          <div class="text-secondary small mb-3">Notebook and Notepad Drive exports can still write notes and metadata while leaving attached photos out.</div>
+          <div class="fw-semibold mb-1">Include media files in Drive backups</div>
+          <div class="text-secondary small mb-3">Notebook and Notepad Drive exports can still write notes and metadata while leaving photos, voice notes, and scanned-document files out.</div>
           <%= form.select :include_photos_in_backups,
             options_for_select(boolean_options, privacy_options["include_photos_in_backups"]),
             {},

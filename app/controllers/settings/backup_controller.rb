@@ -4,23 +4,22 @@ module Settings
     before_action :load_backup_settings
 
     def show
-      redirect_to settings_path
     end
 
     def update
       previously_enabled = @app_setting.google_drive_backup?
 
       if enabling_google_drive_backup? && !current_user.google_drive_connected?
-        return redirect_to(settings_path, alert: "Connect Google Drive before enabling Drive backups.")
+        return redirect_to(settings_backup_path, alert: "Connect Google Drive before enabling Drive backups.")
       end
 
       if enabling_google_drive_backup? && current_user.google_drive_folder_id.blank?
-        return redirect_to(settings_path, alert: "Create or choose a Google Drive folder before enabling backups.")
+        return redirect_to(settings_backup_path, alert: "Create or choose a Google Drive folder before enabling backups.")
       end
 
       current_user.ensure_app_setting!.update!(backup_params)
       schedule_backfill_if_needed(previously_enabled)
-      redirect_to settings_path, notice: "Backup settings updated."
+      redirect_to settings_backup_path, notice: "Backup settings updated."
     end
 
     private
@@ -28,6 +27,7 @@ module Settings
     def load_backup_settings
       @app_setting = current_user.ensure_app_setting!
       @backup_records = current_user.backup_records.recent_first.limit(20)
+      @record_exports = current_user.google_drive_exports.includes(:exportable).recent_first.limit(20)
       @settings_user = current_user.dup
       @detected_time_zone_name = canonical_time_zone_name(browser_time_zone_name.presence)
       @selected_time_zone = @detected_time_zone_name || canonical_time_zone_name(current_user.time_zone)
@@ -53,6 +53,8 @@ module Settings
     end
 
     def canonical_time_zone_name(zone_name)
+      return if zone_name.blank?
+
       ActiveSupport::TimeZone[zone_name]&.tzinfo&.name || zone_name.presence
     end
   end

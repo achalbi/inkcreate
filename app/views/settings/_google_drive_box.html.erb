@@ -47,7 +47,7 @@
       <%= render "shared/inline_alert",
         type: :info,
         title: "Each user connects their own Drive",
-        message: "When Drive backup is enabled, Notebook pages and Notepad pages export their notes plus attached photos into that user's selected Drive folder." %>
+        message: "When Drive backup is enabled, Notebook pages and Notepad pages export structured record packages, and Capture backups export full capture packages with the source image, OCR and AI outputs, attachments, tasks, revisions, and links into that user's selected Drive folder." %>
 
       <div class="vstack gap-3 mb-4">
         <div class="border rounded-4 p-3 bg-light-subtle">
@@ -80,8 +80,9 @@
         </div>
       </div>
 
-      <% if connected && detailed %>
+      <% if connected %>
         <%= form_with url: settings_drive_connection_path, method: :patch, scope: :drive_connection, class: "row g-3 align-items-end mb-4" do |form| %>
+          <%= hidden_field_tag :return_to, request.path %>
           <div class="col-12">
             <%= form.label :folder_reference, "Drive folder link or ID", class: "form-label" %>
             <%= form.text_field :folder_reference,
@@ -98,16 +99,23 @@
 
       <div class="settings-drive-actions d-flex flex-wrap gap-2">
         <% if connected %>
-          <% if detailed %>
-            <%= button_to "Create Inkcreate folder", create_folder_settings_drive_connection_path, method: :post, class: "btn btn-outline-primary", form_class: "d-inline-flex" %>
-          <% end %>
+          <%= button_to "Create Inkcreate folder",
+            create_folder_settings_drive_connection_path,
+            method: :post,
+            params: { return_to: request.path },
+            class: "btn btn-outline-primary",
+            form_class: "d-inline-flex" %>
           <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#<%= disconnect_modal_id %>">
             Remove connection from Google Drive
           </button>
         <% else %>
           <%= button_to "Connect Google Drive",
-            settings_drive_connection_path(popup: true),
+            settings_drive_connection_path,
             method: :post,
+            params: {
+              popup: true,
+              return_to: request.path
+            },
             class: "btn btn-primary",
             form: {
               class: "d-inline-flex",
@@ -142,6 +150,7 @@
                 <%= button_to "Remove connection",
                   settings_drive_connection_path,
                   method: :delete,
+                  params: { return_to: request.path },
                   class: "btn btn-danger btn-sm",
                   form_class: "d-inline-flex" %>
               </div>

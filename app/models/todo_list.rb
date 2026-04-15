@@ -1,4 +1,6 @@
 class TodoList < ApplicationRecord
+  include DriveRecordExportableChange
+
   belongs_to :page, optional: true
   belongs_to :notepad_entry, optional: true
   has_many :todo_items, -> { order(position: :asc, created_at: :asc) }, dependent: :destroy
@@ -37,6 +39,10 @@ class TodoList < ApplicationRecord
   end
 
   private
+
+  def drive_record_export_owner
+    owner
+  end
 
   def normalize_booleans
     self.enabled = true if enabled.nil?

@@ -1,4 +1,6 @@
 class Reminder < ApplicationRecord
+  include DriveRecordExportableChange
+
   attr_accessor :fire_at_local, :snooze_until_local
 
   enum :status, {
@@ -108,5 +110,11 @@ class Reminder < ApplicationRecord
     return if fire_at.blank?
 
     Async::Dispatcher.enqueue_reminder(id, fire_at: fire_at)
+  end
+
+  def drive_record_export_owner
+    return unless target.is_a?(TodoItem)
+
+    target.owner
   end
 end
