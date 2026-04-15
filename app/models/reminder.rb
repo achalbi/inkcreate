@@ -50,7 +50,7 @@ class Reminder < ApplicationRecord
   end
 
   def destination_path
-    return Rails.application.routes.url_helpers.edit_reminder_path(self) if standalone?
+    return Rails.application.routes.url_helpers.reminder_path(self) if standalone?
 
     if target.is_a?(TodoItem)
       owner = target.todo_list.owner
@@ -64,7 +64,7 @@ class Reminder < ApplicationRecord
       end
     end
 
-    Rails.application.routes.url_helpers.edit_reminder_path(self)
+    Rails.application.routes.url_helpers.reminder_path(self)
   end
 
   def dismiss!

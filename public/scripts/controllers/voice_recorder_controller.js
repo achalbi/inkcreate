@@ -35,6 +35,7 @@ export default class extends Controller {
   };
 
   connect() {
+    this.isSaving = false;
     this.pendingRecording = null;
     this.pendingFormRecordings = [];
     this.recordingChunks = [];
@@ -53,6 +54,10 @@ export default class extends Controller {
   }
 
   async start() {
+    if (this.isSaving) {
+      return;
+    }
+
     this.expandPanel();
 
     if (!this.canRecordInBrowser()) {
@@ -85,6 +90,11 @@ export default class extends Controller {
   }
 
   async selectFallbackRecording(event) {
+    if (this.isSaving) {
+      event.target.value = "";
+      return;
+    }
+
     const file = event.target.files?.[0];
     event.target.value = "";
 
@@ -130,33 +140,43 @@ export default class extends Controller {
   }
 
   async save() {
-    if (!this.pendingRecording) {
+    if (!this.pendingRecording || this.isSaving) {
       return;
     }
 
-    if (this.hasCreateUrlValue) {
-      await this.uploadPendingRecording();
-      return;
-    }
+    this.isSaving = true;
+    this.syncActionState();
 
-    if (this.modeValue === "form") {
-      this.pendingFormRecordings.push(this.pendingRecording);
-
-      if (this.autoSubmitOnSaveValue) {
-        this.syncPendingFormRecordings();
-        this.setFeedback("Saving your voice note...");
-        this.discard();
-        this.submitClosestForm();
+    try {
+      if (this.hasCreateUrlValue) {
+        this.setFeedback("Saving voice note...");
+        await this.uploadPendingRecording();
         return;
       }
 
-      this.renderPendingRecordings();
-      this.setFeedback("Voice note added to this form.");
-      this.discard();
-      return;
-    }
+      if (this.modeValue === "form") {
+        this.pendingFormRecordings.push(this.pendingRecording);
 
-    await this.uploadPendingRecording();
+        if (this.autoSubmitOnSaveValue) {
+          this.syncPendingFormRecordings();
+          this.setFeedback("Saving your voice note...");
+          this.discard();
+          this.submitClosestForm();
+          return;
+        }
+
+        this.renderPendingRecordings();
+        this.setFeedback("Voice note added to this form.");
+        this.discard();
+        return;
+      }
+
+      this.setFeedback("Saving voice note...");
+      await this.uploadPendingRecording();
+    } finally {
+      this.isSaving = false;
+      this.syncActionState();
+    }
   }
 
   removePending(event) {
@@ -363,6 +383,7 @@ export default class extends Controller {
         throw new Error(payload.error || "Voice note could not be saved.");
       }
 
+      this.discard();
       window.location.reload();
     } catch (error) {
       this.setFeedback(error.message || "Voice note could not be saved right now.");
@@ -374,6 +395,7 @@ export default class extends Controller {
     if (this.hasStopButtonTarget) this.stopButtonTarget.hidden = false;
     if (this.hasLiveTarget) this.liveTarget.hidden = false;
     if (this.hasPreviewTarget) this.previewTarget.hidden = true;
+    this.syncActionState();
   }
 
   renderStoppingState() {
@@ -392,6 +414,7 @@ export default class extends Controller {
     if (this.hasPreviewTarget) this.previewTarget.hidden = false;
     if (this.hasSaveButtonTarget) this.saveButtonTarget.hidden = false;
     if (this.hasDiscardButtonTarget) this.discardButtonTarget.hidden = false;
+    this.syncActionState();
   }
 
   renderIdleState() {
@@ -405,6 +428,7 @@ export default class extends Controller {
     if (this.hasSaveButtonTarget) this.saveButtonTarget.hidden = true;
     if (this.hasDiscardButtonTarget) this.discardButtonTarget.hidden = true;
     if (this.hasTimerTarget) this.timerTarget.textContent = "00:00";
+    this.syncActionState();
   }
 
   canRecordInBrowser() {
@@ -528,5 +552,12 @@ export default class extends Controller {
     }
 
     return "Microphone access could not be started right now.";
+  }
+
+  syncActionState() {
+    if (this.hasStartButtonTarget) this.startButtonTarget.disabled = this.isSaving;
+    if (this.hasSaveButtonTarget) this.saveButtonTarget.disabled = this.isSaving;
+    if (this.hasDiscardButtonTarget) this.discardButtonTarget.disabled = this.isSaving;
+    if (this.hasFallbackInputTarget) this.fallbackInputTarget.disabled = this.isSaving;
   }
 }

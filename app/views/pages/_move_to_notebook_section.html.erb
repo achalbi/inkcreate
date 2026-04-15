@@ -32,9 +32,9 @@
   <div class="col-12">
     <div class="ibox notepad-entry-move-shell page-move-shell">
       <div class="ibox-title">
-        <h5>Move to notebook</h5>
+        <h5>Move page</h5>
         <div class="ibox-tools">
-          <span class="label label-warning">Page transfer</span>
+          <span class="label label-default">Page transfer</span>
         </div>
       </div>
       <div class="ibox-content">
@@ -237,8 +237,31 @@
             <%= render "shared/inline_alert",
               type: :info,
               title: "Create another chapter first",
-              body: "You can move this page once another notebook chapter exists in your workspace." %>
+              body: "You can move this page into another notebook chapter once one exists in your workspace." %>
           <% end %>
+        </section>
+
+        <% move_to_notepad_date = page.captured_on || Time.zone.today %>
+
+        <hr>
+
+        <section class="notepad-entry-move-panel">
+          <div class="notepad-entry-move-panel__header">
+            <div>
+              <h6 class="notepad-entry-move-panel__title">Move this page into notepad</h6>
+              <p class="notepad-entry-move-panel__description">Create a notepad entry dated <%= move_to_notepad_date.strftime("%b %-d, %Y") %> and keep the current notes, photos, voice notes, scans, and checklist together.</p>
+            </div>
+          </div>
+
+          <div class="workspace-form-actions notepad-entry-move-panel__actions">
+            <%= button_tag "Move to notepad",
+              type: "submit",
+              name: "intent",
+              value: "move_to_notepad",
+              form: move_form_id,
+              class: "btn btn-white btn-sm notepad-entry-move-button",
+              data: { disable_with: "Moving..." } %>
+          </div>
         </section>
       </div>
     </div>

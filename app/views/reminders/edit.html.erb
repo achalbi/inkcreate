@@ -1,13 +1,10 @@
-<%= render "shared/workspace_header",
+<!-- <%= render "shared/workspace_header",
   breadcrumbs: [["Home", dashboard_path], "Reminder"],
   eyebrow: "Reminder",
   title: @reminder.title,
-  description: "Update the reminder time, note, or destination." %>
+  description: "Update the reminder time, note, or destination." %> -->
 
-<%
-  reminder_form_id = dom_id(@reminder, :form)
-  show_open_source = @reminder.persisted? && !@reminder.standalone?
-%>
+<% reminder_form_id = dom_id(@reminder, :form) %>
 
 <div class="wrapper wrapper-content animated fadeInRight">
   <section class="ibox">
@@ -20,44 +17,18 @@
           <%= render "form",
             reminder: @reminder,
             form_id: reminder_form_id,
-            show_actions: false,
-            show_open_source: show_open_source %>
+            show_actions: false %>
 
           <div class="reminder-edit-actions m-t-md">
-            <% if show_open_source %>
-              <%= button_tag "Save reminder",
-                type: :submit,
-                form: reminder_form_id,
-                class: "btn btn-primary btn-sm reminder-edit-actions__button" %>
+            <%= button_tag "Save reminder",
+              type: :submit,
+              form: reminder_form_id,
+              class: "btn btn-primary btn-sm reminder-edit-actions__button" %>
 
-              <%= link_to "Open source",
-                @reminder.destination_path,
-                class: "btn btn-outline-secondary btn-sm reminder-edit-actions__button" %>
-            <% else %>
-              <%= button_to "Delete reminder",
-                reminder_path(@reminder),
-                method: :delete,
-                class: "btn btn-outline-danger btn-sm reminder-edit-actions__button",
-                form_class: "reminder-edit-actions__form",
-                form: { onsubmit: "return confirm('Delete this reminder?');" } %>
-
-              <%= button_tag "Save reminder",
-                type: :submit,
-                form: reminder_form_id,
-                class: "btn btn-primary btn-sm reminder-edit-actions__button" %>
-            <% end %>
+            <%= link_to "Cancel",
+              reminder_path(@reminder),
+              class: "btn btn-white btn-sm reminder-edit-actions__button" %>
           </div>
-
-          <% if show_open_source %>
-            <div class="reminder-edit-actions reminder-edit-actions--secondary">
-              <%= button_to "Delete reminder",
-                reminder_path(@reminder),
-                method: :delete,
-                class: "btn btn-outline-danger btn-sm reminder-edit-actions__button",
-                form_class: "reminder-edit-actions__form reminder-edit-actions__form--full",
-                form: { onsubmit: "return confirm('Delete this reminder?');" } %>
-            </div>
-          <% end %>
         </div>
         <div class="col-lg-5">
           <div class="border rounded-4 p-3 bg-light-subtle reminder-edit-status">

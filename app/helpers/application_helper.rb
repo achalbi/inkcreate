@@ -18,7 +18,10 @@ module ApplicationHelper
   end
 
   def reminder_fire_at_local_value(reminder)
-    reminder.fire_at&.in_time_zone&.strftime("%Y-%m-%dT%H:%M")
+    return reminder.fire_at.in_time_zone.strftime("%Y-%m-%dT%H:%M") if reminder.fire_at.present?
+    return unless reminder.new_record? && reminder.errors.empty?
+
+    1.hour.from_now.in_time_zone.strftime("%Y-%m-%dT%H:%M")
   end
 
   def voice_note_duration_label(duration_seconds)

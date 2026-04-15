@@ -27,19 +27,39 @@
   pct = total.zero? ? 0 : (done_count.to_f / total * 100).round
   list_intro = filter_copy[:description]
   list_intro = "#{list_intro} Filtered by ##{@tag_filter}." if @tag_filter.present?
+
+  sort_options = [
+    ["manual", "Recent first", "Keep the latest task updates nearest the top."],
+    ["priority", "Priority", "Surface urgent and high-priority work before the rest."],
+    ["due", "Due date", "Pull deadlines and time-sensitive tasks forward."],
+    ["created", "Created", "Review tasks in the order they were captured."]
+  ]
+
+  group_options = [
+    ["none", "None", "Show one continuous task list without grouping."],
+    ["priority", "Priority", "Cluster tasks by urgency level."],
+    ["severity", "Severity", "Group by impact so blockers stand out faster."],
+    ["due", "Due date", "Separate tasks by their deadline window."]
+  ]
+
+  current_sort_label = sort_options.find { |value, _, _| value == @tasks_sort }&.at(1) || "Recent first"
+  current_group_label = group_options.find { |value, _, _| value == @tasks_group }&.at(1) || "None"
 %>
 
 <%= render "shared/workspace_header",
-  breadcrumbs: [["Home", dashboard_path], "Tasks"],
+  # breadcrumbs: [["Home", dashboard_path], "Tasks"],
   eyebrow: "Tasks",
   title: "Keep follow-up work visible across notebooks and days.",
-  description: "Standalone work, promoted page to-dos, reminders, and linked context all stay in one shared task workspace." %>
+  description: "Standalone work, promoted page to-dos, reminders, and linked context all stay in one shared task workspace." %> 
 
 <div class="wrapper wrapper-content animated fadeInRight"
      data-controller="task-manager"
      data-task-manager-filter-value="<%= @tasks_filter %>">
 
-  <div class="workspace-index-actions task-index-actions">
+  <div class="workspace-index-actions task-index-actions"
+       data-controller="section-shortcuts"
+       data-section-shortcuts-collapse-threshold-value="56"
+       data-section-shortcuts-target="rail">
     <div class="workspace-index-actions__left">
       <div class="workspace-index-controls">
         <div class="task-filter-tabs" role="tablist" aria-label="Task filters">
@@ -54,7 +74,8 @@
               class: ["task-filter-tab", ("active" if @tasks_filter == filter)].compact.join(" "),
               role: "tab",
               aria: { selected: (@tasks_filter == filter) } do %>
-              <%= label %> <span class="task-filter-tab-count"><%= count %></span>
+              <span class="task-filter-tab-label"><%= label %></span>
+              <span class="task-filter-tab-count"><%= count %></span>
             <% end %>
           <% end %>
         </div>
@@ -67,39 +88,84 @@
             <% end %>
           </span>
         <% end %>
+
+        <div class="task-index-actions__right">
+          <button
+            type="button"
+            class="btn btn-primary btn-sm d-none d-md-inline-flex"
+            data-action="task-manager#openQuickAdd"
+            aria-label="New task"
+          >
+            <i class="ti ti-plus" aria-hidden="true"></i>
+            New task
+          </button>
+
+          <div class="task-index-selectors">
+            <div class="dropdown notepad-entry-move-modal__dropdown task-toolbar-dropdown">
+              <button
+                id="tasks_sort_dropdown"
+                type="button"
+                class="btn btn-white dropdown-toggle notepad-entry-move-modal__dropdown-toggle task-toolbar-dropdown__toggle"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+              >
+                <span class="task-toolbar-dropdown__label">Sort</span>
+                <span class="task-toolbar-dropdown__value"><%= current_sort_label %></span>
+              </button>
+              <div
+                class="dropdown-menu w-100 notepad-entry-move-modal__dropdown-menu task-toolbar-dropdown__menu"
+                aria-labelledby="tasks_sort_dropdown"
+              >
+                <% sort_options.each do |value, label, meta| %>
+                  <%= link_to tasks_path(filter: @tasks_filter, sort: value, group: @tasks_group, tag: @tag_filter),
+                    class: ["dropdown-item", "notepad-entry-move-modal__dropdown-item", ("active" if @tasks_sort == value)].compact.join(" ") do %>
+                    <span class="notepad-entry-move-modal__dropdown-item-title"><%= label %></span>
+                    <span class="notepad-entry-move-modal__dropdown-item-meta"><%= meta %></span>
+                  <% end %>
+                <% end %>
+              </div>
+            </div>
+
+            <div class="dropdown notepad-entry-move-modal__dropdown task-toolbar-dropdown">
+              <button
+                id="tasks_group_dropdown"
+                type="button"
+                class="btn btn-white dropdown-toggle notepad-entry-move-modal__dropdown-toggle task-toolbar-dropdown__toggle"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+              >
+                <span class="task-toolbar-dropdown__label">Group</span>
+                <span class="task-toolbar-dropdown__value"><%= current_group_label %></span>
+              </button>
+              <div
+                class="dropdown-menu w-100 notepad-entry-move-modal__dropdown-menu task-toolbar-dropdown__menu"
+                aria-labelledby="tasks_group_dropdown"
+              >
+                <% group_options.each do |value, label, meta| %>
+                  <%= link_to tasks_path(filter: @tasks_filter, sort: @tasks_sort, group: value, tag: @tag_filter),
+                    class: ["dropdown-item", "notepad-entry-move-modal__dropdown-item", ("active" if @tasks_group == value)].compact.join(" ") do %>
+                    <span class="notepad-entry-move-modal__dropdown-item-title"><%= label %></span>
+                    <span class="notepad-entry-move-modal__dropdown-item-meta"><%= meta %></span>
+                  <% end %>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-
-    <div class="task-index-actions__right">
-      <button
-        type="button"
-        class="btn btn-primary btn-sm d-none d-md-inline-flex"
-        data-action="task-manager#openQuickAdd"
-        aria-label="New task"
-      >
-        <i class="ti ti-plus" aria-hidden="true"></i>
-        New task
-      </button>
-
-      <%= form_with url: tasks_path, method: :get, class: "task-sort-form", data: { action: "change->task-manager#submitSortForm" } do |f| %>
-        <%= f.hidden_field :filter, value: @tasks_filter %>
-        <%= f.hidden_field :group, value: @tasks_group %>
-        <%= f.hidden_field :tag, value: @tag_filter %>
-        <%= f.select :sort,
-          [["Sort: Recent first", "manual"], ["Sort: Priority", "priority"], ["Sort: Due date", "due"], ["Sort: Created", "created"]],
-          { selected: @tasks_sort },
-          class: "task-meta-select" %>
-      <% end %>
-
-      <%= form_with url: tasks_path, method: :get, class: "task-sort-form", data: { action: "change->task-manager#submitGroupForm" } do |f| %>
-        <%= f.hidden_field :filter, value: @tasks_filter %>
-        <%= f.hidden_field :sort, value: @tasks_sort %>
-        <%= f.hidden_field :tag, value: @tag_filter %>
-        <%= f.select :group,
-          [["Group: None", "none"], ["Group: Priority", "priority"], ["Group: Severity", "severity"], ["Group: Due date", "due"]],
-          { selected: @tasks_group },
-          class: "task-meta-select" %>
-      <% end %>
+    <div class="task-completion-overview"
+         aria-label="Task completion"
+         data-section-shortcuts-target="collapseOnDock">
+      <div class="task-completion-overview__copy">
+        <span><%= done_count %> of <%= total %> tasks completed</span>
+      </div>
+      <div class="task-progress-row">
+        <div class="task-progress-bar" role="progressbar" aria-valuenow="<%= done_count %>" aria-valuemax="<%= [total, 1].max %>">
+          <div class="task-progress-fill" style="width: <%= pct %>%"></div>
+        </div>
+        <span class="task-progress-label"><%= pct %>%</span>
+      </div>
     </div>
   </div>
 
@@ -165,19 +231,6 @@
         <% end %>
       </div>
     </section>
-  </div>
-
-  <div class="task-completion-overview" aria-label="Task completion">
-    <div class="task-completion-overview__copy">
-      <span>Completion</span>
-      <span><%= done_count %> of <%= total %> tasks finished</span>
-    </div>
-    <div class="task-progress-row">
-      <div class="task-progress-bar" role="progressbar" aria-valuenow="<%= done_count %>" aria-valuemax="<%= [total, 1].max %>">
-        <div class="task-progress-fill" style="width: <%= pct %>%"></div>
-      </div>
-      <span class="task-progress-label"><%= pct %>%</span>
-    </div>
   </div>
 
   <section class="ibox float-e-margins">

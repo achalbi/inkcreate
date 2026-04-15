@@ -1,24 +1,52 @@
 <%
   header_spacing_class = local_assigns[:spacing_class].presence || "mb-3 mb-lg-4"
-  header_classes = ["workspace-header", header_spacing_class, local_assigns[:class_name]].compact.join(" ")
+  has_description = description.present?
+  has_action = local_assigns[:action_path].present? && local_assigns[:action_label].present?
+  eyebrow_path = local_assigns[:eyebrow_path]
+  header_classes = ["workspace-header", header_spacing_class, local_assigns[:class_name], ("workspace-header--with-info" if has_description), ("workspace-header--with-action" if has_action)].compact.join(" ")
+  lead_id = has_description ? "workspace-page-lead-#{SecureRandom.hex(6)}" : nil
+  top_classes = ["workspace-header__top", ("workspace-header__top--with-action" if has_action)].compact.join(" ")
+  copy_classes = ["workspace-header__copy", "min-w-0", ("workspace-header__copy--with-info" if has_description)].compact.join(" ")
 %>
 
 <%= render "shared/workspace_breadcrumbs", items: local_assigns[:breadcrumbs], class_name: local_assigns[:breadcrumb_class_name] if local_assigns[:breadcrumbs].present? %>
 
 <section class="<%= header_classes %>">
-  <div class="d-flex flex-column flex-lg-row align-items-lg-start justify-content-between gap-3">
-    <div class="min-w-0">
+  <% if has_description %>
+    <button type="button"
+            class="btn btn-sm btn-icon notebook-overview-edit-button workspace-header__info-toggle collapsed"
+            title="Toggle description"
+            aria-label="Toggle page description"
+            aria-expanded="false"
+            aria-controls="<%= lead_id %>"
+            data-bs-toggle="collapse"
+            data-bs-target="#<%= lead_id %>">
+      <i class="ti ti-info-circle" aria-hidden="true"></i>
+    </button>
+  <% end %>
+
+  <div class="<%= top_classes %>">
+    <div class="<%= copy_classes %>">
       <% if eyebrow.present? %>
-        <div class="text-uppercase text-secondary fw-semibold"><%= eyebrow.to_s %></div>
+        <% if eyebrow_path.present? %>
+          <%= link_to eyebrow.to_s, eyebrow_path, class: "text-uppercase text-secondary fw-semibold text-decoration-none" %>
+        <% else %>
+          <div class="text-uppercase text-secondary fw-semibold"><%= eyebrow.to_s %></div>
+        <% end %>
       <% end %>
       <h1 class="fs-1 mb-2"><%= title %></h1>
-      <p class="text-secondary mb-0 workspace-page-lead"><%= description %></p>
     </div>
 
-    <% if local_assigns[:action_path].present? && local_assigns[:action_label].present? %>
-      <div class="d-flex flex-shrink-0">
+    <% if has_action %>
+      <div class="workspace-header__actions d-flex flex-shrink-0">
         <%= link_to action_label, action_path, class: "btn btn-primary" %>
       </div>
     <% end %>
   </div>
+
+  <% if has_description %>
+    <div id="<%= lead_id %>" class="workspace-header__lead collapse">
+      <p class="text-secondary mb-0 workspace-page-lead"><%= description %></p>
+    </div>
+  <% end %>
 </section>

@@ -68,28 +68,87 @@ class RemindersSystemTest < ApplicationSystemTestCase
 
     assert_equal 1, deliveries.size
     assert_equal reminder.title, deliveries.first[:payload][:title]
-    assert_equal edit_reminder_path(reminder), deliveries.first[:payload][:url]
+    assert_equal reminder_path(reminder), deliveries.first[:payload][:url]
     assert_equal "Standalone", deliveries.first[:payload][:source]
   end
 
-  test "user confirms reminder dismissal through the modal" do
-    user = build_user(email: "dismiss-reminder-system@example.com")
+  test "user can open reminder details from the reminders list" do
+    user = build_user(email: "open-reminder-system@example.com")
     reminder = user.reminders.create!(title: "Pay rent", fire_at: 2.hours.from_now.change(sec: 0))
 
     sign_in_as(user)
     visit reminders_path
 
-    click_button "Dismiss"
+    click_link "Pay rent"
 
-    within "#reminderDismissConfirmModal" do
-      assert_text "Dismiss reminder?"
-      assert_text "\"Pay rent\" will move to reminder history and stop sending notifications."
-      click_button "Dismiss reminder"
+    assert_current_path reminder_path(reminder), wait: 10
+    assert_text "Reminder overview"
+    assert_link "Edit", href: edit_reminder_path(reminder)
+    assert_button "Snooze"
+    click_button "Delete"
+
+    within "#reminderDeleteConfirmModal.show" do
+      assert_text "Delete reminder?"
+      assert_text "\"Pay rent\" will be removed permanently."
+      click_button "Cancel"
     end
 
-    assert_text "Reminder dismissed.", wait: 10
-    assert_text "Reminder history"
-    assert_equal "dismissed", reminder.reload.status
+    assert_no_selector "#reminderDeleteConfirmModal.show", wait: 10
+
+    click_button "Delete"
+
+    within "#reminderDeleteConfirmModal.show" do
+      click_button "Delete"
+    end
+
+    assert_current_path reminders_path, wait: 10
+    assert_text "Reminder deleted."
+  end
+
+  test "user can expand and collapse the shared workspace header description" do
+    user = build_user(email: "workspace-header-system@example.com")
+
+    sign_in_as(user)
+    visit dashboard_path
+
+    assert_no_text "Notebook keeps project-based material structured by chapter and page."
+    assert_selector "button[aria-label='Toggle page description']"
+
+    find("button[aria-label='Toggle page description']").click
+
+    assert_text "Notebook keeps project-based material structured by chapter and page."
+
+    find("button[aria-label='Toggle page description']").click
+
+    assert_no_text "Notebook keeps project-based material structured by chapter and page."
+  end
+
+  test "user can snooze a reminder from the preset modal" do
+    user = build_user(email: "snooze-reminder-system@example.com")
+
+    travel_to Time.zone.local(2026, 4, 15, 9, 0, 0) do
+      reminder = user.reminders.create!(title: "Stretch break", fire_at: 5.minutes.from_now.change(sec: 0))
+
+      sign_in_as(user)
+      visit reminders_path
+
+      within find(".notebook-list-card--reminder", text: "Stretch break") do
+        find("button[aria-label='Snooze reminder']").click
+      end
+
+      assert_selector "#reminderSnoozeModal.show", wait: 10
+
+      within "#reminderSnoozeModal.show" do
+        assert_text 'Choose how long to snooze "Stretch break".'
+        click_button "15 min"
+      end
+
+      assert_text "Reminder snoozed.", wait: 10
+      assert_current_path reminders_path
+      assert_equal "snoozed", reminder.reload.status
+      assert_equal Time.zone.local(2026, 4, 15, 9, 15, 0).to_i, reminder.fire_at.to_i
+      assert_equal reminder.fire_at.to_i, reminder.snooze_until.to_i
+    end
   end
 
   private

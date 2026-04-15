@@ -3,7 +3,20 @@
   voice_notes_available = VoiceNote.schema_ready?
   voice_note_count = voice_notes_available ? @page.voice_notes.size : 0
   move_form_id = dom_id(@page, :move_form)
+  overview_section_id = dom_id(@page, :overview_section)
+  photos_section_id = dom_id(@page, :photos_section)
+  voice_notes_section_id = dom_id(@page, :voice_notes_section)
+  todo_list_section_id = dom_id(@page, :todo_list_section)
+  scanned_documents_section_id = dom_id(@page, :scanned_documents_section)
   move_to_notebook_section_id = dom_id(@page, :move_to_notebook_section)
+  section_shortcuts = [
+    { label: "Overview", short_label: "Overview", icon: "ti-file-text", target: overview_section_id },
+    { label: "Photos", short_label: "Photos", icon: "ti-photo", target: photos_section_id }
+  ]
+  section_shortcuts << { label: "Voice notes", short_label: "Voice", icon: "ti-microphone", target: voice_notes_section_id } if voice_notes_available
+  section_shortcuts << { label: "To-do list", short_label: "To-do", icon: "ti-checkbox", target: todo_list_section_id } if todo_lists_available
+  section_shortcuts << { label: "Scanned documents", short_label: "Scans", icon: "ti-scan", target: scanned_documents_section_id }
+  section_shortcuts << { label: "Move to notebook", short_label: "Move", icon: "ti-arrows-transfer-up-down", target: move_to_notebook_section_id }
   todo_progress_label = if todo_lists_available && @page.todo_list&.enabled?
     "#{@page.todo_list.completed_count}/#{@page.todo_list.total_count} to-dos"
   end
@@ -13,7 +26,27 @@
   <%= render "shared/workspace_breadcrumbs",
     items: [["Home", dashboard_path], ["Notebook", notebooks_path], [@notebook.title, notebook_path(@notebook)], [@chapter.title, notebook_chapter_path(@notebook, @chapter)], @page.display_title] %>
 
-  <section class="ibox float-e-margins">
+  <nav class="detail-section-shortcuts" aria-label="Jump to page sections" data-controller="section-shortcuts">
+    <div class="detail-section-shortcuts__rail" data-section-shortcuts-target="rail">
+      <span class="detail-section-shortcuts__indicator" data-section-shortcuts-target="indicator" aria-hidden="true"></span>
+      <% section_shortcuts.each_with_index do |shortcut, index| %>
+        <a
+          href="#<%= shortcut[:target] %>"
+          class="detail-section-shortcut<%= " is-active" if index.zero? %>"
+          title="<%= shortcut[:label] %>"
+          aria-label="Jump to <%= shortcut[:label] %>"
+          <% if index.zero? %>aria-current="location"<% end %>
+          data-section-shortcuts-target="link"
+          data-action="click->section-shortcuts#markActive"
+        >
+          <i class="ti <%= shortcut[:icon] %>" aria-hidden="true"></i>
+          <span class="detail-section-shortcut__label"><%= shortcut[:short_label] %></span>
+        </a>
+      <% end %>
+    </div>
+  </nav>
+
+  <section id="<%= overview_section_id %>" class="ibox float-e-margins detail-section-anchor">
     <div class="ibox-title">
       <h5>Page overview</h5>
       <div class="ibox-tools">
@@ -61,28 +94,7 @@
   </section>
 
   <section class="row notes-gallery-row">
-    <% if voice_notes_available %>
-      <div class="col-12">
-        <%= render "pages/voice_notes_section", notebook: @notebook, chapter: @chapter, page: @page %>
-      </div>
-    <% end %>
-
-    <% if todo_lists_available %>
-      <div class="col-12">
-        <%= render "pages/todo_list_section", notebook: @notebook, chapter: @chapter, page: @page %>
-      </div>
-    <% else %>
-      <div class="col-12">
-        <%= render "pages/todo_list_unavailable_section" %>
-      </div>
-    <% end %>
-
-    <div class="col-12">
-      <%= render "pages/scanned_documents_section",
-            notebook: @notebook, chapter: @chapter, page: @page %>
-    </div>
-
-    <div class="col-12">
+    <div id="<%= photos_section_id %>" class="col-12 detail-section-anchor">
       <div class="ibox">
         <%= form_with model: [@notebook, @chapter, @page],
           data: { photo_capture_auto_save: true, controller: "photo-capture" },
@@ -145,6 +157,27 @@
           </div>
         <% end %>
       </div>
+    </div>
+
+    <% if voice_notes_available %>
+      <div class="col-12">
+        <%= render "pages/voice_notes_section", notebook: @notebook, chapter: @chapter, page: @page %>
+      </div>
+    <% end %>
+
+    <% if todo_lists_available %>
+      <div class="col-12">
+        <%= render "pages/todo_list_section", notebook: @notebook, chapter: @chapter, page: @page %>
+      </div>
+    <% else %>
+      <div class="col-12">
+        <%= render "pages/todo_list_unavailable_section" %>
+      </div>
+    <% end %>
+
+    <div class="col-12">
+      <%= render "pages/scanned_documents_section",
+            notebook: @notebook, chapter: @chapter, page: @page %>
     </div>
   </section>
 

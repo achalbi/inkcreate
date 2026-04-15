@@ -2,17 +2,28 @@ module Pages
   class VoiceNotesController < BaseController
     def create
       upload = voice_note_params.fetch(:audio)
-      voice_note = @page.voice_notes.new(
-        duration_seconds: normalized_duration_seconds,
-        recorded_at: normalized_recorded_at,
-        byte_size: upload.size,
-        mime_type: upload.content_type.to_s
-      )
-      voice_note.audio.attach(upload)
-      voice_note.save!
+      duration_seconds = normalized_duration_seconds
+      recorded_at = normalized_recorded_at
+      byte_size = upload.size
+      mime_type = upload.content_type.to_s
+
+      voice_note = @page.with_lock do
+        find_duplicate_voice_note(
+          duration_seconds: duration_seconds,
+          recorded_at: recorded_at,
+          byte_size: byte_size,
+          mime_type: mime_type
+        ) || @page.voice_notes.create!(
+          audio: upload,
+          duration_seconds: duration_seconds,
+          recorded_at: recorded_at,
+          byte_size: byte_size,
+          mime_type: mime_type
+        )
+      end
 
       if request.format.json?
-        render json: { ok: true, message: "Voice note saved." }
+        render json: { ok: true, message: "Voice note saved.", id: voice_note.id }
       else
         redirect_to notebook_chapter_page_path(@notebook, @chapter, @page), notice: "Voice note saved."
       end
@@ -75,6 +86,15 @@ module Pages
       return transcript if transcript.present?
 
       raise ArgumentError, "Transcript text can't be blank."
+    end
+
+    def find_duplicate_voice_note(duration_seconds:, recorded_at:, byte_size:, mime_type:)
+      @page.voice_notes.find_by(
+        duration_seconds: duration_seconds,
+        recorded_at: recorded_at,
+        byte_size: byte_size,
+        mime_type: mime_type
+      )
     end
   end
 end

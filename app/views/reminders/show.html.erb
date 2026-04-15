@@ -1,0 +1,102 @@
+<%= render "shared/workspace_header",
+  # breadcrumbs: [["Home", dashboard_path], ["Reminders", reminders_path], @reminder.title],
+  eyebrow: "Reminder",
+  eyebrow_path: reminders_path,
+  title: @reminder.title,
+  description: "Review the reminder details, status, and note before making changes." %>
+
+<div class="wrapper wrapper-content animated fadeInRight">
+  <section class="ibox">
+    <div class="ibox-title">
+      <h5>Reminder overview</h5>
+      <div class="ibox-tools d-flex align-items-center gap-2">
+        <% if @reminder.status_pending? || @reminder.status_snoozed? %>
+          <%= button_tag "Snooze",
+            type: "button",
+            class: "btn btn-white btn-sm",
+            data: {
+              action: "reminder-snooze#open",
+              reminder_snooze_url: snooze_reminder_path(@reminder),
+              reminder_snooze_title: @reminder.title
+            } %>
+        <% end %>
+
+        <%= link_to "Edit",
+          edit_reminder_path(@reminder),
+          class: "btn btn-primary btn-sm" %>
+
+        <% unless @reminder.standalone? %>
+          <%= link_to "Go to source",
+            @reminder.destination_path,
+            class: "btn btn-white btn-sm" %>
+        <% end %>
+      </div>
+    </div>
+    <div class="ibox-content">
+      <div class="row g-4 align-items-start">
+        <div class="col-lg-7">
+          <div class="border rounded-4 p-3 bg-light-subtle">
+            <div class="text-uppercase text-secondary fw-semibold small mb-1">Note</div>
+            <div class="text-secondary">
+              <%= @reminder.note.present? ? simple_format(@reminder.note, {}, wrapper_tag: "div") : "No note added." %>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-5">
+          <div class="border rounded-4 p-3 bg-light-subtle reminder-edit-status">
+            <div class="text-uppercase text-secondary fw-semibold small mb-1">Status</div>
+            <div class="fw-semibold"><%= @reminder.status.humanize %></div>
+            <div class="text-secondary small mt-2">
+              <div><strong>When:</strong> <%= @reminder.fire_at.in_time_zone.strftime("%b %-d, %Y at %-I:%M %p") %></div>
+              <div><strong>Source:</strong> <%= reminder_source_label(@reminder) %></div>
+              <% if @reminder.last_triggered_at.present? %>
+                <div><strong>Last triggered:</strong> <%= @reminder.last_triggered_at.in_time_zone.strftime("%b %-d, %Y at %-I:%M %p") %></div>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="reminder-edit-actions reminder-edit-actions--secondary m-t-md">
+        <button
+          type="button"
+          class="btn btn-danger btn-sm reminder-edit-actions__button"
+          data-bs-toggle="modal"
+          data-bs-target="#reminderDeleteConfirmModal"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div
+  class="modal fade reminder-delete-confirm-modal"
+  id="reminderDeleteConfirmModal"
+  tabindex="-1"
+  aria-labelledby="reminderDeleteConfirmModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title" id="reminderDeleteConfirmModalLabel">Delete reminder?</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body pt-2">
+        <p class="mb-0 text-secondary">
+          "<%= @reminder.title %>" will be removed permanently.
+        </p>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <form action="<%= reminder_path(@reminder) %>" method="post">
+          <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+          <input type="hidden" name="_method" value="delete">
+          <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+        </form>
+        <button type="button" class="btn btn-white btn-sm" data-bs-dismiss="modal">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>

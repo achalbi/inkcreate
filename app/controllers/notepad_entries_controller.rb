@@ -303,6 +303,7 @@ class NotepadEntriesController < BrowserController
       move_todo_list_to_page(page)
       persist_pending_scanned_documents(page, payloads: @notepad_entry.pending_scanned_document_payloads, user: current_user)
       move_scanned_documents_to_page(page)
+      reset_moved_associations!(@notepad_entry, :voice_notes, :todo_list, :scanned_documents)
       @notepad_entry.photos.detach
       @notepad_entry.destroy!
     end
@@ -384,6 +385,12 @@ class NotepadEntriesController < BrowserController
   def move_scanned_documents_to_page(page)
     @notepad_entry.scanned_documents.find_each do |scanned_document|
       scanned_document.update!(page: page, notepad_entry: nil)
+    end
+  end
+
+  def reset_moved_associations!(record, *association_names)
+    association_names.each do |association_name|
+      record.association(association_name).reset
     end
   end
 

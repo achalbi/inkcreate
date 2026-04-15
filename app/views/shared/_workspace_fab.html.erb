@@ -1,8 +1,9 @@
 <% http_method = local_assigns.fetch(:method, :get).to_sym %>
+<% class_name = ["workspace-fab", local_assigns[:class_name]].compact.join(" ") %>
 
 <% if http_method == :get %>
   <%= link_to path,
-    class: "workspace-fab d-lg-none",
+    class: "#{class_name} d-lg-none",
     title: title,
     aria: { label: title } do %>
     <i class="ti ti-plus" aria-hidden="true"></i>
@@ -10,7 +11,7 @@
 <% else %>
   <%= button_to path,
     method: http_method,
-    class: "workspace-fab",
+    class: class_name,
     form_class: "button_to workspace-fab-form d-lg-none",
     title: title,
     aria: { label: title } do %>

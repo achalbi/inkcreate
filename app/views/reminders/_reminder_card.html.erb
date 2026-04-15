@@ -14,11 +14,14 @@
   <div class="text-secondary small mb-3"><%= reminder_source_label(reminder) %></div>
 
   <div class="d-flex flex-wrap gap-2">
-    <%= link_to "Edit", edit_reminder_path(reminder), class: "btn btn-outline-secondary btn-sm" %>
+    <%= link_to "View", reminder_path(reminder), class: "btn btn-primary btn-sm" %>
+    <% unless reminder.standalone? %>
+      <%= link_to "Open source", reminder.destination_path, class: "btn btn-white btn-sm" %>
+    <% end %>
     <% unless reminder.status_dismissed? || reminder.status_expired? %>
       <%= button_tag "Dismiss",
         type: "button",
-        class: "btn btn-outline-secondary btn-sm",
+        class: "btn btn-white btn-sm",
         data: {
           action: "reminder-dismiss-confirm#open",
           reminder_dismiss_url: dismiss_reminder_path(reminder),
@@ -26,7 +29,14 @@
         } %>
     <% end %>
     <% if reminder.status_pending? || reminder.status_snoozed? %>
-      <%= button_to "Snooze 10 min", snooze_reminder_path(reminder, minutes: 10), method: :patch, class: "btn btn-outline-secondary btn-sm", form_class: "d-inline-flex" %>
+      <%= button_tag "Snooze",
+        type: "button",
+        class: "btn btn-white btn-sm",
+        data: {
+          action: "reminder-snooze#open",
+          reminder_snooze_url: snooze_reminder_path(reminder),
+          reminder_snooze_title: reminder.title
+        } %>
     <% end %>
   </div>
 </article>

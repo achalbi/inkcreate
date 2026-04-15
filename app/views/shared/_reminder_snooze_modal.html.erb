@@ -1,0 +1,51 @@
+<div
+  class="modal fade reminder-snooze-modal"
+  id="reminderSnoozeModal"
+  tabindex="-1"
+  aria-labelledby="reminderSnoozeModalLabel"
+  aria-hidden="true"
+  data-reminder-snooze-target="modal"
+>
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <div>
+          <p class="mb-1 reminder-snooze-modal__eyebrow">Reminder</p>
+          <h5 class="modal-title" id="reminderSnoozeModalLabel" data-reminder-snooze-target="title">Snooze reminder?</h5>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body pt-2">
+        <p class="mb-3 text-secondary" data-reminder-snooze-target="message">
+          Choose how long to snooze this reminder.
+        </p>
+
+        <form
+          id="reminderSnoozeForm"
+          action="<%= reminders_path %>"
+          method="post"
+          data-reminder-snooze-target="form"
+        >
+          <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+          <input type="hidden" name="_method" value="patch">
+
+          <div class="reminder-snooze-modal__options">
+            <% [[5, "5 min"], [10, "10 min"], [15, "15 min"], [30, "30 min"], [45, "45 min"], [60, "1 hr"]].each do |minutes, label| %>
+              <button
+                type="submit"
+                class="btn btn-white reminder-snooze-modal__option"
+                name="minutes"
+                value="<%= minutes %>"
+              >
+                <%= label %>
+              </button>
+            <% end %>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-white btn-sm reminder-snooze-modal__cancel" data-bs-dismiss="modal">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>

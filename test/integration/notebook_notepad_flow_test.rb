@@ -108,6 +108,59 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
     upload&.tempfile&.close!
   end
 
+  test "saving the same notepad voice note twice only creates one record" do
+    user = User.create!(
+      email: "notepad-voice-dedupe@example.com",
+      password: "Password123!",
+      password_confirmation: "Password123!",
+      time_zone: "UTC",
+      locale: "en",
+      role: :user
+    )
+    entry = user.notepad_entries.create!(
+      title: "Voice capture",
+      notes: "Testing duplicate uploads.",
+      entry_date: Date.current
+    )
+
+    sign_in_browser_user(user)
+
+    recorded_at = Time.zone.parse("2026-04-15T09:30:00Z").iso8601
+    first_upload = audio_upload(filename: "duplicate-note.webm", content_type: "audio/webm", contents: "voice-note-bytes")
+    second_upload = audio_upload(filename: "duplicate-note.webm", content_type: "audio/webm", contents: "voice-note-bytes")
+
+    assert_difference -> { entry.voice_notes.count }, +1 do
+      post notepad_entry_voice_notes_path(entry), params: {
+        authenticity_token: authenticity_token_for(notepad_entry_voice_notes_path(entry)),
+        voice_note: {
+          audio: first_upload,
+          duration_seconds: "14",
+          recorded_at: recorded_at
+        }
+      }
+    end
+
+    assert_redirected_to notepad_entry_path(entry)
+
+    assert_no_difference -> { entry.reload.voice_notes.count } do
+      post notepad_entry_voice_notes_path(entry), params: {
+        authenticity_token: authenticity_token_for(notepad_entry_voice_notes_path(entry)),
+        voice_note: {
+          audio: second_upload,
+          duration_seconds: "14",
+          recorded_at: recorded_at
+        }
+      }
+    end
+
+    assert_redirected_to notepad_entry_path(entry)
+    assert_equal 1, entry.reload.voice_notes.count
+    assert entry.voice_notes.first.audio.attached?
+  ensure
+    first_upload&.tempfile&.close!
+    second_upload&.tempfile&.close!
+  end
+
   test "notepad quick create from index creates the daily page before edit loads" do
     user = User.create!(
       email: "notepad-quick-create@example.com",
@@ -648,6 +701,114 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
     assert_equal 1, remaining_page.position
     assert_equal "Follow-up notes - Page 1", remaining_page.title
     assert_equal [destination_existing_page.id, page.id], destination_chapter.pages.ordered.pluck(:id)
+  end
+
+  test "user can move a notebook page into notepad from the show page" do
+    user = User.create!(
+      email: "page-to-notepad@example.com",
+      password: "Password123!",
+      password_confirmation: "Password123!",
+      time_zone: "UTC",
+      locale: "en",
+      role: :user
+    )
+
+    notebook = user.notebooks.create!(
+      title: "Operations",
+      description: "Working pages",
+      status: :active
+    )
+    chapter = notebook.chapters.create!(title: "Active work", description: "Current queue")
+    page = chapter.pages.create!(
+      title: "Strategy notes",
+      notes: "Move this into notepad.",
+      captured_on: Date.new(2026, 4, 12)
+    )
+    remaining_page = chapter.pages.create!(
+      title: "Follow-up notes",
+      notes: "Stay in the chapter.",
+      captured_on: Date.new(2026, 4, 13)
+    )
+    page.photos.attach(
+      io: StringIO.new("page image bytes"),
+      filename: "page.jpg",
+      content_type: "image/jpeg"
+    )
+    voice_note = page.voice_notes.new(
+      duration_seconds: 18,
+      recorded_at: Time.zone.parse("2026-04-12T09:15:00Z"),
+      byte_size: 128,
+      mime_type: "audio/webm"
+    )
+    voice_note.audio.attach(
+      io: StringIO.new("voice bytes"),
+      filename: "page-note.webm",
+      content_type: "audio/webm"
+    )
+    voice_note.save!
+    todo_list = page.create_todo_list!(enabled: true, hide_completed: true)
+    first_item = todo_list.todo_items.create!(content: "Share summary")
+    todo_list.todo_items.create!(content: "Archive notes")
+    reminder = user.reminders.create!(
+      title: "Share summary reminder",
+      fire_at: 1.day.from_now,
+      target: first_item
+    )
+    scanned_document = page.scanned_documents.new(
+      user: user,
+      title: "Receipt"
+    )
+    scanned_document.enhanced_image.attach(
+      io: StringIO.new("jpeg-bytes"),
+      filename: "receipt.jpg",
+      content_type: "image/jpeg"
+    )
+    scanned_document.document_pdf.attach(
+      io: StringIO.new(tiny_pdf_binary),
+      filename: "receipt.pdf",
+      content_type: "application/pdf"
+    )
+    scanned_document.save!
+
+    sign_in_browser_user(user)
+
+    get notebook_chapter_page_path(notebook, chapter, page)
+
+    assert_response :success
+    assert_select "button[name='intent'][value='move_to_notepad']", text: /Move to notepad/
+
+    assert_difference -> { user.notepad_entries.count }, +1 do
+      patch notebook_chapter_page_path(notebook, chapter, page), params: {
+        authenticity_token: authenticity_token_for(notebook_chapter_page_path(notebook, chapter, page)),
+        intent: "move_to_notepad"
+      }
+    end
+
+    entry = user.notepad_entries.order(:created_at).last
+
+    assert_redirected_to notepad_entry_path(entry)
+    assert_nil Page.find_by(id: page.id)
+
+    entry.reload
+    remaining_page.reload
+    reminder.reload
+    scanned_document.reload
+
+    assert_equal "Strategy notes", entry.title
+    assert_equal "Move this into notepad.", entry.plain_notes
+    assert_equal Date.new(2026, 4, 12), entry.entry_date
+    assert_equal 1, entry.photos.count
+    assert_equal entry, voice_note.reload.notepad_entry
+    assert_nil voice_note.page
+    assert entry.todo_list.enabled?
+    assert entry.todo_list.hide_completed?
+    assert_equal ["Share summary", "Archive notes"], entry.todo_list.todo_items.ordered.pluck(:content)
+    assert_equal entry, reminder.target.todo_list.notepad_entry
+    assert_equal entry, scanned_document.notepad_entry
+    assert_nil scanned_document.page
+    assert_equal [remaining_page.id], chapter.pages.ordered.pluck(:id)
+    assert_equal 1, remaining_page.position
+    assert_equal "Follow-up notes - Page 1", remaining_page.title
   end
 
   test "notebooks index supports search and six-per-page pagination for current and archived views" do

@@ -2,7 +2,7 @@ import { Controller } from "/scripts/vendor/stimulus.js";
 
 /**
  * TaskManager Stimulus controller
- * Handles: filter switching, sort/group form auto-submit, detail drawer
+ * Handles: filter switching, detail drawer
  * open/close (fetches HTML from the server), priority cycling, keyboard shortcuts.
  */
 export default class extends Controller {
@@ -86,15 +86,6 @@ export default class extends Controller {
   handleNewModalSubmit(event) {
     // Let the form submit normally (Turbo/standard), then close.
     this.closeNewModal();
-  }
-
-  // ─── Sort/group form auto-submit ────────────────────────────────────────
-  submitSortForm(event) {
-    event.target.closest("form")?.submit();
-  }
-
-  submitGroupForm(event) {
-    event.target.closest("form")?.submit();
   }
 
   // ─── Task detail drawer ──────────────────────────────────────────────────

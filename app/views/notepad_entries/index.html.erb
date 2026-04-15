@@ -143,5 +143,6 @@
   <%= render "shared/workspace_fab",
     path: quick_create_notepad_entries_path(date: @selected_entry_date&.iso8601),
     method: :post,
+    class_name: "workspace-fab--borderless",
     title: "Create new page" %>
 </div>

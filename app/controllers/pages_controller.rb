@@ -39,6 +39,10 @@ class PagesController < BrowserController
       return move_page_to_chapter
     end
 
+    if moving_to_notepad?
+      return move_page_to_notepad
+    end
+
     preserve_pending_photos(@page, page_params)
     assign_pending_content_from_params(@page, page_params, raw_page_attributes)
 
@@ -170,6 +174,10 @@ class PagesController < BrowserController
     params[:intent].to_s == "move_to_notebook"
   end
 
+  def moving_to_notepad?
+    params[:intent].to_s == "move_to_notepad"
+  end
+
   def move_destination_chapter_id
     params[:move_to_chapter_id].presence
   end
@@ -255,8 +263,8 @@ class PagesController < BrowserController
     page.pending_todo_item_contents = []
   end
 
-  def schedule_drive_export(page)
-    Drive::ScheduleRecordExport.new(record: page).call
+  def schedule_drive_export(record)
+    Drive::ScheduleRecordExport.new(record: record).call
   end
 
   def move_page_to_chapter
@@ -282,6 +290,45 @@ class PagesController < BrowserController
     redirect_to notebook_chapter_page_path(destination_chapter.notebook, destination_chapter, @page),
       notice: "Page moved to #{destination_chapter.notebook.title} / #{destination_chapter.title}."
   rescue ActiveRecord::RecordInvalid
+    render :show, status: :unprocessable_entity
+  end
+
+  def move_page_to_notepad
+    unless can_move_page_to_notepad?
+      @page.errors.add(:base, "Voice notes cannot be moved into notepad until notepad voice notes are available.")
+      return render :show, status: :unprocessable_entity
+    end
+
+    source_chapter = @page.chapter
+    entry = current_user.notepad_entries.new(
+      title: notepad_move_title,
+      notes: @page.notes,
+      entry_date: @page.captured_on || Time.zone.today
+    )
+    entry.allow_blank_content = true
+    entry.retained_photo_signed_ids = photo_signed_ids_for_move
+
+    Page.transaction do
+      entry.save!
+      attach_pending_photos(entry)
+      move_voice_notes_to_notepad(entry)
+      move_todo_list_to_notepad(entry)
+      move_scanned_documents_to_notepad(entry)
+      reset_moved_associations!(@page, :voice_notes, :todo_list, :scanned_documents)
+      @page.photos.detach
+      @page.destroy!
+      normalize_page_positions!(source_chapter)
+    end
+
+    schedule_drive_export(entry)
+
+    redirect_to notepad_entry_path(entry),
+      notice: "Page moved to notepad for #{entry.entry_date.strftime("%b %-d, %Y")}."
+  rescue ActiveRecord::RecordInvalid => error
+    Array(entry&.errors&.full_messages.presence || error.record&.errors&.full_messages).each do |message|
+      @page.errors.add(:base, message)
+    end
+
     render :show, status: :unprocessable_entity
   end
 
@@ -329,6 +376,55 @@ class PagesController < BrowserController
 
       page.update!(position: desired_position)
     end
+  end
+
+  def photo_signed_ids_for_move
+    (@page.photos.blobs.map(&:signed_id) + @page.retained_photo_signed_ids).uniq
+  end
+
+  def move_voice_notes_to_notepad(entry)
+    return unless VoiceNote.notepad_entries_supported?
+
+    @page.voice_notes.find_each do |voice_note|
+      voice_note.update!(page: nil, notepad_entry: entry)
+    end
+  end
+
+  def move_todo_list_to_notepad(entry)
+    return unless TodoList.schema_ready? && TodoItem.schema_ready?
+
+    source_list = @page.todo_list
+    return unless source_list.present?
+
+    target_list = entry.todo_list || entry.build_todo_list
+    target_list.enabled = source_list.enabled?
+    target_list.hide_completed = source_list.hide_completed?
+    target_list.save! if target_list.new_record? || target_list.changed?
+
+    source_list.todo_items.update_all(todo_list_id: target_list.id, updated_at: Time.current)
+    source_list.destroy!
+  end
+
+  def move_scanned_documents_to_notepad(entry)
+    @page.scanned_documents.find_each do |scanned_document|
+      scanned_document.update!(page: nil, notepad_entry: entry)
+    end
+  end
+
+  def reset_moved_associations!(record, *association_names)
+    association_names.each do |association_name|
+      record.association(association_name).reset
+    end
+  end
+
+  def can_move_page_to_notepad?
+    return true unless @page.voice_notes.exists?
+
+    VoiceNote.notepad_entries_supported?
+  end
+
+  def notepad_move_title
+    @page.title.to_s.sub(/\s*-\s*Page\s+\d+\z/i, "").strip.presence
   end
 
   def move_destination_label(chapter)

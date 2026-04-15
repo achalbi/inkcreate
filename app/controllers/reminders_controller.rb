@@ -7,9 +7,7 @@ class RemindersController < BrowserController
     load_index_state
   end
 
-  def show
-    redirect_to edit_reminder_path(@reminder)
-  end
+  def show; end
 
   def edit; end
 
@@ -49,7 +47,7 @@ class RemindersController < BrowserController
 
   def destroy
     @reminder.destroy!
-    redirect_back fallback_location: dashboard_path, notice: "Reminder deleted."
+    redirect_to reminders_path, notice: "Reminder deleted."
   end
 
   private

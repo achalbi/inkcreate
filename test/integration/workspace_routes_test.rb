@@ -91,6 +91,26 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert @user.reload.app_setting.present?
   end
 
+  test "workspace header description starts collapsed behind the info toggle" do
+    sign_in!
+
+    get dashboard_path
+
+    assert_response :success
+
+    document = Nokogiri::HTML.parse(response.body)
+    toggle = document.at_css(".workspace-header__info-toggle")
+    lead = document.at_css(".workspace-header__lead")
+
+    assert toggle.present?, "Expected the shared workspace header to render an info toggle"
+    assert lead.present?, "Expected the shared workspace header to render a page lead container"
+    assert_equal "false", toggle["aria-expanded"]
+    assert_equal "Toggle page description", toggle["aria-label"]
+    assert_equal lead["id"], toggle["aria-controls"]
+    assert_includes toggle["class"], "collapsed"
+    refute_includes lead["class"].to_s.split(/\s+/), "show"
+  end
+
   test "workspace notice renders under the header section" do
     sign_in!
 
@@ -540,6 +560,14 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_select ".ibox-content > .ibox-content__inner button.photo-section-info-button", count: 0
     assert_select ".ibox-content > .ibox-content__inner button.photo-section-camera-button", count: 1, text: /Capture/
     assert_select "a[data-pswp-remove-path='#{photo_notebook_chapter_page_path(@notebook, @chapter, @page, page_attachment)}']", count: 1
+    assert_select "nav.detail-section-shortcuts[data-controller='section-shortcuts']", count: 1
+    assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(@page, :overview_section)}']", count: 1
+    assert_select "nav.detail-section-shortcuts a.is-active[aria-current='location'][href='##{ActionView::RecordIdentifier.dom_id(@page, :overview_section)}']", count: 1
+    assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(@page, :photos_section)}']", count: 1
+    assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(@page, :voice_notes_section)}']", count: 1
+    assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(@page, :todo_list_section)}']", count: 1
+    assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(@page, :scanned_documents_section)}']", count: 1
+    assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(@page, :move_to_notebook_section)}']", count: 1
 
     get notepad_entry_path(entry)
 
@@ -566,7 +594,7 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_select "a[data-pswp-remove-path='#{photo_notepad_entry_path(entry, entry_attachment)}']", count: 1
   end
 
-  test "page show page renders move to notebook controls" do
+  test "page show page renders transfer controls" do
     sign_in!
 
     destination_notebook = @user.notebooks.create!(
@@ -589,6 +617,7 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_select "form##{move_form_id} input[name='_method'][value='patch']", count: 1
     assert_select "input[name='move_to_chapter_id'][form='#{move_form_id}']", count: 1
     assert_select "button[name='intent'][value='move_to_notebook'][form='#{move_form_id}']", text: /Move to notebook chapter/
+    assert_select "button[name='intent'][value='move_to_notepad'][form='#{move_form_id}']", text: /Move to notepad/
     assert_select "##{move_modal_id} [data-move-destination-target='notebookMenu']", count: 1
     assert_select "##{move_modal_id} [data-move-destination-target='notebookMenu'] button.dropdown-item[data-notebook-id='#{destination_notebook.id}']", text: /#{Regexp.escape(destination_notebook.title)}/
     assert_select "##{move_modal_id} [data-move-destination-target='chapterMenu']", count: 1
@@ -816,6 +845,9 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
 
     @user.reminders.create!(title: "Later upcoming", fire_at: 2.days.from_now)
     @user.reminders.create!(title: "Sooner upcoming", fire_at: 2.hours.from_now)
+    todo_list = @page.create_todo_list!(enabled: true, hide_completed: false)
+    linked_item = todo_list.todo_items.create!(content: "Review agenda", position: 1)
+    linked_reminder = @user.reminders.create!(title: "Page follow-up", fire_at: 1.day.from_now, target: linked_item)
     overdue_pending = @user.reminders.create!(title: "Overdue pending", fire_at: 15.minutes.ago)
     @user.reminders.create!(title: "Older history", fire_at: 3.days.ago, status: :triggered, last_triggered_at: 2.days.ago)
     newer_history = @user.reminders.create!(title: "Newer history", fire_at: 2.days.ago, status: :dismissed, last_triggered_at: 1.day.ago)
@@ -837,13 +869,41 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert newer_history.reload.status_expired?
     assert_select ".reminders-page__history-content .home-reminder-card__status", text: "Expired", minimum: 1
     assert_select "#reminderDismissConfirmModal", count: 1
-    assert_select "button[data-action='reminder-dismiss-confirm#open']", minimum: 1
+    assert_select "button[data-action='reminder-dismiss-confirm#open']", count: 0
+    assert_select "#reminderSnoozeModal", count: 1
+    assert_select "button[data-action='reminder-snooze#open']", minimum: 1
+    assert_select ".reminders-page__compact-list button[data-action='reminder-snooze#open'][aria-label='Snooze reminder']", minimum: 1
+    assert_select "a.home-reminder-card__title-link[href='#{reminder_path(linked_reminder)}']", text: "Page follow-up"
+    assert_select "a[aria-label='Open source for Page follow-up'][href='#{notebook_chapter_page_path(@notebook, @chapter, @page)}']", count: 1
+    assert_select "#reminderSnoozeForm button[name='minutes']", count: 6
+    assert_select "#reminderSnoozeForm button[name='minutes'][value='15']", text: "15 min"
+    assert_select "#reminderSnoozeForm button[name='minutes'][value='60']", text: "1 hr"
     assert_operator response.body.index("Sooner upcoming"), :<, response.body.index("Later upcoming")
     assert_operator response.body.index("Overdue pending"), :>, response.body.index("Later upcoming")
     assert_operator response.body.index("Newer history"), :<, response.body.index("Older history")
   end
 
-  test "reminder edit page keeps action buttons in the dedicated action bar" do
+  test "reminder show page keeps edit and delete controls in the title bar" do
+    sign_in!
+
+    todo_list = @page.create_todo_list!(enabled: true, hide_completed: false)
+    todo_item = todo_list.todo_items.create!(content: "Check status source", position: 1)
+    reminder = @user.reminders.create!(title: "Check status", fire_at: 3.hours.from_now, target: todo_item)
+
+    get reminder_path(reminder)
+
+    assert_response :success
+    assert_select ".workspace-header a.text-uppercase.text-secondary.fw-semibold[href='#{reminders_path}']", text: "Reminder"
+    assert_select ".ibox-title .ibox-tools a.btn[href='#{edit_reminder_path(reminder)}']", text: "Edit"
+    assert_select ".ibox-title .ibox-tools a.btn[href='#{notebook_chapter_page_path(@notebook, @chapter, @page)}']", text: "Go to source"
+    assert_select ".ibox-title .ibox-tools button[data-action='reminder-snooze#open']", text: "Snooze"
+    assert_operator response.body.index(">Snooze<"), :<, response.body.index(">Edit<")
+    assert_select ".ibox-title .ibox-tools form[action='#{reminder_path(reminder)}']", count: 0
+    assert_select ".ibox-content .reminder-edit-actions button[data-bs-target='#reminderDeleteConfirmModal']", text: "Delete"
+    assert_select "#reminderDeleteConfirmModal form[action='#{reminder_path(reminder)}'] .btn", text: "Delete"
+  end
+
+  test "reminder edit page keeps only save and cancel actions in the dedicated action bar" do
     sign_in!
 
     reminder = @user.reminders.create!(title: "Check status", fire_at: 3.hours.from_now)
@@ -853,7 +913,9 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select ".reminder-edit-actions", minimum: 1
     assert_select ".reminder-edit-actions .btn", text: "Save reminder"
-    assert_select ".reminder-edit-actions .btn", text: "Delete reminder"
+    assert_select ".reminder-edit-actions a.btn[href='#{reminder_path(reminder)}']", text: "Cancel"
+    assert_select ".reminder-edit-actions .btn", text: "Delete reminder", count: 0
+    assert_select ".reminder-edit-actions .btn", text: "Open source", count: 0
     assert_select ".reminder-edit-actions .btn.btn-sm", minimum: 2
   end
 

@@ -136,6 +136,50 @@ class PageEnhancementsFlowTest < ActionDispatch::IntegrationTest
     upload&.tempfile&.close!
   end
 
+  test "saving the same page voice note twice only creates one record" do
+    user = build_user(email: "page-voice-dedupe@example.com")
+    notebook = user.notebooks.create!(title: "Field notes", status: :active)
+    chapter = notebook.chapters.create!(title: "Visits", description: "Site walk")
+    page = chapter.pages.create!(title: "Capture target", notes: "Existing page")
+
+    sign_in_browser_user(user)
+
+    recorded_at = Time.zone.parse("2026-04-15T09:30:00Z").iso8601
+    first_upload = audio_upload(filename: "duplicate-page-note.webm", content_type: "audio/webm", contents: "voice-note-bytes")
+    second_upload = audio_upload(filename: "duplicate-page-note.webm", content_type: "audio/webm", contents: "voice-note-bytes")
+
+    assert_difference -> { page.voice_notes.count }, +1 do
+      post notebook_chapter_page_voice_notes_path(notebook, chapter, page), params: {
+        authenticity_token: authenticity_token_for(notebook_chapter_page_voice_notes_path(notebook, chapter, page)),
+        voice_note: {
+          audio: first_upload,
+          duration_seconds: "31",
+          recorded_at: recorded_at
+        }
+      }
+    end
+
+    assert_redirected_to notebook_chapter_page_path(notebook, chapter, page)
+
+    assert_no_difference -> { page.reload.voice_notes.count } do
+      post notebook_chapter_page_voice_notes_path(notebook, chapter, page), params: {
+        authenticity_token: authenticity_token_for(notebook_chapter_page_voice_notes_path(notebook, chapter, page)),
+        voice_note: {
+          audio: second_upload,
+          duration_seconds: "31",
+          recorded_at: recorded_at
+        }
+      }
+    end
+
+    assert_redirected_to notebook_chapter_page_path(notebook, chapter, page)
+    assert_equal 1, page.reload.voice_notes.count
+    assert page.voice_notes.first.audio.attached?
+  ensure
+    first_upload&.tempfile&.close!
+    second_upload&.tempfile&.close!
+  end
+
   test "user can create a page with only scanned documents" do
     user = build_user(email: "scanned-page@example.com")
     notebook = user.notebooks.create!(title: "Paper trail", status: :active)

@@ -30,7 +30,7 @@ class ReminderTest < ActiveSupport::TestCase
     assert_includes reminder.errors.full_messages, "Fire at can't be blank"
   end
 
-  test "standalone reminder points to its edit page" do
+  test "standalone reminder points to its show page" do
     user = build_user(email: "standalone-reminder@example.com")
     reminder = user.reminders.create!(
       title: "Call client",
@@ -38,7 +38,7 @@ class ReminderTest < ActiveSupport::TestCase
     )
 
     assert reminder.standalone?
-    assert_equal Rails.application.routes.url_helpers.edit_reminder_path(reminder), reminder.destination_path
+    assert_equal Rails.application.routes.url_helpers.reminder_path(reminder), reminder.destination_path
   end
 
   test "scopes sort upcoming reminders nearest first and history most recent first" do
