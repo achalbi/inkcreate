@@ -73,7 +73,7 @@ class Drive::SyncWorkspaceTest < ActiveSupport::TestCase
     schedule_calls = []
     backup_runner = Object.new
     backup_runner.define_singleton_method(:call) do
-      Backups::ScheduleCaptureBackup::Result.new(backup_record: BackupRecord.new)
+      Backups::ScheduleCaptureBackup::Result.new(backup_record: BackupRecord.new, drive_sync: DriveSync.new)
     end
 
     Drive::BackfillRecordExports.stub :new, ->(**) {

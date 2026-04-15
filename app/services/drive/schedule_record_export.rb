@@ -1,7 +1,5 @@
 module Drive
   class ScheduleRecordExport
-    RECENT_PENDING_WINDOW = 30.seconds
-
     def initialize(record:)
       @record = record
       @user = record.user
@@ -16,9 +14,9 @@ module Drive
       google_drive_export = GoogleDriveExport.find_or_initialize_by(exportable: record)
       google_drive_export.user ||= user
       google_drive_export.remote_photo_file_ids ||= {}
-      if skip_enqueue_for_recent_pending?(google_drive_export)
+      if active_export?(google_drive_export)
         log_skip(reason: "already_pending", google_drive_export: google_drive_export)
-        return google_drive_export
+        return nil
       end
 
       google_drive_export.status = :pending
@@ -52,11 +50,9 @@ module Drive
         end
     end
 
-    def skip_enqueue_for_recent_pending?(google_drive_export)
+    def active_export?(google_drive_export)
       google_drive_export.persisted? &&
-        google_drive_export.status_pending? &&
-        google_drive_export.updated_at.present? &&
-        google_drive_export.updated_at >= RECENT_PENDING_WINDOW.ago
+        (google_drive_export.status_pending? || google_drive_export.status_running?)
     end
 
     def log_skip(reason:, google_drive_export: nil)

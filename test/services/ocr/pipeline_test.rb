@@ -77,7 +77,7 @@ class Ocr::PipelineTest < ActiveSupport::TestCase
         }) do
           Backups::ScheduleCaptureBackup.stub(:new, ->(capture:, user:, mode:) {
             scheduler_calls << { capture: capture, user: user, mode: mode }
-            OpenStruct.new(call: Backups::ScheduleCaptureBackup::Result.new(backup_record: Object.new))
+            OpenStruct.new(call: Backups::ScheduleCaptureBackup::Result.new(backup_record: Object.new, drive_sync: Object.new))
           }) do
             pipeline.call
           end
@@ -115,7 +115,7 @@ class Ocr::PipelineTest < ActiveSupport::TestCase
         }) do
           Backups::ScheduleCaptureBackup.stub(:new, ->(**kwargs) {
             scheduler_calls << kwargs
-            OpenStruct.new(call: Backups::ScheduleCaptureBackup::Result.new(backup_record: Object.new))
+            OpenStruct.new(call: Backups::ScheduleCaptureBackup::Result.new(backup_record: Object.new, drive_sync: Object.new))
           }) do
             pipeline.call
           end

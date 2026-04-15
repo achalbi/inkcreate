@@ -92,6 +92,78 @@ class Backups::ScheduleCaptureBackupTest < ActiveSupport::TestCase
     end
   end
 
+  test "reuses the existing backup record when rescheduling a capture package" do
+    user = build_user(email: "schedule-capture-backup-reuse@example.com")
+    capture = build_capture(user: user, title: "Reuse me")
+    existing_backup_record = capture.backup_records.create!(
+      user: user,
+      provider: "google_drive",
+      status: :uploaded,
+      remote_path: "Captures / Old path",
+      metadata: { "package_type" => "capture", "remote_folder_id" => "folder-123" }
+    )
+    enqueued_drive_sync_ids = []
+
+    Async::Dispatcher.stub(:enqueue_drive_export, ->(drive_sync_id) { enqueued_drive_sync_ids << drive_sync_id }) do
+      assert_no_difference -> { capture.backup_records.count } do
+        assert_difference -> { capture.drive_syncs.count }, +1 do
+          result = Backups::ScheduleCaptureBackup.new(capture: capture, user: user).call
+
+          assert result.scheduled?
+          assert_equal existing_backup_record.id, result.backup_record.id
+          assert result.backup_record.reload.status_pending?
+          assert_equal "manual", result.backup_record.metadata["requested_mode"]
+          assert_equal "capture", result.backup_record.metadata["package_type"]
+          assert_match(/\ACaptures \//, result.backup_record.remote_path)
+        end
+      end
+    end
+
+    drive_sync = capture.drive_syncs.order(created_at: :desc).first
+    assert_equal [drive_sync.id], enqueued_drive_sync_ids
+    assert_equal existing_backup_record.id, drive_sync.metadata["backup_record_id"]
+  end
+
+  test "returns the existing active backup instead of creating duplicates" do
+    user = build_user(email: "schedule-capture-backup-pending@example.com")
+    capture = build_capture(user: user, title: "Pending capture")
+    backup_record = capture.backup_records.create!(
+      user: user,
+      provider: "google_drive",
+      status: :pending,
+      remote_path: "Captures / Pending capture",
+      metadata: { "package_type" => "capture" }
+    )
+    drive_sync = capture.drive_syncs.create!(
+      user: user,
+      drive_folder_id: user.google_drive_folder_id,
+      mode: :manual,
+      status: :pending,
+      metadata: { "backup_record_id" => backup_record.id, "package_type" => "capture" }
+    )
+    events = []
+
+    Async::Dispatcher.stub(:enqueue_drive_export, ->(*) { flunk "should not enqueue duplicate capture backup" }) do
+      Observability::EventLogger.stub(:info, ->(event:, payload:) { events << { event: event, payload: payload } }) do
+        assert_no_difference -> { capture.backup_records.count } do
+          assert_no_difference -> { capture.drive_syncs.count } do
+            result = Backups::ScheduleCaptureBackup.new(capture: capture, user: user).call
+
+            assert_not result.scheduled?
+            assert_equal "already_pending", result.skip_reason
+            assert_equal backup_record, result.backup_record
+            assert_equal drive_sync, result.drive_sync
+          end
+        end
+      end
+    end
+
+    assert_equal "drive.capture_backup.skipped", events.last[:event]
+    assert_equal "already_pending", events.last[:payload][:reason]
+    assert_equal backup_record.id, events.last[:payload][:backup_record_id]
+    assert_equal drive_sync.id, events.last[:payload][:drive_sync_id]
+  end
+
   test "returns a skipped result and logs when drive is not connected" do
     user = build_user(email: "schedule-capture-backup-skip@example.com", drive_ready: false)
     capture = build_capture(user: user, title: "No drive")

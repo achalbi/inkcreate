@@ -189,4 +189,45 @@ class GoogleDriveSettingsTest < ActionDispatch::IntegrationTest
       assert_select ".flash-banner.notice .flash-banner__message", text: /Queued Google Drive sync for 2 record exports and 1 capture package/
     end
   end
+
+  test "topbar drive sync explains when record backups are off" do
+    user = build_user(email: "drive-topbar-sync-records-off@example.com")
+    user.update!(
+      google_drive_refresh_token: "refresh-token",
+      google_drive_connected_at: Time.current,
+      google_drive_folder_id: "drive-folder-123"
+    )
+    user.ensure_app_setting!.update!(
+      backup_enabled: false,
+      backup_provider: nil,
+      privacy_options: user.ensure_app_setting!.privacy_options.merge("include_photos_in_backups" => true)
+    )
+
+    sync_runner = Object.new
+    sync_runner.define_singleton_method(:call) do
+      Drive::SyncWorkspace::Result.new(
+        queued_record_exports: 0,
+        queued_capture_backups: 0
+      )
+    end
+
+    Drive::SyncWorkspace.stub :new, ->(user:) {
+      assert_equal "drive-topbar-sync-records-off@example.com", user.email
+      sync_runner
+    } do
+      sign_in_browser_user(user)
+      get dashboard_path
+
+      post sync_settings_backup_path, params: {
+        authenticity_token: authenticity_token_for(sync_settings_backup_path),
+        return_to: dashboard_path
+      }
+
+      assert_redirected_to dashboard_path
+      follow_redirect!
+
+      assert_response :success
+      assert_select ".flash-banner.notice .flash-banner__message", text: /Record backups are off\. Enable backups in Settings\./
+    end
+  end
 end

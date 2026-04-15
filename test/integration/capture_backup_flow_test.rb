@@ -109,6 +109,78 @@ class CaptureBackupFlowTest < ActionDispatch::IntegrationTest
     assert capture.reload.backup_status_pending?
   end
 
+  test "browser capture backup reuses an already pending export" do
+    user = build_user(email: "capture-backup-browser-pending@example.com")
+    capture = build_capture(user: user, title: "Sprint retro")
+    backup_record = capture.backup_records.create!(
+      user: user,
+      provider: "google_drive",
+      status: :pending,
+      remote_path: "Captures / Sprint retro",
+      metadata: { "package_type" => "capture" }
+    )
+    capture.drive_syncs.create!(
+      user: user,
+      drive_folder_id: user.google_drive_folder_id,
+      mode: :manual,
+      status: :pending,
+      metadata: { "backup_record_id" => backup_record.id, "package_type" => "capture" }
+    )
+
+    sign_in_browser_user(user)
+    get capture_path(capture)
+
+    assert_no_difference -> { capture.backup_records.count } do
+      assert_no_difference -> { capture.drive_syncs.count } do
+        post backup_capture_path(capture), params: {
+          authenticity_token: authenticity_token_for(backup_capture_path(capture))
+        }
+      end
+    end
+
+    assert_redirected_to capture_path(capture)
+    assert_equal "A Google Drive backup is already in progress.", flash[:notice]
+  end
+
+  test "api capture export endpoint returns accepted for an already pending backup" do
+    user = build_user(email: "capture-backup-api-pending@example.com")
+    capture = build_capture(user: user, title: "Quarterly kickoff")
+    backup_record = capture.backup_records.create!(
+      user: user,
+      provider: "google_drive",
+      status: :pending,
+      remote_path: "Captures / Quarterly kickoff",
+      metadata: { "package_type" => "capture" }
+    )
+    capture.drive_syncs.create!(
+      user: user,
+      drive_folder_id: user.google_drive_folder_id,
+      mode: :manual,
+      status: :pending,
+      metadata: { "backup_record_id" => backup_record.id, "package_type" => "capture" }
+    )
+
+    sign_in_browser_user(user)
+    get capture_path(capture)
+
+    assert_no_difference -> { capture.backup_records.count } do
+      assert_no_difference -> { capture.drive_syncs.count } do
+        post "/api/v1/captures/#{capture.id}/export_to_drive",
+          params: {
+            authenticity_token: authenticity_token_for("/api/v1/captures/#{capture.id}/export_to_drive")
+          },
+          headers: {
+            "ACCEPT" => "application/json"
+          }
+      end
+    end
+
+    assert_response :accepted
+    payload = JSON.parse(response.body)
+    assert_equal backup_record.id, payload["backup_record_id"]
+    assert_equal "already_pending", payload["reason"]
+  end
+
   test "browser capture backup redirects with an alert when drive is not ready" do
     user = User.create!(
       email: "capture-backup-unready-browser@example.com",

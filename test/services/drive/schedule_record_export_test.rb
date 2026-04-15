@@ -76,9 +76,37 @@ class Drive::ScheduleRecordExportTest < ActiveSupport::TestCase
 
     Async::Dispatcher.stub :enqueue_record_export, ->(id) { enqueued << id } do
       Observability::EventLogger.stub :info, ->(event:, payload:) { events << { event: event, payload: payload } } do
-        returned_export = Drive::ScheduleRecordExport.new(record: entry).call
+        assert_nil Drive::ScheduleRecordExport.new(record: entry).call
+      end
+    end
 
-        assert_equal export, returned_export
+    assert_empty enqueued
+    assert_equal "drive.record_export.skipped", events.last[:event]
+    assert_equal "already_pending", events.last[:payload][:reason]
+  end
+
+  test "suppresses duplicate enqueue when export is already running" do
+    user, entry = build_entry(email: "schedule-record-export-running@example.com")
+    user.update!(
+      google_drive_refresh_token: "refresh-token",
+      google_drive_connected_at: Time.current,
+      google_drive_folder_id: "drive-folder-789"
+    )
+    user.ensure_app_setting!.update!(backup_enabled: true, backup_provider: "google_drive")
+
+    GoogleDriveExport.create!(
+      user: user,
+      exportable: entry,
+      status: :running,
+      remote_photo_file_ids: {}
+    )
+
+    enqueued = []
+    events = []
+
+    Async::Dispatcher.stub :enqueue_record_export, ->(id) { enqueued << id } do
+      Observability::EventLogger.stub :info, ->(event:, payload:) { events << { event: event, payload: payload } } do
+        assert_nil Drive::ScheduleRecordExport.new(record: entry).call
       end
     end
 

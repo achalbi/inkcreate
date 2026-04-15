@@ -10,13 +10,11 @@ module Drive
       scheduled = 0
 
       pages_scope.find_each do |page|
-        ScheduleRecordExport.new(record: page).call
-        scheduled += 1
+        scheduled += 1 if ScheduleRecordExport.new(record: page).call.present?
       end
 
       user.notepad_entries.find_each do |entry|
-        ScheduleRecordExport.new(record: entry).call
-        scheduled += 1
+        scheduled += 1 if ScheduleRecordExport.new(record: entry).call.present?
       end
 
       scheduled

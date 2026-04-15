@@ -42,6 +42,13 @@ module Api
       def export_to_drive
         capture = current_user.captures.find(params[:id])
         result = Backups::ScheduleCaptureBackup.new(capture:, user: current_user).call
+        if result.skip_reason == "already_pending"
+          return render json: {
+            backup_record_id: result.backup_record&.id,
+            reason: result.skip_reason
+          }, status: :accepted
+        end
+
         unless result.scheduled?
           status =
             if result.skip_reason == "media_backups_disabled"

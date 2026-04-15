@@ -65,7 +65,11 @@ module Settings
     end
 
     def sync_notice_for(result)
-      return "Google Drive sync checked current data. Nothing new was queued." if result.total_queued.zero?
+      if result.total_queued.zero?
+        return "Record backups are off. Enable backups in Settings." unless @app_setting.google_drive_backup?
+
+        return "Google Drive sync checked current data. Nothing new was queued."
+      end
 
       segments = []
       segments << helpers.pluralize(result.queued_record_exports, "record export") if result.queued_record_exports.to_i.positive?

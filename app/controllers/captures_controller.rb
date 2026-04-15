@@ -30,6 +30,8 @@ class CapturesController < BrowserController
     result = Backups::ScheduleCaptureBackup.new(capture: @capture, user: current_user).call
     if result.scheduled?
       redirect_to capture_path(@capture), notice: "Backup scheduled."
+    elsif result.skip_reason == "already_pending"
+      redirect_to capture_path(@capture), notice: Backups::ScheduleCaptureBackup.message_for(result.skip_reason)
     else
       redirect_to capture_path(@capture), alert: Backups::ScheduleCaptureBackup.message_for(result.skip_reason)
     end
