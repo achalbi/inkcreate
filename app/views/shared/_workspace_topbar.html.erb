@@ -1,5 +1,12 @@
 <%
   show_workspace_sidebar = local_assigns.fetch(:show_workspace_sidebar, current_user&.admin?)
+  drive_sync_enabled =
+    Drive::OauthClient.configured? &&
+      current_user.google_drive_ready? &&
+      (
+        current_user.ensure_app_setting!.google_drive_backup? ||
+        current_user.ensure_app_setting!.include_media_in_backups?
+      )
   shell_eyebrow, shell_title =
     case controller_path
     when "home"
@@ -48,6 +55,17 @@
     <%= link_to new_notepad_entry_path, class: "btn btn-outline-secondary d-none d-md-inline-flex" do %>
       <i class="ti ti-calendar-plus me-1"></i>
       <span>New entry</span>
+    <% end %>
+
+    <% if drive_sync_enabled %>
+      <%= button_to sync_settings_backup_path,
+        method: :post,
+        params: { return_to: request.fullpath },
+        class: "btn btn-outline-primary d-inline-flex align-items-center",
+        form: { class: "d-inline-flex" } do %>
+        <i class="ti ti-refresh me-lg-1"></i>
+        <span class="d-none d-lg-inline">Sync Drive</span>
+      <% end %>
     <% end %>
 
     <div class="dropdown">

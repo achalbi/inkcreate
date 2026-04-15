@@ -127,7 +127,9 @@ Rails.application.routes.draw do
   get "/install", to: "install#show", as: :install
 
   namespace :settings do
-    resource :backup, only: %i[show update], controller: "backup"
+    resource :backup, only: %i[show update], controller: "backup" do
+      post :sync, on: :member
+    end
     resource :privacy, only: %i[show update], controller: "privacy"
     resource :drive_connection, only: %i[create update destroy], controller: "drive_connections" do
       post :create_folder, on: :collection

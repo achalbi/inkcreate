@@ -6,6 +6,18 @@ module Settings
     def show
     end
 
+    def sync
+      result = Drive::SyncWorkspace.new(user: current_user).call
+
+      if result.skip_reason.present?
+        redirect_to sync_return_path, alert: Drive::SyncWorkspace.message_for(result.skip_reason)
+      else
+        redirect_to sync_return_path, notice: sync_notice_for(result)
+      end
+    rescue StandardError => error
+      redirect_to sync_return_path, alert: Drive::ErrorMessage.for(error)
+    end
+
     def update
       previously_enabled = @app_setting.google_drive_backup?
 
@@ -50,6 +62,42 @@ module Settings
       return if previously_enabled
 
       Drive::BackfillRecordExports.new(user: current_user).call
+    end
+
+    def sync_notice_for(result)
+      return "Google Drive sync checked current data. Nothing new was queued." if result.total_queued.zero?
+
+      segments = []
+      segments << helpers.pluralize(result.queued_record_exports, "record export") if result.queued_record_exports.to_i.positive?
+      segments << helpers.pluralize(result.queued_capture_backups, "capture package") if result.queued_capture_backups.to_i.positive?
+
+      "Queued Google Drive sync for #{segments.to_sentence}."
+    end
+
+    def sync_return_path
+      safe_workspace_return_path(params[:return_to]) ||
+        safe_workspace_return_path(referer_request_uri) ||
+        settings_backup_path
+    end
+
+    def safe_workspace_return_path(candidate)
+      return if candidate.blank?
+
+      uri = URI.parse(candidate.to_s)
+      return if uri.host.present? || uri.scheme.present?
+      return if uri.path.blank? || !uri.path.start_with?("/")
+
+      uri.query.present? ? "#{uri.path}?#{uri.query}" : uri.path
+    rescue URI::InvalidURIError
+      nil
+    end
+
+    def referer_request_uri
+      return if request.referer.blank?
+
+      URI.parse(request.referer).request_uri
+    rescue URI::InvalidURIError
+      nil
     end
 
     def canonical_time_zone_name(zone_name)

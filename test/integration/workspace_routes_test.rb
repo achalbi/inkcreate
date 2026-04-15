@@ -127,6 +127,22 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_select ".flash-banner.notice", text: /Backup settings updated/
   end
 
+  test "workspace topbar shows the google drive sync button when drive is ready" do
+    @user.update!(
+      google_drive_connected_at: Time.current,
+      google_drive_refresh_token: "refresh-token",
+      google_drive_folder_id: "drive-folder-123"
+    )
+    @user.ensure_app_setting!.update!(backup_enabled: true, backup_provider: "google_drive")
+
+    sign_in!
+    get dashboard_path
+
+    assert_response :success
+    assert_select "form[action='#{sync_settings_backup_path}']"
+    assert_select "button", text: /Sync Drive/
+  end
+
   test "settings page shows notification controls" do
     sign_in!
 

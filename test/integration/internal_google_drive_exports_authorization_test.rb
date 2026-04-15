@@ -51,7 +51,7 @@ class InternalGoogleDriveExportsAuthorizationTest < ActionDispatch::IntegrationT
       true
     end
 
-    Drive::ExportRecord.stub(:new, fake_exporter) do
+    Drive::ExportRecord.stub(:new, ->(*) { fake_exporter }) do
       post "/internal/google_drive_exports/#{export.id}/perform", headers: {
         "X-Internal-Task-Token" => "shared-secret"
       }
@@ -73,7 +73,7 @@ class InternalGoogleDriveExportsAuthorizationTest < ActionDispatch::IntegrationT
       true
     end
 
-    Drive::ExportRecord.stub(:new, fake_exporter) do
+    Drive::ExportRecord.stub(:new, ->(*) { fake_exporter }) do
       post "/internal/google_drive_exports/#{export.id}/perform", headers: {
         "X-Cloudtasks-Taskname" => "real-task"
       }

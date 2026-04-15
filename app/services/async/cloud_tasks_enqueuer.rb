@@ -1,5 +1,7 @@
 module Async
   class CloudTasksEnqueuer
+    class ConfigurationError < StandardError; end
+
     class << self
       def client_class
         require "google/cloud/tasks/v2"
@@ -48,16 +50,31 @@ module Async
         body: "{}"
       }
 
-      if ENV["CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL"].present?
+      if use_oidc_token?
         request[:oidc_token] = {
           service_account_email: ENV.fetch("CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL"),
           audience: ENV.fetch("WORKER_BASE_URL")
         }
       elsif ENV["INTERNAL_TASK_TOKEN"].present?
         request[:headers]["X-Internal-Task-Token"] = ENV.fetch("INTERNAL_TASK_TOKEN")
+      else
+        raise ConfigurationError, configuration_error_message
       end
 
       request
+    end
+
+    def use_oidc_token?
+      cloud_tasks_auth_mode == "oidc"
+    end
+
+    def cloud_tasks_auth_mode
+      ENV.fetch("CLOUD_TASKS_AUTH_MODE", "token")
+    end
+
+    def configuration_error_message
+      "Cloud Tasks auth is misconfigured. Configure CLOUD_TASKS_AUTH_MODE=token with INTERNAL_TASK_TOKEN " \
+        "for single-service mode, or CLOUD_TASKS_AUTH_MODE=oidc with CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL for worker mode."
     end
 
     def schedule_time(schedule_at)
