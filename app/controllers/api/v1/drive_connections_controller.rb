@@ -1,6 +1,8 @@
 module Api
   module V1
     class DriveConnectionsController < BaseController
+      skip_before_action :authenticate_user!, only: :callback
+
       def show
         render json: {
           connected: current_user.google_drive_connected?,
@@ -10,8 +12,7 @@ module Api
       end
 
       def create
-        state = SecureRandom.hex(24)
-        session[:drive_oauth_state] = state
+        state = Drive::OauthState.generate(user: current_user)
 
         render json: {
           authorization_url: Drive::OauthClient.new.authorization_url(state: state)
@@ -19,36 +20,36 @@ module Api
       end
 
       def callback
-        return_to = session.delete(:drive_oauth_return_to)
-        popup_flow = ActiveModel::Type::Boolean.new.cast(session.delete(:drive_oauth_popup))
-        expected_state = session.delete(:drive_oauth_state).to_s
+        oauth_context = resolved_oauth_context
+        return_to = oauth_context[:return_to]
+        popup_flow = oauth_context[:popup]
+        user = oauth_context[:user]
 
         if params[:error].present?
           return handle_browser_callback_error(return_to, "Google Drive connection was canceled.", popup: popup_flow)
         end
 
-        unless expected_state.present? &&
-               params[:state].present? &&
-               ActiveSupport::SecurityUtils.secure_compare(expected_state, params[:state].to_s)
+        unless oauth_context[:verified] && user.present?
           return handle_browser_callback_error(return_to, "Google Drive connection could not be verified.", popup: popup_flow)
         end
 
         token_payload = Drive::OauthClient.new.exchange_code!(code: params.fetch(:code))
-        refresh_token = token_payload["refresh_token"].presence || current_user.google_drive_refresh_token
+        refresh_token = token_payload["refresh_token"].presence || user.google_drive_refresh_token
 
-        current_user.update!(
+        user.update!(
           google_drive_access_token: token_payload["access_token"],
           google_drive_refresh_token: refresh_token,
           google_drive_token_expires_at: Time.current + token_payload.fetch("expires_in", 3600).to_i.seconds,
           google_drive_connected_at: Time.current
         )
+        sign_in_connected_user!(user)
 
         folder_bootstrap_error = nil
-        if refresh_token.present? && current_user.google_drive_folder_id.blank?
+        if refresh_token.present? && user.google_drive_folder_id.blank?
           begin
-            folder = Drive::CreateFolder.new(user: current_user).call
-            current_user.update!(google_drive_folder_id: folder.id)
-            Drive::BackfillRecordExports.new(user: current_user).call if current_user.ensure_app_setting!.google_drive_backup?
+            folder = Drive::CreateFolder.new(user: user).call
+            user.update!(google_drive_folder_id: folder.id)
+            Drive::BackfillRecordExports.new(user: user).call if user.ensure_app_setting!.google_drive_backup?
           rescue StandardError => error
             folder_bootstrap_error = error
           end
@@ -92,6 +93,37 @@ module Api
       end
 
       private
+
+      def resolved_oauth_context
+        session_return_to = session.delete(:drive_oauth_return_to)
+        session_popup = ActiveModel::Type::Boolean.new.cast(session.delete(:drive_oauth_popup))
+        session_state = session.delete(:drive_oauth_state).to_s
+        signed_payload = Drive::OauthState.verify(params[:state].to_s)
+        verified = signed_payload.present?
+
+        unless verified
+          verified =
+            session_state.present? &&
+            params[:state].present? &&
+            ActiveSupport::SecurityUtils.secure_compare(session_state, params[:state].to_s)
+        end
+
+        state_user = User.find_by(id: signed_payload["user_id"]) if signed_payload.present?
+
+        {
+          verified: verified,
+          user: state_user || current_user,
+          return_to: signed_payload&.fetch("return_to", nil).presence || session_return_to,
+          popup: signed_payload.present? ? ActiveModel::Type::Boolean.new.cast(signed_payload["popup"]) : session_popup
+        }
+      end
+
+      def sign_in_connected_user!(user)
+        return if current_user == user
+
+        sign_in(:user, user)
+        session[:browser_user_id] = user.id
+      end
 
       def drive_connection_params
         params.require(:drive_connection).permit(:google_drive_folder_id)

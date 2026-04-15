@@ -31,7 +31,7 @@ class GoogleDriveFolderCreationTest < ActionDispatch::IntegrationTest
       sign_in_browser_user(user)
       get settings_backup_path
 
-      Drive::CreateFolder.stub(:new, failing_creator) do
+      Drive::CreateFolder.stub(:new, ->(**) { failing_creator }) do
         post create_folder_settings_drive_connection_path, params: {
           authenticity_token: authenticity_token_for(create_folder_settings_drive_connection_path)
         }
@@ -71,7 +71,7 @@ class GoogleDriveFolderCreationTest < ActionDispatch::IntegrationTest
       sign_in_browser_user(user)
       get settings_backup_path
 
-      Drive::CreateFolder.stub(:new, failing_creator) do
+      Drive::CreateFolder.stub(:new, ->(**) { failing_creator }) do
         post create_folder_settings_drive_connection_path, params: {
           authenticity_token: authenticity_token_for(create_folder_settings_drive_connection_path)
         }

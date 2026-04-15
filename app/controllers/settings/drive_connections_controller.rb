@@ -5,10 +5,11 @@ module Settings
     def create
       return redirect_to(settings_path, alert: "Google Drive is not configured for this app yet.") unless Drive::OauthClient.configured?
 
-      state = SecureRandom.hex(24)
-      session[:drive_oauth_state] = state
-      session[:drive_oauth_return_to] = settings_return_path
-      session[:drive_oauth_popup] = ActiveModel::Type::Boolean.new.cast(params[:popup])
+      state = Drive::OauthState.generate(
+        user: current_user,
+        return_to: settings_return_path,
+        popup: ActiveModel::Type::Boolean.new.cast(params[:popup])
+      )
 
       redirect_to Drive::OauthClient.new.authorization_url(state: state), allow_other_host: true
     end
