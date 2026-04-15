@@ -22,7 +22,7 @@ class SettingsController < BrowserController
 
   def load_settings_dashboard
     @app_setting = current_user.ensure_app_setting!
-    @backup_records = current_user.backup_records.recent_first.limit(20)
+    @backup_records = current_user.backup_records.latest_per_capture_provider.recent_first.limit(20)
     @record_exports = current_user.google_drive_exports.includes(:exportable).recent_first.limit(20)
     @devices_available = Device.schema_ready?
     @devices = @devices_available ? current_user.devices.recent_first : []

@@ -77,6 +77,7 @@ module Drive
 
       user.captures.find_each do |capture|
         next if recent_pending_capture_sync?(capture)
+        next unless capture_needs_backup?(capture)
 
         result = Backups::ScheduleCaptureBackup.new(capture: capture, user: user, mode: :manual).call
         scheduled += 1 if result.scheduled?
@@ -94,6 +95,31 @@ module Drive
           .where(provider: "google_drive", status: BackupRecord.statuses.fetch("pending"))
           .where("updated_at >= ?", RECENT_PENDING_WINDOW.ago)
           .exists?
+    end
+
+    def capture_needs_backup?(capture)
+      return true if capture.backup_status_local_only? || capture.backup_status_failed?
+
+      latest_backup_record = capture.backup_records.where(provider: "google_drive").recent_first.first
+      return true if latest_backup_record.blank?
+      return true if latest_backup_record.status_failed?
+      return true if latest_backup_record.last_success_at.blank?
+
+      latest_backup_record.last_success_at < capture_last_change_at(capture)
+    end
+
+    def capture_last_change_at(capture)
+      [
+        capture.updated_at,
+        capture.ocr_results.maximum(:updated_at),
+        capture.ai_summaries.maximum(:updated_at),
+        capture.attachments.maximum(:updated_at),
+        capture.tasks.maximum(:updated_at),
+        capture.capture_revisions.maximum(:updated_at),
+        capture.outgoing_reference_links.maximum(:updated_at),
+        capture.incoming_reference_links.maximum(:updated_at),
+        capture.capture_tags.maximum(:updated_at)
+      ].compact.max || capture.updated_at || Time.at(0)
     end
 
     def log(event:, reason:, queued_record_exports: 0, queued_capture_backups: 0)

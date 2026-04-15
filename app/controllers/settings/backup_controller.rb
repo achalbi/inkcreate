@@ -38,7 +38,7 @@ module Settings
 
     def load_backup_settings
       @app_setting = current_user.ensure_app_setting!
-      @backup_records = current_user.backup_records.recent_first.limit(20)
+      @backup_records = current_user.backup_records.latest_per_capture_provider.recent_first.limit(20)
       @record_exports = current_user.google_drive_exports.includes(:exportable).recent_first.limit(20)
       @settings_user = current_user.dup
       @detected_time_zone_name = canonical_time_zone_name(browser_time_zone_name.presence)

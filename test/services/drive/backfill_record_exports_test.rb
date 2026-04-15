@@ -49,4 +49,25 @@ class Drive::BackfillRecordExportsTest < ActiveSupport::TestCase
     assert_equal 1, enqueued_ids.size
     assert_equal fresh_entry.id, GoogleDriveExport.find(enqueued_ids.first).exportable_id
   end
+
+  test "does not requeue an unchanged exported record" do
+    user = build_user(email: "backfill-record-exports-unchanged@example.com")
+    entry = user.notepad_entries.create!(
+      entry_date: Date.new(2026, 4, 9),
+      title: "Stable",
+      notes: "Already exported"
+    )
+    export = GoogleDriveExport.create!(
+      user: user,
+      exportable: entry,
+      status: :succeeded,
+      exported_at: Time.current,
+      remote_photo_file_ids: {}
+    )
+    export.update_column(:updated_at, Time.current)
+
+    Async::Dispatcher.stub(:enqueue_record_export, ->(*) { flunk "should not enqueue unchanged export" }) do
+      assert_equal 0, Drive::BackfillRecordExports.new(user: user).call
+    end
+  end
 end

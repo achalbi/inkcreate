@@ -93,4 +93,24 @@ class Drive::SyncWorkspaceTest < ActiveSupport::TestCase
 
     assert_equal [{ capture_id: queued_capture.id, user_id: user.id, mode: :manual }], schedule_calls
   end
+
+  test "does not queue an unchanged uploaded capture backup again" do
+    user = build_user(email: "workspace-sync-no-duplicate-capture@example.com", record_backups_enabled: false, media_backups_enabled: true)
+    capture = build_capture(user: user, title: "Already uploaded")
+    capture.update!(backup_status: :uploaded)
+    capture.backup_records.create!(
+      user: user,
+      provider: "google_drive",
+      status: :uploaded,
+      last_success_at: 5.minutes.from_now
+    )
+
+    Backups::ScheduleCaptureBackup.stub(:new, ->(*) { flunk "should not schedule unchanged uploaded capture" }) do
+      result = Drive::SyncWorkspace.new(user: user).call
+
+      assert_nil result.skip_reason
+      assert_equal 0, result.queued_record_exports
+      assert_equal 0, result.queued_capture_backups
+    end
+  end
 end

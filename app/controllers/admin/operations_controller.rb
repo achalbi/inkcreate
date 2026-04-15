@@ -10,8 +10,8 @@ module Admin
       @backup_active_count = BackupRecord.where(status: [
         BackupRecord.statuses.fetch("pending"),
         BackupRecord.statuses.fetch("running")
-      ]).count
-      @backup_failed_count = BackupRecord.status_failed.count
+      ]).latest_per_capture_provider.count
+      @backup_failed_count = BackupRecord.status_failed.latest_per_capture_provider.count
 
       @sync_active_count = SyncJob.where(status: [
         SyncJob.statuses.fetch("pending"),
@@ -35,7 +35,7 @@ module Admin
       @record_export_failed_count = GoogleDriveExport.status_failed.count
 
       @recent_ocr_jobs = OcrJob.includes(capture: :user).order(created_at: :desc).limit(8)
-      @recent_backup_records = BackupRecord.includes(:capture, :user).recent_first.limit(8)
+      @recent_backup_records = BackupRecord.includes(:capture, :user).latest_per_capture_provider.recent_first.limit(8)
       @recent_sync_jobs = SyncJob.includes(:user).recent_first.limit(8)
       @recent_drive_syncs = DriveSync.includes(:capture, :user).order(created_at: :desc).limit(8)
       @recent_google_drive_exports = GoogleDriveExport.includes(:user, :exportable).recent_first.limit(8)
