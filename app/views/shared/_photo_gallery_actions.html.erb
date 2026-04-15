@@ -2,6 +2,7 @@
   render_buttons = local_assigns.fetch(:render_buttons, true)
   render_field = local_assigns.fetch(:render_field, true)
   include_camera_input = local_assigns.fetch(:include_camera_input, true)
+  render_info_button = local_assigns.fetch(:render_info_button, true)
   photo_gallery_hint_text = local_assigns[:hint_text].presence || "Use these actions to capture a photo or upload one from the gallery."
 %>
 
@@ -22,7 +23,31 @@
   <div class="detail-photo-gallery-actions__row">
     <button
       type="button"
-      class="btn btn-white btn-sm btn-icon photo-section-camera-button"
+      class="btn btn-white btn-sm photo-section-upload-button detail-photo-gallery-action-button detail-photo-gallery-action-button--upload"
+      data-action="photo-capture#chooseFromGallery"
+      title="Upload from gallery"
+      aria-label="Upload from gallery"
+    >
+      <i class="ti ti-photo-plus" aria-hidden="true"></i>
+      <span>Upload</span>
+    </button>
+    <% if render_info_button && tips_target_id.present? %>
+      <button
+        type="button"
+        class="btn btn-white btn-sm btn-icon photo-section-info-button"
+        data-bs-toggle="collapse"
+        data-bs-target="#<%= tips_target_id %>"
+        aria-expanded="false"
+        aria-controls="<%= tips_target_id %>"
+        title="Capture tips"
+        aria-label="Capture tips"
+      >
+        <i class="ti ti-info-circle" aria-hidden="true"></i>
+      </button>
+    <% end %>
+    <button
+      type="button"
+      class="btn btn-white btn-sm photo-section-camera-button detail-photo-gallery-action-button detail-photo-gallery-action-button--camera"
       data-action="photo-capture#openCameraApp"
       data-photo-capture-target="cameraToggle"
       aria-pressed="false"
@@ -30,27 +55,7 @@
       aria-label="Open camera"
     >
       <i class="ti ti-camera" aria-hidden="true"></i>
-    </button>
-    <button
-      type="button"
-      class="btn btn-white btn-sm btn-icon photo-section-upload-button"
-      data-action="photo-capture#chooseFromGallery"
-      title="Upload from gallery"
-      aria-label="Upload from gallery"
-    >
-      <i class="ti ti-photo-plus" aria-hidden="true"></i>
-    </button>
-    <button
-      type="button"
-      class="btn btn-white btn-sm btn-icon photo-section-info-button"
-      data-bs-toggle="collapse"
-      data-bs-target="#<%= tips_target_id %>"
-      aria-expanded="false"
-      aria-controls="<%= tips_target_id %>"
-      title="Capture tips"
-      aria-label="Capture tips"
-    >
-      <i class="ti ti-info-circle" aria-hidden="true"></i>
+      <span>Capture</span>
     </button>
   </div>
 <% end %>

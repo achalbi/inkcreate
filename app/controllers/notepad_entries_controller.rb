@@ -4,7 +4,7 @@ class NotepadEntriesController < BrowserController
 
   before_action :require_authenticated_user!
   before_action :set_notepad_entry, only: %i[show edit update destroy destroy_photo]
-  before_action :load_move_destination_groups, only: %i[edit update]
+  before_action :load_move_destination_groups, only: %i[show edit update]
 
   def index
     @view_mode = index_view_mode

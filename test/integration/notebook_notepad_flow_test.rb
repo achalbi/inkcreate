@@ -497,9 +497,10 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "input[type='hidden'][name='move_to_chapter_id']"
     assert_select "button.notepad-entry-move-picker-button", text: /Choose a notebook and chapter/
-    assert_select "select[data-move-destination-target='notebookSelect'] option", text: /Research notebook/
+    assert_select "[data-move-destination-target='notebookMenu'] button.dropdown-item[data-notebook-id='#{notebook.id}']", text: /Research notebook/
     assert_select ".notepad-entry-move-modal .modal-content[data-controller='move-destination'][data-move-destination-notebooks-value*='Interviews']"
-    assert_select "select[data-move-destination-target='chapterSelect'] option", text: /Choose a chapter/
+    assert_select "[data-move-destination-target='chapterMenu'] button.dropdown-item.disabled", text: /Choose a notebook first/
+    assert_select ".notepad-entry-move-modal [data-bs-toggle='dropdown']", count: 2
     assert_select "button.notepad-entry-move-modal__save-button", text: /Save destination/
     assert_select "button[name='intent'][value='move_to_notebook']", text: /Move to notebook chapter/
 
@@ -579,6 +580,74 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
     assert page.todo_list.hide_completed?
     assert_equal ["Share recap", "Follow up with supplier"], page.todo_list.todo_items.ordered.pluck(:content)
     assert_equal page, reminder.reload.target.todo_list.page
+  end
+
+  test "user can move a notebook page into another notebook chapter from the show page" do
+    user = User.create!(
+      email: "page-mover@example.com",
+      password: "Password123!",
+      password_confirmation: "Password123!",
+      time_zone: "UTC",
+      locale: "en",
+      role: :user
+    )
+
+    source_notebook = user.notebooks.create!(
+      title: "Operations",
+      description: "Working pages",
+      status: :active
+    )
+    source_chapter = source_notebook.chapters.create!(title: "Active work", description: "Current queue")
+    destination_notebook = user.notebooks.create!(
+      title: "Archive",
+      description: "Moved pages",
+      status: :active
+    )
+    destination_chapter = destination_notebook.chapters.create!(title: "Done", description: "Archive queue")
+
+    page = source_chapter.pages.create!(
+      title: "Strategy notes",
+      notes: "Move this into the archive chapter.",
+      captured_on: Date.new(2026, 4, 10)
+    )
+    remaining_page = source_chapter.pages.create!(
+      title: "Follow-up notes",
+      notes: "Stay in the source chapter.",
+      captured_on: Date.new(2026, 4, 11)
+    )
+    destination_existing_page = destination_chapter.pages.create!(
+      title: "Archived brief",
+      notes: "Already in the destination chapter.",
+      captured_on: Date.new(2026, 4, 9)
+    )
+
+    sign_in_browser_user(user)
+
+    get notebook_chapter_page_path(source_notebook, source_chapter, page)
+
+    assert_response :success
+    assert_select ".page-move-shell", count: 1
+    assert_select "button[name='intent'][value='move_to_notebook']", text: /Move to notebook chapter/
+
+    patch notebook_chapter_page_path(source_notebook, source_chapter, page), params: {
+      authenticity_token: authenticity_token_for(notebook_chapter_page_path(source_notebook, source_chapter, page)),
+      intent: "move_to_notebook",
+      move_to_chapter_id: destination_chapter.id
+    }
+
+    assert_redirected_to notebook_chapter_page_path(destination_notebook, destination_chapter, page)
+
+    page.reload
+    remaining_page.reload
+    destination_existing_page.reload
+
+    assert_equal destination_chapter, page.chapter
+    assert_equal 2, page.position
+    assert_equal "Strategy notes - Page 2", page.title
+    assert_equal [remaining_page.id], source_chapter.pages.ordered.pluck(:id)
+    assert_equal 1, remaining_page.position
+    assert_equal "Follow-up notes - Page 1", remaining_page.title
+    assert_equal [destination_existing_page.id, page.id], destination_chapter.pages.ordered.pluck(:id)
   end
 
   test "notebooks index supports search and six-per-page pagination for current and archived views" do

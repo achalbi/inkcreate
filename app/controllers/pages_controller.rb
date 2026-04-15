@@ -5,6 +5,7 @@ class PagesController < BrowserController
   before_action :set_notebook
   before_action :set_chapter
   before_action :set_page, only: %i[show edit update destroy move destroy_photo]
+  before_action :load_move_destination_groups, only: %i[show update]
 
   def show; end
 
@@ -34,6 +35,10 @@ class PagesController < BrowserController
   def edit; end
 
   def update
+    if moving_to_notebook_chapter?
+      return move_page_to_chapter
+    end
+
     preserve_pending_photos(@page, page_params)
     assign_pending_content_from_params(@page, page_params, raw_page_attributes)
 
@@ -115,6 +120,20 @@ class PagesController < BrowserController
     )
   end
 
+  def load_move_destination_groups
+    @move_destination_notebooks = current_user.notebooks.includes(chapters: :pages).ordered.filter_map do |notebook|
+      eligible_chapters = notebook.chapters.reject { |candidate| candidate.id == @page.chapter_id }
+      next if eligible_chapters.empty?
+
+      notebook.tap do |destination_notebook|
+        destination_notebook.define_singleton_method(:chapters) { eligible_chapters }
+      end
+    end
+
+    @selected_move_destination_chapter_id = move_destination_chapter_id
+    @selected_move_destination_label = move_destination_label(move_destination_chapter)
+  end
+
   def preserve_pending_photos(page, attrs)
     page.retained_photo_signed_ids = retained_photo_signed_ids(attrs) + uploaded_photo_signed_ids(attrs[:photos])
   end
@@ -145,6 +164,24 @@ class PagesController < BrowserController
 
   def raw_page_attributes
     params.fetch(:page, {})
+  end
+
+  def moving_to_notebook_chapter?
+    params[:intent].to_s == "move_to_notebook"
+  end
+
+  def move_destination_chapter_id
+    params[:move_to_chapter_id].presence
+  end
+
+  def move_destination_chapter
+    return if move_destination_chapter_id.blank?
+
+    Chapter.kept
+      .joins(:notebook)
+      .where(notebooks: { user_id: current_user.id })
+      .where.not(id: @page.chapter_id)
+      .find_by(id: move_destination_chapter_id)
   end
 
   def assign_pending_content_from_params(page, attrs, raw_attrs)
@@ -222,6 +259,32 @@ class PagesController < BrowserController
     Drive::ScheduleRecordExport.new(record: page).call
   end
 
+  def move_page_to_chapter
+    destination_chapter = move_destination_chapter
+
+    unless destination_chapter
+      @page.errors.add(:base, "Choose a notebook chapter to move this page into.")
+      return render :show, status: :unprocessable_entity
+    end
+
+    source_chapter = @page.chapter
+
+    Page.transaction do
+      @page.update!(
+        chapter: destination_chapter,
+        position: next_page_position_for(destination_chapter)
+      )
+      normalize_page_positions!(source_chapter)
+    end
+
+    schedule_drive_export(@page)
+
+    redirect_to notebook_chapter_page_path(destination_chapter.notebook, destination_chapter, @page),
+      notice: "Page moved to #{destination_chapter.notebook.title} / #{destination_chapter.title}."
+  rescue ActiveRecord::RecordInvalid
+    render :show, status: :unprocessable_entity
+  end
+
   def page_detail_includes
     includes = []
     includes << { voice_notes: [audio_attachment: :blob] } if VoiceNote.schema_ready?
@@ -253,5 +316,24 @@ class PagesController < BrowserController
       record.update!(position: other.position)
       other.update!(position: record_position)
     end
+  end
+
+  def next_page_position_for(chapter)
+    chapter.pages.maximum(:position).to_i + 1
+  end
+
+  def normalize_page_positions!(chapter)
+    chapter.pages.ordered.each_with_index do |page, index|
+      desired_position = index + 1
+      next if page.position == desired_position
+
+      page.update!(position: desired_position)
+    end
+  end
+
+  def move_destination_label(chapter)
+    return if chapter.blank?
+
+    "#{chapter.notebook.title} > #{chapter.title}"
   end
 end

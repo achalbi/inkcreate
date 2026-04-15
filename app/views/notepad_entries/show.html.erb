@@ -9,6 +9,8 @@
   voice_notes_section_id = dom_id(@notepad_entry, :voice_notes_section)
   todo_list_section_id = dom_id(@notepad_entry, :todo_list_section)
   scanned_documents_section_id = dom_id(@notepad_entry, :scanned_documents_section)
+  move_to_notebook_section_id = dom_id(@notepad_entry, :move_to_notebook_section)
+  move_form_id = dom_id(@notepad_entry, :move_form)
   section_shortcuts = [
     { label: "Overview", icon: "ti-file-text", target: overview_section_id },
     { label: "Photos", icon: "ti-photo", target: photos_section_id }
@@ -16,6 +18,7 @@
   section_shortcuts << { label: "Voice notes", icon: "ti-microphone", target: voice_notes_section_id } if voice_notes_available
   section_shortcuts << { label: "To-do list", icon: "ti-checkbox", target: todo_list_section_id } if todo_lists_available
   section_shortcuts << { label: "Scanned documents", icon: "ti-scan", target: scanned_documents_section_id }
+  section_shortcuts << { label: "Move to notebook", icon: "ti-arrows-transfer-up-down", target: move_to_notebook_section_id }
   todo_progress_label = if todo_lists_available && @notepad_entry.todo_list&.enabled?
     "#{@notepad_entry.todo_list.completed_count}/#{@notepad_entry.todo_list.total_count} to-dos"
   end
@@ -104,39 +107,49 @@
               <span class="label label-info detail-photo-gallery-count"><%= @notepad_entry.photos.count %></span>
             </div>
             <div class="ibox-tools d-flex align-items-center gap-2">
-              <%= render "shared/photo_gallery_actions",
-                form:,
-                tips_target_id: dom_id(@notepad_entry, :gallery_capture_tips),
-                include_camera_input: false,
-                render_field: false %>
+              <button
+                type="button"
+                class="btn btn-white btn-sm btn-icon photo-section-info-button"
+                data-bs-toggle="collapse"
+                data-bs-target="#<%= dom_id(@notepad_entry, :gallery_capture_tips) %>"
+                aria-expanded="false"
+                aria-controls="<%= dom_id(@notepad_entry, :gallery_capture_tips) %>"
+                title="Capture tips"
+                aria-label="Capture tips"
+              >
+                <i class="ti ti-info-circle" aria-hidden="true"></i>
+              </button>
               <%= render "shared/ibox_toggle_button", target_id: dom_id(@notepad_entry, :gallery_content) %>
             </div>
           </div>
           <div id="<%= dom_id(@notepad_entry, :gallery_content) %>" class="ibox-content collapse show">
-            <%= render "shared/photo_gallery_actions",
-              form:,
-              tips_target_id: dom_id(@notepad_entry, :gallery_capture_tips),
-              include_camera_input: false,
-              render_buttons: false %>
+            <div class="ibox-content__inner detail-photo-gallery-content-inner">
+              <%= render "shared/photo_gallery_actions",
+                form:,
+                tips_target_id: dom_id(@notepad_entry, :gallery_capture_tips),
+                hint_text: "Use these buttons to capture a photo or upload one from the gallery.",
+                include_camera_input: false,
+                render_info_button: false %>
 
-            <% if @notepad_entry.photos.attached? %>
-              <div class="detail-photo-grid detail-photo-grid--gallery">
-                <% @notepad_entry.photos.attachments.sort_by(&:created_at).reverse_each do |attachment| %>
-                  <div class="detail-photo-grid__item">
-                    <div class="thumbnail">
-                      <%= render "shared/photo_lightbox",
-                        photo: attachment,
-                        alt: @notepad_entry.display_title,
-                        image_style: "width: 100%; height: 240px; object-fit: cover;",
-                        removal_path: photo_notepad_entry_path(@notepad_entry, attachment),
-                        removal_message: "This photo will be removed from the daily page." %>
+              <% if @notepad_entry.photos.attached? %>
+                <div class="detail-photo-grid detail-photo-grid--gallery">
+                  <% @notepad_entry.photos.attachments.sort_by(&:created_at).reverse_each do |attachment| %>
+                    <div class="detail-photo-grid__item">
+                      <div class="thumbnail">
+                        <%= render "shared/photo_lightbox",
+                          photo: attachment,
+                          alt: @notepad_entry.display_title,
+                          image_style: "width: 100%; height: 240px; object-fit: cover;",
+                          removal_path: photo_notepad_entry_path(@notepad_entry, attachment),
+                          removal_message: "This photo will be removed from the daily page." %>
+                      </div>
                     </div>
-                  </div>
-                <% end %>
-              </div>
-            <% else %>
-              <%= render "shared/empty_state", title: "No photos yet", description: "Upload one or more photos to keep this daily page visually complete." %>
-            <% end %>
+                  <% end %>
+                </div>
+              <% else %>
+                <%= render "shared/empty_state", title: "No photos yet", description: "Upload one or more photos to keep this daily page visually complete." %>
+              <% end %>
+            </div>
           </div>
         <% end %>
       </div>
@@ -162,6 +175,21 @@
       <%= render "notepad_entries/scanned_documents_section", notepad_entry: @notepad_entry %>
     </div>
   </section>
+
+  <%= form_with model: @notepad_entry, html: { id: move_form_id, class: "d-none" } do |form| %>
+    <%= form.hidden_field :title, value: @notepad_entry.title %>
+    <%= form.hidden_field :notes, value: @notepad_entry.notes.to_s %>
+    <%= form.hidden_field :entry_date, value: @notepad_entry.entry_date %>
+  <% end %>
+
+  <div id="<%= move_to_notebook_section_id %>" class="detail-section-anchor">
+    <%= render "notepad_entries/move_to_notebook_section",
+      notepad_entry: @notepad_entry,
+      form_id: move_form_id,
+      move_destination_notebooks: @move_destination_notebooks,
+      selected_move_destination_chapter_id: @selected_move_destination_chapter_id,
+      selected_move_destination_label: @selected_move_destination_label %>
+  </div>
 </div>
 
 <%= render "notepad_entries/quick_edit_modal", notepad_entry: @notepad_entry, open: @show_quick_edit_modal == true %>

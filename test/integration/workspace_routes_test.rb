@@ -533,9 +533,12 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_no_match "Manage photos", response.body
     assert_select ".detail-photo-gallery-actions-form", count: 1
-    assert_select ".ibox-title .ibox-tools button.photo-section-camera-button", count: 1
-    assert_select ".ibox-title .ibox-tools button.photo-section-upload-button", count: 1
+    assert_select ".ibox-title .ibox-tools button.photo-section-camera-button", count: 0
+    assert_select ".ibox-title .ibox-tools button.photo-section-upload-button", count: 0
     assert_select ".ibox-title .ibox-tools button.photo-section-info-button", count: 1
+    assert_select ".ibox-content > .ibox-content__inner button.photo-section-upload-button", count: 1, text: /Upload/
+    assert_select ".ibox-content > .ibox-content__inner button.photo-section-info-button", count: 0
+    assert_select ".ibox-content > .ibox-content__inner button.photo-section-camera-button", count: 1, text: /Capture/
     assert_select "a[data-pswp-remove-path='#{photo_notebook_chapter_page_path(@notebook, @chapter, @page, page_attachment)}']", count: 1
 
     get notepad_entry_path(entry)
@@ -545,9 +548,12 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_no_match "Web scan mode", response.body
     assert_no_match "Native scanner available", response.body
     assert_select ".detail-photo-gallery-actions-form", count: 1
-    assert_select ".ibox-title .ibox-tools button.photo-section-camera-button", count: 1
-    assert_select ".ibox-title .ibox-tools button.photo-section-upload-button", count: 1
+    assert_select ".ibox-title .ibox-tools button.photo-section-camera-button", count: 0
+    assert_select ".ibox-title .ibox-tools button.photo-section-upload-button", count: 0
     assert_select ".ibox-title .ibox-tools button.photo-section-info-button", count: 1
+    assert_select ".ibox-content > .ibox-content__inner button.photo-section-upload-button", count: 1, text: /Upload/
+    assert_select ".ibox-content > .ibox-content__inner button.photo-section-info-button", count: 0
+    assert_select ".ibox-content > .ibox-content__inner button.photo-section-camera-button", count: 1, text: /Capture/
     assert_select ".ibox-title .ibox-tools .notebook-overview-delete-button", count: 0
     assert_select "nav.detail-section-shortcuts[data-controller='section-shortcuts']", count: 1
     assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(entry, :overview_section)}']", count: 1
@@ -556,7 +562,39 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(entry, :voice_notes_section)}']", count: 1
     assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(entry, :todo_list_section)}']", count: 1
     assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(entry, :scanned_documents_section)}']", count: 1
+    assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(entry, :move_to_notebook_section)}']", count: 1
     assert_select "a[data-pswp-remove-path='#{photo_notepad_entry_path(entry, entry_attachment)}']", count: 1
+  end
+
+  test "page show page renders move to notebook controls" do
+    sign_in!
+
+    destination_notebook = @user.notebooks.create!(
+      title: "Archive notebook",
+      status: :active
+    )
+    destination_chapter = destination_notebook.chapters.create!(
+      title: "Completed",
+      description: "Target chapter"
+    )
+
+    get notebook_chapter_page_path(@notebook, @chapter, @page)
+
+    assert_response :success
+    move_form_id = ActionView::RecordIdentifier.dom_id(@page, :move_form)
+    move_modal_id = ActionView::RecordIdentifier.dom_id(@page, :move_destination_modal)
+
+    assert_select ".page-move-shell", count: 1
+    assert_select "form##{move_form_id}[action='#{notebook_chapter_page_path(@notebook, @chapter, @page)}']", count: 1
+    assert_select "form##{move_form_id} input[name='_method'][value='patch']", count: 1
+    assert_select "input[name='move_to_chapter_id'][form='#{move_form_id}']", count: 1
+    assert_select "button[name='intent'][value='move_to_notebook'][form='#{move_form_id}']", text: /Move to notebook chapter/
+    assert_select "##{move_modal_id} [data-move-destination-target='notebookMenu']", count: 1
+    assert_select "##{move_modal_id} [data-move-destination-target='notebookMenu'] button.dropdown-item[data-notebook-id='#{destination_notebook.id}']", text: /#{Regexp.escape(destination_notebook.title)}/
+    assert_select "##{move_modal_id} [data-move-destination-target='chapterMenu']", count: 1
+    assert_select "##{move_modal_id} [data-move-destination-target='chapterMenu'] button.dropdown-item.disabled", text: /Choose a notebook first/
+    assert_select "##{move_modal_id} [data-bs-toggle='dropdown']", count: 2
+    assert_select "##{move_modal_id} select", count: 0
   end
 
   test "notepad show page renders a quick edit modal for title and notes" do
@@ -590,6 +628,44 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert notes_input.present?, "Expected notes field in quick edit modal"
     assert trix_editor.present?, "Expected rich-text editor in quick edit modal"
     assert_nil modal.at_xpath(".//input[@name='notepad_entry[entry_date]']"), "Quick edit modal should not expose entry date"
+  end
+
+  test "notepad show page renders move to notebook controls" do
+    sign_in!
+
+    destination_notebook = @user.notebooks.create!(
+      title: "Project notebook",
+      status: :active
+    )
+    destination_chapter = destination_notebook.chapters.create!(
+      title: "Planning",
+      description: "Target chapter"
+    )
+    entry = @user.notepad_entries.create!(
+      title: "Moveable page",
+      notes: "Move this from the show page.",
+      entry_date: Date.current
+    )
+
+    get notepad_entry_path(entry)
+
+    assert_response :success
+    move_form_id = ActionView::RecordIdentifier.dom_id(entry, :move_form)
+    move_modal_id = ActionView::RecordIdentifier.dom_id(entry, :move_destination_modal)
+
+    assert_select ".notepad-entry-move-shell", count: 1
+    assert_select "form##{move_form_id}[action='#{notepad_entry_path(entry)}']", count: 1
+    assert_select "form##{move_form_id} input[name='_method'][value='patch']", count: 1
+    assert_select "form##{move_form_id} input[name='notepad_entry[title]'][value='#{entry.title}']", count: 1
+    assert_select "form##{move_form_id} input[name='notepad_entry[entry_date]'][value='#{entry.entry_date}']", count: 1
+    assert_select "input[name='move_to_chapter_id'][form='#{move_form_id}']", count: 1
+    assert_select "button[name='intent'][value='move_to_notebook'][form='#{move_form_id}']", text: /Move to notebook chapter/
+    assert_select "##{move_modal_id} [data-move-destination-target='notebookMenu']", count: 1
+    assert_select "##{move_modal_id} [data-move-destination-target='notebookMenu'] button.dropdown-item[data-notebook-id='#{destination_notebook.id}']", text: /#{Regexp.escape(destination_notebook.title)}/
+    assert_select "##{move_modal_id} [data-move-destination-target='chapterMenu']", count: 1
+    assert_select "##{move_modal_id} [data-move-destination-target='chapterMenu'] button.dropdown-item.disabled", text: /Choose a notebook first/
+    assert_select "##{move_modal_id} [data-bs-toggle='dropdown']", count: 2
+    assert_select "##{move_modal_id} select", count: 0
   end
 
   test "notepad quick edit updates title and notes without changing other content" do

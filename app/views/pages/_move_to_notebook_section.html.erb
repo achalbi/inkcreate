@@ -9,7 +9,7 @@
   selected_move_destination_chapter = selected_move_destination_notebook&.chapters&.find { |chapter|
     chapter.id.to_s == selected_move_destination_chapter_id.to_s
   }
-  move_modal_id = dom_id(notepad_entry, :move_destination_modal)
+  move_modal_id = dom_id(page, :move_destination_modal)
   move_destination_input_id = "#{move_modal_id}_input"
   move_destination_display_id = "#{move_modal_id}_display"
   move_destination_data = move_destination_notebooks.map { |notebook|
@@ -30,19 +30,33 @@
 
 <div class="row m-t-md">
   <div class="col-12">
-    <div class="ibox notepad-entry-move-shell">
+    <div class="ibox notepad-entry-move-shell page-move-shell">
       <div class="ibox-title">
         <h5>Move to notebook</h5>
         <div class="ibox-tools">
-          <span class="label label-warning">Notepad to notebook</span>
+          <span class="label label-warning">Page transfer</span>
         </div>
       </div>
       <div class="ibox-content">
         <section class="notepad-entry-move-panel">
+          <% if page.errors.any? %>
+            <% error_body = capture do %>
+              <ul class="m-b-none m-t-sm">
+                <% page.errors.full_messages.each do |message| %>
+                  <li><%= message %></li>
+                <% end %>
+              </ul>
+            <% end %>
+            <%= render "shared/inline_alert",
+              type: :danger,
+              title: "Could not move page",
+              body_html: error_body %>
+          <% end %>
+
           <div class="notepad-entry-move-panel__header">
             <div>
-              <h6 class="notepad-entry-move-panel__title">Move this page into a chapter</h6>
-              <p class="notepad-entry-move-panel__description">Convert this daily page into a notebook page inside one of your chapters.</p>
+              <h6 class="notepad-entry-move-panel__title">Move this page into another chapter</h6>
+              <p class="notepad-entry-move-panel__description">Keep the content intact while relocating this page to another notebook chapter.</p>
             </div>
           </div>
 
@@ -97,10 +111,7 @@
                   <div class="modal-header notebook-section-modal__header">
                     <div>
                       <div class="notebook-section-modal__eyebrow">Move destination</div>
-                      <h5
-                        id="<%= "#{move_modal_id}-label" %>"
-                        class="modal-title notebook-section-modal__title"
-                      >
+                      <h5 id="<%= "#{move_modal_id}-label" %>" class="modal-title notebook-section-modal__title">
                         Choose a notebook and chapter
                       </h5>
                     </div>
@@ -225,8 +236,8 @@
           <% else %>
             <%= render "shared/inline_alert",
               type: :info,
-              title: "Create a chapter first",
-              body: "You can move this page once at least one notebook chapter exists in your workspace." %>
+              title: "Create another chapter first",
+              body: "You can move this page once another notebook chapter exists in your workspace." %>
           <% end %>
         </section>
       </div>
