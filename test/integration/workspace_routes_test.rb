@@ -291,6 +291,56 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     refute_includes response.body, submit_transcript_notepad_entry_voice_note_path(entry, voice_note)
   end
 
+  test "notepad edit page renders floating quick actions launcher" do
+    sign_in!
+
+    entry = @user.notepad_entries.create!(
+      title: "Launcher entry",
+      notes: "Launcher notes",
+      entry_date: Date.current
+    )
+
+    get edit_notepad_entry_path(entry)
+
+    assert_response :success
+
+    document = Nokogiri::HTML.parse(response.body)
+    launcher = document.at_css(".notepad-quick-actions[data-controller='notepad-quick-actions']")
+    toggle = launcher&.at_css(".notepad-quick-actions__toggle")
+    items = launcher&.css(".notepad-quick-actions__item i")&.map { |node| node["class"].to_s[/ti-[^ ]+/] }
+
+    assert launcher.present?, "Expected the notepad quick actions launcher"
+    assert toggle.present?, "Expected the quick actions + toggle button"
+    assert_equal "false", toggle["aria-expanded"]
+    assert_equal %w[ti-camera ti-microphone ti-list-check ti-scan], items
+  end
+
+  test "notepad edit page renders floating section dock" do
+    sign_in!
+
+    entry = @user.notepad_entries.create!(
+      title: "Dock entry",
+      notes: "Dock notes",
+      entry_date: Date.current
+    )
+
+    get edit_notepad_entry_path(entry)
+
+    assert_response :success
+
+    document = Nokogiri::HTML.parse(response.body)
+    dock = document.at_css("nav.detail-section-shortcuts[data-controller='section-shortcuts']")
+    links = dock&.css(".detail-section-shortcut")&.map { |node| node["href"] }
+
+    assert dock.present?, "Expected the notepad edit page to render the floating section dock"
+    assert_includes links, "##{ActionView::RecordIdentifier.dom_id(entry, :details_section)}"
+    assert_includes links, "##{ActionView::RecordIdentifier.dom_id(entry, :photos_section)}"
+    assert_includes links, "##{ActionView::RecordIdentifier.dom_id(entry, :voice_notes_section)}"
+    assert_includes links, "##{ActionView::RecordIdentifier.dom_id(entry, :todo_list_section)}"
+    assert_includes links, "##{ActionView::RecordIdentifier.dom_id(entry, :scanned_documents_section)}"
+    assert_includes links, "##{ActionView::RecordIdentifier.dom_id(entry, :move_to_notebook_section)}"
+  end
+
   test "page edit page hides transcript actions for existing voice notes" do
     sign_in!
 

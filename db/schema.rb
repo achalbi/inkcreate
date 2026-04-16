@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_16_101500) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_16_174500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -63,6 +63,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_16_101500) do
     t.string "backup_provider"
     t.datetime "created_at", null: false
     t.jsonb "image_quality_preferences", default: {}, null: false
+    t.jsonb "launcher_preferences", default: {}, null: false
     t.string "ocr_mode", default: "manual", null: false
     t.jsonb "privacy_options", default: {}, null: false
     t.jsonb "retention_rules", default: {}, null: false

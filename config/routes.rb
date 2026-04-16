@@ -132,6 +132,7 @@ Rails.application.routes.draw do
       post :sync, on: :member
     end
     resource :capture_quality, only: %i[show update], controller: "capture_quality"
+    resource :workspace_launcher, only: %i[show update], controller: "workspace_launcher"
     resource :privacy, only: %i[show update], controller: "privacy"
     resource :drive_connection, only: %i[create update destroy], controller: "drive_connections" do
       post :create_folder, on: :collection

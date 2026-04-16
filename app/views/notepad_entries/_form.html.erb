@@ -1,7 +1,16 @@
 <%
   todo_lists_available = TodoList.schema_ready? && TodoItem.schema_ready?
+  voice_notes_available = VoiceNote.notepad_entries_supported?
   persisted_entry = notepad_entry.persisted?
   notepad_entry_form_id = dom_id(notepad_entry, :edit_form)
+  details_section_id = dom_id(notepad_entry, :details_section)
+  photos_section_id = dom_id(notepad_entry, :photos_section)
+  photo_camera_input_id = dom_id(notepad_entry, :photo_camera_input)
+  photo_camera_button_id = dom_id(notepad_entry, :photo_camera_button)
+  voice_notes_section_id = dom_id(notepad_entry, :voice_notes_section)
+  todo_list_section_id = persisted_entry ? dom_id(notepad_entry, :todo_list_section) : dom_id(notepad_entry, :todo_list_form_section)
+  scanned_documents_section_id = dom_id(notepad_entry, :scanned_documents_section)
+  move_to_notebook_section_id = dom_id(notepad_entry, :move_to_notebook_section)
 %>
 
 <%= form_with model: notepad_entry, data: { photo_capture_auto_save: persisted_entry }, html: { id: notepad_entry_form_id } do |form| %>
@@ -18,6 +27,7 @@
 
   <div class="row entry-photos-form-row" data-controller="photo-capture">
     <input
+      id="<%= photo_camera_input_id %>"
       type="file"
       accept="image/*"
       capture="environment"
@@ -28,7 +38,7 @@
       data-action="change->photo-capture#acceptCameraCapture"
     >
 
-    <div class="col-lg-7">
+    <div id="<%= details_section_id %>" class="col-lg-7 detail-section-anchor">
       <div class="ibox">
         <div class="ibox-title">
           <h5>Page details</h5>
@@ -91,13 +101,14 @@
       </div>
     </div>
 
-    <div class="col-lg-5">
+    <div id="<%= photos_section_id %>" class="col-lg-5 detail-section-anchor">
       <div class="ibox">
         <div class="ibox-title">
           <h5>Photos</h5>
           <div class="ibox-tools">
             <button
               type="button"
+              id="<%= photo_camera_button_id %>"
               class="btn btn-white btn-sm btn-icon photo-section-camera-button"
               data-action="photo-capture#openCameraApp"
               data-photo-capture-target="cameraToggle"
@@ -157,20 +168,83 @@
       </div>
     </div>
 
+  </div>
+
+  <div
+    class="notepad-quick-actions"
+    data-controller="notepad-quick-actions"
+    data-action="click@window->notepad-quick-actions#closeOnWindow keydown.esc@window->notepad-quick-actions#close"
+    data-notepad-quick-actions-camera-input-id-value="<%= photo_camera_input_id %>"
+    data-notepad-quick-actions-camera-button-id-value="<%= photo_camera_button_id %>"
+    data-notepad-quick-actions-voice-section-id-value="<%= voice_notes_section_id %>"
+    data-notepad-quick-actions-todo-section-id-value="<%= todo_list_section_id %>"
+    data-notepad-quick-actions-scan-section-id-value="<%= scanned_documents_section_id %>"
+  >
+    <div class="notepad-quick-actions__menu" data-notepad-quick-actions-target="menu" aria-hidden="true">
+      <button
+        type="button"
+        class="notepad-quick-actions__item"
+        data-notepad-quick-actions-target="item"
+        data-action="click->notepad-quick-actions#openCamera"
+        aria-label="Capture photo"
+        title="Capture photo"
+      >
+        <i class="ti ti-camera" aria-hidden="true"></i>
+      </button>
+
+      <% if voice_notes_available %>
+        <button
+          type="button"
+          class="notepad-quick-actions__item"
+          data-notepad-quick-actions-target="item"
+          data-action="click->notepad-quick-actions#openVoiceNote"
+          aria-label="Record voice note"
+          title="Record voice note"
+        >
+          <i class="ti ti-microphone" aria-hidden="true"></i>
+        </button>
+      <% end %>
+
+      <% if todo_lists_available %>
+        <button
+          type="button"
+          class="notepad-quick-actions__item"
+          data-notepad-quick-actions-target="item"
+          data-action="click->notepad-quick-actions#openTodo"
+          aria-label="Open to-do list"
+          title="Open to-do list"
+        >
+          <i class="ti ti-list-check" aria-hidden="true"></i>
+        </button>
+      <% end %>
+
+      <button
+        type="button"
+        class="notepad-quick-actions__item"
+        data-notepad-quick-actions-target="item"
+        data-action="click->notepad-quick-actions#openScan"
+        aria-label="Scan document"
+        title="Scan document"
+      >
+        <i class="ti ti-scan" aria-hidden="true"></i>
+      </button>
+    </div>
+
     <button
       type="button"
-      class="workspace-fab photo-capture-fab"
-      data-action="photo-capture#openCameraApp"
-      data-photo-capture-target="cameraToggle"
+      class="notepad-quick-actions__toggle"
+      data-notepad-quick-actions-target="toggle"
+      data-action="click->notepad-quick-actions#toggle"
+      aria-expanded="false"
       aria-pressed="false"
-      aria-label="Open camera"
-      title="Open camera"
+      aria-label="Open quick actions"
+      title="Open quick actions"
     >
-      <i class="ti ti-camera" aria-hidden="true"></i>
+      <i class="ti ti-plus" aria-hidden="true"></i>
     </button>
   </div>
 
-  <% if VoiceNote.notepad_entries_supported? %>
+  <% if voice_notes_available %>
     <div class="row m-t-md">
       <div class="col-12">
         <%= render "notepad_entries/voice_notes_section", notepad_entry: notepad_entry, form: form %>
@@ -180,7 +254,7 @@
 
   <% unless persisted_entry %>
     <div class="row m-t-md">
-      <div class="col-12">
+      <div class="col-12 notepad-entry-scanned-documents-column">
         <%= render "shared/scanned_documents_form_section", form: form, record: notepad_entry %>
       </div>
 
@@ -210,15 +284,17 @@
       </div>
     <% end %>
 
-    <div class="col-12">
+    <div class="col-12 notepad-entry-scanned-documents-column">
       <%= render "notepad_entries/scanned_documents_section", notepad_entry: notepad_entry %>
     </div>
   </div>
 
-  <%= render "notepad_entries/move_to_notebook_section",
-    notepad_entry: notepad_entry,
-    form_id: notepad_entry_form_id,
-    move_destination_notebooks: @move_destination_notebooks,
-    selected_move_destination_chapter_id: @selected_move_destination_chapter_id,
-    selected_move_destination_label: @selected_move_destination_label %>
+  <div id="<%= move_to_notebook_section_id %>" class="detail-section-anchor">
+    <%= render "notepad_entries/move_to_notebook_section",
+      notepad_entry: notepad_entry,
+      form_id: notepad_entry_form_id,
+      move_destination_notebooks: @move_destination_notebooks,
+      selected_move_destination_chapter_id: @selected_move_destination_chapter_id,
+      selected_move_destination_label: @selected_move_destination_label %>
+  </div>
 <% end %>

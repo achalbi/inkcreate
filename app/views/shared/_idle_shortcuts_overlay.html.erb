@@ -1,4 +1,5 @@
 <%
+  app_setting = local_assigns[:app_setting] || current_user.ensure_app_setting!
   entry_date = Time.zone.today
   storage_key = "workspace-launcher"
   overlay_id = "idle-shortcuts-#{storage_key}"
@@ -7,7 +8,6 @@
   voice_notes_available = VoiceNote.notepad_entries_supported?
   todo_lists_available = TodoList.schema_ready? && TodoItem.schema_ready?
   scanned_documents_available = ScannedDocument.schema_ready?
-  workspace_reminder = current_user.reminders.new if reminders_available
   scan_entry = current_user.notepad_entries.new(entry_date: entry_date) if scanned_documents_available
 %>
 
@@ -15,7 +15,7 @@
   id="<%= overlay_id %>"
   class="idle-shortcuts-backdrop"
   data-controller="idle-shortcuts"
-  data-idle-shortcuts-idle-ms-value="60000"
+  data-idle-shortcuts-idle-ms-value="<%= app_setting.workspace_launcher_idle_timeout_ms %>"
   data-idle-shortcuts-storage-key-value="<%= storage_key %>"
   data-idle-shortcuts-target="overlay"
   data-action="click->idle-shortcuts#backdropClick"
@@ -28,133 +28,188 @@
     <div class="idle-shortcuts-header idle-shortcuts-header--centered">
       <div class="idle-shortcuts-eyebrow">Workspace launcher</div>
       <h2 id="<%= title_id %>" class="idle-shortcuts-title">Jump into the next thing</h2>
-      <p class="idle-shortcuts-description">Open the daily notepad, capture something new, or move straight into reminders and tasks.</p>
+      <p class="idle-shortcuts-description">Move across the workspace, start a fresh daily note action, or head into the general planning tools.</p>
     </div>
 
-    <div class="idle-shortcuts-grid idle-shortcuts-grid--launcher" role="list">
-      <div class="idle-shortcuts-card-wrap" data-controller="quick-capture" role="listitem">
-        <%= form_with url: notepad_entries_path, scope: :notepad_entry, html: { multipart: true }, data: { quick_capture_target: "form" } do |form| %>
-          <%= hidden_field_tag :after_create, "edit" %>
-          <%= form.hidden_field :entry_date, value: entry_date %>
-          <%= form.file_field :photos,
-            multiple: true,
-            accept: "image/*",
-            capture: "environment",
-            class: "quick-capture-input",
-            tabindex: -1,
-            aria: { hidden: true },
-            data: { quick_capture_target: "cameraInput", action: "change->quick-capture#submitFromSelection" } %>
-
-          <button
-            type="button"
-            class="idle-shortcuts-card idle-shortcuts-card--launcher idle-shortcuts-card--button"
-            data-action="click->idle-shortcuts#hideImmediately click->quick-capture#openCamera"
-            data-quick-capture-target="cameraButton"
-            title="Capture a photo and create a daily page"
-            aria-label="Capture a photo and create a daily page"
-          >
+    <div class="idle-shortcuts-groups">
+      <section class="idle-shortcuts-group">
+        <div class="idle-shortcuts-group__header">
+          <div class="idle-shortcuts-group__eyebrow">Workspace</div>
+          <span class="idle-shortcuts-group__title">Core spaces</span>
+        </div>
+        <div class="idle-shortcuts-grid idle-shortcuts-grid--launcher idle-shortcuts-grid--workspace" role="list">
+          <%= link_to notebooks_path,
+            class: "idle-shortcuts-card idle-shortcuts-card--launcher",
+            data: { action: "click->idle-shortcuts#followLink" },
+            role: "listitem",
+            title: "Open notebooks" do %>
             <span class="idle-shortcuts-card__icon-shell" aria-hidden="true">
-              <span class="idle-shortcuts-card__icon"><i class="ti ti-camera"></i></span>
+              <span class="idle-shortcuts-card__icon"><i class="ti ti-book-2"></i></span>
             </span>
-            <span class="idle-shortcuts-card__title">Photo</span>
-            <span class="idle-shortcuts-card__description">Capture a new page from the camera.</span>
-          </button>
+            <span class="idle-shortcuts-card__title">Notebook</span>
+            <span class="idle-shortcuts-card__description">Browse notebooks, chapters, and pages.</span>
+          <% end %>
 
-          <p class="idle-shortcuts-status" data-quick-capture-target="status" hidden></p>
-        <% end %>
-      </div>
-
-      <% if voice_notes_available %>
-        <%= button_tag type: "button",
-          class: "idle-shortcuts-card idle-shortcuts-card--launcher idle-shortcuts-card--button",
-          data: {
-            action: "click->idle-shortcuts#runCommand",
-            idle_shortcuts_command: "open-modal",
-            idle_shortcuts_modal_id: "workspace-voice-note-modal"
-          },
-          role: "listitem",
-          title: "Record a voice note for a new daily page",
-          aria: { label: "Record a voice note for a new daily page" } do %>
-          <span class="idle-shortcuts-card__icon-shell" aria-hidden="true">
-            <span class="idle-shortcuts-card__icon"><i class="ti ti-microphone"></i></span>
-          </span>
-          <span class="idle-shortcuts-card__title">Voice notes</span>
-          <span class="idle-shortcuts-card__description">Record and save audio into a new page.</span>
-        <% end %>
-      <% end %>
-
-      <% if todo_lists_available %>
-        <div class="idle-shortcuts-card-wrap" role="listitem">
-          <%= form_with url: notepad_entries_path, scope: :notepad_entry do |form| %>
-            <%= hidden_field_tag :after_create, "edit" %>
-            <%= form.hidden_field :entry_date, value: entry_date %>
-            <%= form.hidden_field :todo_list_enabled, value: "true" %>
-            <button
-              type="submit"
-              class="idle-shortcuts-card idle-shortcuts-card--launcher idle-shortcuts-card--button"
-              data-action="click->idle-shortcuts#hideImmediately"
-              title="Create a daily page with a to-do list"
-              aria-label="Create a daily page with a to-do list"
-            >
-              <span class="idle-shortcuts-card__icon-shell" aria-hidden="true">
-                <span class="idle-shortcuts-card__icon"><i class="ti ti-list-check"></i></span>
-              </span>
-              <span class="idle-shortcuts-card__title">To-do list</span>
-              <span class="idle-shortcuts-card__description">Create a page with a checklist ready.</span>
-            </button>
+          <%= link_to notepad_entries_path,
+            class: "idle-shortcuts-card idle-shortcuts-card--launcher",
+            data: { action: "click->idle-shortcuts#followLink" },
+            role: "listitem",
+            title: "Open notepad" do %>
+            <span class="idle-shortcuts-card__icon-shell" aria-hidden="true">
+              <span class="idle-shortcuts-card__icon"><i class="ti ti-notes"></i></span>
+            </span>
+            <span class="idle-shortcuts-card__title">Notepad</span>
+            <span class="idle-shortcuts-card__description">Open the daily notes timeline.</span>
           <% end %>
         </div>
-      <% end %>
+      </section>
 
-      <% if scanned_documents_available %>
-        <%= button_tag type: "button",
-          class: "idle-shortcuts-card idle-shortcuts-card--launcher idle-shortcuts-card--button",
-          data: {
-            action: "click->idle-shortcuts#runCommand",
-            idle_shortcuts_command: "open-modal",
-            idle_shortcuts_modal_id: "workspace-scan-modal"
-          },
-          role: "listitem",
-          title: "Scan documents into a new daily page",
-          aria: { label: "Scan documents into a new daily page" } do %>
-          <span class="idle-shortcuts-card__icon-shell" aria-hidden="true">
-            <span class="idle-shortcuts-card__icon"><i class="ti ti-scan"></i></span>
-          </span>
-          <span class="idle-shortcuts-card__title">Scan documents</span>
-          <span class="idle-shortcuts-card__description">Capture PDFs, receipts, and notes.</span>
-        <% end %>
-      <% end %>
+      <section class="idle-shortcuts-group">
+        <div class="idle-shortcuts-group__header">
+          <div class="idle-shortcuts-group__eyebrow">Daily Notepad</div>
+          <span class="idle-shortcuts-group__title">Create something new</span>
+        </div>
+        <div class="idle-shortcuts-grid idle-shortcuts-grid--launcher idle-shortcuts-grid--daily" role="list">
+          <div class="idle-shortcuts-card-wrap" data-controller="quick-capture" role="listitem">
+            <%= form_with url: notepad_entries_path, scope: :notepad_entry, html: { multipart: true }, data: { quick_capture_target: "form" } do |form| %>
+              <%= hidden_field_tag :after_create, "edit" %>
+              <%= form.hidden_field :entry_date, value: entry_date %>
+              <%= form.file_field :photos,
+                multiple: true,
+                accept: "image/*",
+                capture: "environment",
+                class: "quick-capture-input",
+                tabindex: -1,
+                aria: { hidden: true },
+                data: { quick_capture_target: "cameraInput", action: "change->quick-capture#submitFromSelection" } %>
 
-      <%= link_to tasks_path,
-        class: "idle-shortcuts-card idle-shortcuts-card--launcher",
-        data: { action: "click->idle-shortcuts#followLink" },
-        role: "listitem",
-        title: "Open the tasks workspace" do %>
-        <span class="idle-shortcuts-card__icon-shell" aria-hidden="true">
-          <span class="idle-shortcuts-card__icon"><i class="ti ti-checkbox"></i></span>
-        </span>
-        <span class="idle-shortcuts-card__title">Tasks</span>
-        <span class="idle-shortcuts-card__description">Go to the shared task workspace.</span>
-      <% end %>
+              <button
+                type="button"
+                class="idle-shortcuts-card idle-shortcuts-card--launcher idle-shortcuts-card--button"
+                data-action="click->idle-shortcuts#hideImmediately click->quick-capture#openCamera"
+                data-quick-capture-target="cameraButton"
+                title="Capture a photo and create a daily page"
+                aria-label="Capture a photo and create a daily page"
+              >
+                <span class="idle-shortcuts-card__icon-shell" aria-hidden="true">
+                  <span class="idle-shortcuts-card__icon"><i class="ti ti-camera"></i></span>
+                </span>
+                <span class="idle-shortcuts-card__title">Capture photo</span>
+                <span class="idle-shortcuts-card__description">Create a new daily page from the camera.</span>
+              </button>
 
-      <% if reminders_available %>
-        <%= button_tag type: "button",
-          class: "idle-shortcuts-card idle-shortcuts-card--launcher idle-shortcuts-card--button",
-          data: {
-            action: "click->idle-shortcuts#runCommand",
-            idle_shortcuts_command: "open-modal",
-            idle_shortcuts_modal_id: "workspace-new-reminder-modal"
-          },
-          role: "listitem",
-          title: "Create a new reminder",
-          aria: { label: "Create a new reminder" } do %>
-          <span class="idle-shortcuts-card__icon-shell" aria-hidden="true">
-            <span class="idle-shortcuts-card__icon"><i class="ti ti-bell-plus"></i></span>
-          </span>
-          <span class="idle-shortcuts-card__title">New reminder</span>
-          <span class="idle-shortcuts-card__description">Create a standalone reminder.</span>
-        <% end %>
-      <% end %>
+              <p class="idle-shortcuts-status" data-quick-capture-target="status" hidden></p>
+            <% end %>
+          </div>
+
+          <% if voice_notes_available %>
+            <%= button_tag type: "button",
+              class: "idle-shortcuts-card idle-shortcuts-card--launcher idle-shortcuts-card--button",
+              data: {
+                action: "click->idle-shortcuts#runCommand",
+                idle_shortcuts_command: "open-modal",
+                idle_shortcuts_modal_id: "workspace-voice-note-modal"
+              },
+              role: "listitem",
+              title: "Record a voice note for a new daily page",
+              aria: { label: "Record a voice note for a new daily page" } do %>
+              <span class="idle-shortcuts-card__icon-shell" aria-hidden="true">
+                <span class="idle-shortcuts-card__icon"><i class="ti ti-microphone"></i></span>
+              </span>
+              <span class="idle-shortcuts-card__title">Record voice note</span>
+              <span class="idle-shortcuts-card__description">Record and save audio into a new page.</span>
+            <% end %>
+          <% end %>
+
+          <% if scanned_documents_available %>
+            <%= button_tag type: "button",
+              class: "idle-shortcuts-card idle-shortcuts-card--launcher idle-shortcuts-card--button",
+              data: {
+                action: "click->idle-shortcuts#runCommand",
+                idle_shortcuts_command: "open-modal",
+                idle_shortcuts_modal_id: "workspace-scan-modal"
+              },
+              role: "listitem",
+              title: "Scan documents into a new daily page",
+              aria: { label: "Scan documents into a new daily page" } do %>
+              <span class="idle-shortcuts-card__icon-shell" aria-hidden="true">
+                <span class="idle-shortcuts-card__icon"><i class="ti ti-scan"></i></span>
+              </span>
+              <span class="idle-shortcuts-card__title">Scan new document</span>
+              <span class="idle-shortcuts-card__description">Capture PDFs, receipts, and paper notes.</span>
+            <% end %>
+          <% end %>
+
+          <% if todo_lists_available %>
+            <div class="idle-shortcuts-card-wrap" role="listitem">
+              <%= form_with url: notepad_entries_path, scope: :notepad_entry do |form| %>
+                <%= hidden_field_tag :after_create, "edit" %>
+                <%= form.hidden_field :entry_date, value: entry_date %>
+                <%= form.hidden_field :todo_list_enabled, value: "true" %>
+                <button
+                  type="submit"
+                  class="idle-shortcuts-card idle-shortcuts-card--launcher idle-shortcuts-card--button"
+                  data-action="click->idle-shortcuts#hideImmediately"
+                  title="Create a daily page with a to-do list"
+                  aria-label="Create a daily page with a to-do list"
+                >
+                  <span class="idle-shortcuts-card__icon-shell" aria-hidden="true">
+                    <span class="idle-shortcuts-card__icon"><i class="ti ti-list-check"></i></span>
+                  </span>
+                  <span class="idle-shortcuts-card__title">New to-do</span>
+                  <span class="idle-shortcuts-card__description">Start a daily page with a checklist ready.</span>
+                </button>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </section>
+
+      <section class="idle-shortcuts-group">
+        <div class="idle-shortcuts-group__header">
+          <div class="idle-shortcuts-group__eyebrow">General</div>
+          <span class="idle-shortcuts-group__title">Planning and settings</span>
+        </div>
+        <div class="idle-shortcuts-grid idle-shortcuts-grid--launcher idle-shortcuts-grid--general" role="list">
+          <% if reminders_available %>
+            <%= link_to reminders_path,
+              class: "idle-shortcuts-card idle-shortcuts-card--launcher",
+              data: { action: "click->idle-shortcuts#followLink" },
+              role: "listitem",
+              title: "Open reminders" do %>
+              <span class="idle-shortcuts-card__icon-shell" aria-hidden="true">
+                <span class="idle-shortcuts-card__icon"><i class="ti ti-bell"></i></span>
+              </span>
+              <span class="idle-shortcuts-card__title">Reminders</span>
+              <span class="idle-shortcuts-card__description">Review upcoming and active reminders.</span>
+            <% end %>
+          <% end %>
+
+          <%= link_to tasks_path,
+            class: "idle-shortcuts-card idle-shortcuts-card--launcher",
+            data: { action: "click->idle-shortcuts#followLink" },
+            role: "listitem",
+            title: "Open the tasks workspace" do %>
+            <span class="idle-shortcuts-card__icon-shell" aria-hidden="true">
+              <span class="idle-shortcuts-card__icon"><i class="ti ti-checkbox"></i></span>
+            </span>
+            <span class="idle-shortcuts-card__title">Tasks</span>
+            <span class="idle-shortcuts-card__description">Go to the shared task workspace.</span>
+          <% end %>
+
+          <%= link_to settings_path,
+            class: "idle-shortcuts-card idle-shortcuts-card--launcher",
+            data: { action: "click->idle-shortcuts#followLink" },
+            role: "listitem",
+            title: "Open settings" do %>
+            <span class="idle-shortcuts-card__icon-shell" aria-hidden="true">
+              <span class="idle-shortcuts-card__icon"><i class="ti ti-settings"></i></span>
+            </span>
+            <span class="idle-shortcuts-card__title">Settings</span>
+            <span class="idle-shortcuts-card__description">Adjust backup, capture, and app preferences.</span>
+          <% end %>
+        </div>
+      </section>
     </div>
 
     <div class="idle-shortcuts-actions">
@@ -209,25 +264,6 @@
               <%= form.submit "Create page with scan", class: "btn btn-primary btn-sm", data: { disable_with: "Creating..." } %>
             </div>
           <% end %>
-        </div>
-      </div>
-    </div>
-  </div>
-<% end %>
-
-<% if reminders_available && workspace_reminder.present? %>
-  <div class="modal fade" id="workspace-new-reminder-modal" tabindex="-1" aria-labelledby="workspace-new-reminder-modal-label" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content workspace-launcher-modal">
-        <div class="modal-header">
-          <h5 class="modal-title" id="workspace-new-reminder-modal-label">New reminder</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body workspace-launcher-modal__body">
-          <%= render "reminders/form",
-            reminder: workspace_reminder,
-            form_context: "workspace_launcher",
-            actions_classes: "d-flex flex-wrap gap-2 justify-content-end" %>
         </div>
       </div>
     </div>

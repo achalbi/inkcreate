@@ -1,10 +1,42 @@
-<!-- <%= render "shared/workspace_header",
-  breadcrumbs: [["Home", dashboard_path], ["Notepad", notepad_entries_path], [@notepad_entry.display_title, notepad_entry_path(@notepad_entry)], "Edit daily page"],
-  eyebrow: "Notepad",
-  class_name: "workspace-header--compact",
-  title: "Edit daily page",
-  description: "Update the date, notes, or photos for this page." %> -->
+<%
+  todo_lists_available = TodoList.schema_ready? && TodoItem.schema_ready?
+  voice_notes_available = VoiceNote.notepad_entries_supported?
+  details_section_id = dom_id(@notepad_entry, :details_section)
+  photos_section_id = dom_id(@notepad_entry, :photos_section)
+  voice_notes_section_id = dom_id(@notepad_entry, :voice_notes_section)
+  todo_list_section_id = @notepad_entry.persisted? ? dom_id(@notepad_entry, :todo_list_section) : dom_id(@notepad_entry, :todo_list_form_section)
+  scanned_documents_section_id = dom_id(@notepad_entry, :scanned_documents_section)
+  move_to_notebook_section_id = dom_id(@notepad_entry, :move_to_notebook_section)
+  section_shortcuts = [
+    { label: "Details", short_label: "Details", icon: "ti-file-text", target: details_section_id },
+    { label: "Photos", short_label: "Photos", icon: "ti-photo", target: photos_section_id }
+  ]
+  section_shortcuts << { label: "Voice notes", short_label: "Voice", icon: "ti-microphone", target: voice_notes_section_id } if voice_notes_available
+  section_shortcuts << { label: "To-do list", short_label: "To-do", icon: "ti-checkbox", target: todo_list_section_id } if todo_lists_available
+  section_shortcuts << { label: "Scanned documents", short_label: "Scans", icon: "ti-scan", target: scanned_documents_section_id }
+  section_shortcuts << { label: "Move", short_label: "Move", icon: "ti-arrows-transfer-up-down", target: move_to_notebook_section_id } if @notepad_entry.persisted?
+%>
 
 <div class="wrapper wrapper-content animated fadeInRight">
+  <nav class="detail-section-shortcuts" aria-label="Jump to edit daily page sections" data-controller="section-shortcuts">
+    <div class="detail-section-shortcuts__rail" data-section-shortcuts-target="rail">
+      <span class="detail-section-shortcuts__indicator" data-section-shortcuts-target="indicator" aria-hidden="true"></span>
+      <% section_shortcuts.each_with_index do |shortcut, index| %>
+        <a
+          href="#<%= shortcut[:target] %>"
+          class="detail-section-shortcut<%= " is-active" if index.zero? %>"
+          title="<%= shortcut[:label] %>"
+          aria-label="Jump to <%= shortcut[:label] %>"
+          <% if index.zero? %>aria-current="location"<% end %>
+          data-section-shortcuts-target="link"
+          data-action="click->section-shortcuts#markActive"
+        >
+          <i class="ti <%= shortcut[:icon] %>" aria-hidden="true"></i>
+          <span class="detail-section-shortcut__label"><%= shortcut[:short_label] %></span>
+        </a>
+      <% end %>
+    </div>
+  </nav>
+
   <%= render "form", notepad_entry: @notepad_entry %>
 </div>

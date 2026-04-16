@@ -58,6 +58,12 @@
       <%= render "settings/capture_quality_box" %>
     </div>
 
+    <% if @app_setting.launcher_preferences_supported? %>
+      <div class="col-lg-6">
+        <%= render "settings/workspace_launcher_box" %>
+      </div>
+    <% end %>
+
     <div class="col-lg-6">
       <%= render "settings/notification_box" %>
     </div>

@@ -1,0 +1,36 @@
+<%
+  workspace_launcher_options = [["Off", false], ["On", true]]
+  idle_timeout_options = AppSetting::WORKSPACE_LAUNCHER_IDLE_TIMEOUT_OPTIONS
+%>
+
+<section class="ibox h-100">
+  <div class="ibox-title">
+    <h5>Workspace launcher</h5>
+    <div class="ibox-tools">
+      <%= render "shared/ibox_toggle_button", target_id: "settings-workspace-launcher-content", expanded: false %>
+    </div>
+  </div>
+  <div id="settings-workspace-launcher-content" class="ibox-content collapse">
+    <p class="text-secondary mb-4">Control whether the idle workspace launcher appears at all, and how long the app waits before showing it.</p>
+
+    <%= form_with url: settings_workspace_launcher_path, method: :patch, scope: :app_setting do |form| %>
+      <div class="mb-3">
+        <%= form.label :enabled, "Show workspace launcher", class: "form-label" %>
+        <%= form.select :enabled,
+          options_for_select(workspace_launcher_options, @app_setting.workspace_launcher_enabled?),
+          {},
+          class: "form-select" %>
+      </div>
+
+      <div class="mb-4">
+        <%= form.label :idle_timeout_ms, "Idle timeout", class: "form-label" %>
+        <%= form.select :idle_timeout_ms,
+          options_for_select(idle_timeout_options, @app_setting.workspace_launcher_idle_timeout_ms),
+          {},
+          class: "form-select" %>
+      </div>
+
+      <%= form.submit "Save launcher settings", class: "btn btn-primary" %>
+    <% end %>
+  </div>
+</section>

@@ -24,6 +24,8 @@ class AppSettingTest < ActiveSupport::TestCase
     assert app_setting.include_photos_in_backups?
     assert app_setting.keep_deleted_chapters_recoverable?
     assert app_setting.clear_backup_metadata_on_disconnect?
+    assert app_setting.workspace_launcher_enabled?
+    assert_equal 60_000, app_setting.workspace_launcher_idle_timeout_ms
   end
 
   test "normalizes string values for privacy toggles" do
@@ -54,5 +56,26 @@ class AppSettingTest < ActiveSupport::TestCase
 
     app_setting.update!(image_quality_preferences: { "capture_quality_preset" => "not-a-real-preset" })
     assert_equal "optimized", app_setting.capture_quality_preset
+  end
+
+  test "normalizes workspace launcher preferences" do
+    user = build_user(email: "workspace-launcher-normalization@example.com")
+    app_setting = user.ensure_app_setting!
+
+    app_setting.update!(launcher_preferences: {
+      "enabled" => "0",
+      "idle_timeout_ms" => "12345"
+    })
+
+    assert_not app_setting.workspace_launcher_enabled?
+    assert_equal 60_000, app_setting.workspace_launcher_idle_timeout_ms
+
+    app_setting.update!(launcher_preferences: {
+      "enabled" => "1",
+      "idle_timeout_ms" => "1500000"
+    })
+
+    assert app_setting.workspace_launcher_enabled?
+    assert_equal 1_500_000, app_setting.workspace_launcher_idle_timeout_ms
   end
 end

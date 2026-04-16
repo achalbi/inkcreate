@@ -4,7 +4,8 @@
 %>
 
 <section
-  class="ibox float-e-margins"
+  id="<%= dom_id(record, :scanned_documents_section) %>"
+  class="ibox float-e-margins detail-section-anchor"
   data-controller="document-capture"
   data-document-capture-mode-value="draft"
 >

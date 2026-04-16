@@ -13,6 +13,7 @@ import DriveOauthController from "/scripts/controllers/drive_oauth_controller.js
 import RichTextController from "/scripts/controllers/rich_text_controller.js";
 import QuickCaptureController from "/scripts/controllers/quick_capture_controller.js";
 import FooterActionMenuController from "/scripts/controllers/footer_action_menu_controller.js";
+import NotepadQuickActionsController from "/scripts/controllers/notepad_quick_actions_controller.js";
 import VoiceRecorderController from "/scripts/controllers/voice_recorder_controller.js";
 import VoiceNotePlayerController from "/scripts/controllers/voice_note_player_controller.js";
 import TodoListController from "/scripts/controllers/todo_list_controller.js";
@@ -85,6 +86,7 @@ application.register("drive-oauth", DriveOauthController);
 application.register("rich-text", RichTextController);
 application.register("quick-capture", QuickCaptureController);
 application.register("footer-action-menu", FooterActionMenuController);
+application.register("notepad-quick-actions", NotepadQuickActionsController);
 application.register("voice-recorder", VoiceRecorderController);
 application.register("voice-note-player", VoiceNotePlayerController);
 application.register("todo-list", TodoListController);

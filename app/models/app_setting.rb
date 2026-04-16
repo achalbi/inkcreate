@@ -30,6 +30,20 @@ class AppSetting < ApplicationRecord
   IMAGE_QUALITY_DEFAULTS = {
     "capture_quality_preset" => "optimized"
   }.freeze
+  WORKSPACE_LAUNCHER_IDLE_TIMEOUT_OPTIONS = [
+    ["1 minute", 60_000],
+    ["3 minutes", 180_000],
+    ["9 minutes", 540_000],
+    ["25 minutes", 1_500_000],
+    ["1 hour", 3_600_000],
+    ["7 hours", 25_200_000],
+    ["11 hours", 39_600_000],
+    ["23 hours", 82_800_000]
+  ].freeze
+  WORKSPACE_LAUNCHER_DEFAULTS = {
+    "enabled" => true,
+    "idle_timeout_ms" => WORKSPACE_LAUNCHER_IDLE_TIMEOUT_OPTIONS.first.last
+  }.freeze
   PRIVACY_DEFAULTS = {
     "allow_ocr_processing" => true,
     "include_photos_in_backups" => true,
@@ -41,10 +55,14 @@ class AppSetting < ApplicationRecord
 
   before_validation :normalize_privacy_options!
   before_validation :normalize_image_quality_preferences!
+  before_validation :normalize_launcher_preferences!
 
   validates :ocr_mode, inclusion: { in: OCR_MODES }
   validates :backup_provider, inclusion: { in: BACKUP_PROVIDERS }, allow_blank: true
   validates :capture_quality_preset, inclusion: { in: CAPTURE_QUALITY_PROFILES.keys }
+  validates :workspace_launcher_idle_timeout_ms, inclusion: {
+    in: WORKSPACE_LAUNCHER_IDLE_TIMEOUT_OPTIONS.map(&:last)
+  }
 
   def google_drive_backup?
     backup_enabled? && backup_provider == "google_drive"
@@ -58,6 +76,10 @@ class AppSetting < ApplicationRecord
     IMAGE_QUALITY_DEFAULTS.merge(image_quality_preferences.to_h.stringify_keys.slice(*IMAGE_QUALITY_DEFAULTS.keys))
   end
 
+  def merged_launcher_preferences
+    WORKSPACE_LAUNCHER_DEFAULTS.merge(raw_launcher_preferences.slice(*WORKSPACE_LAUNCHER_DEFAULTS.keys))
+  end
+
   def capture_quality_preset
     merged_image_quality_preferences.fetch("capture_quality_preset")
   end
@@ -68,6 +90,30 @@ class AppSetting < ApplicationRecord
 
   def capture_quality_profile
     CAPTURE_QUALITY_PROFILES.fetch(capture_quality_preset)
+  end
+
+  def workspace_launcher_enabled?
+    ActiveModel::Type::Boolean.new.cast(merged_launcher_preferences.fetch("enabled"))
+  end
+
+  def workspace_launcher_enabled=(value)
+    return unless launcher_preferences_supported?
+
+    self[:launcher_preferences] = raw_launcher_preferences.merge("enabled" => value)
+  end
+
+  def workspace_launcher_idle_timeout_ms
+    merged_launcher_preferences.fetch("idle_timeout_ms")
+  end
+
+  def workspace_launcher_idle_timeout_ms=(value)
+    return unless launcher_preferences_supported?
+
+    self[:launcher_preferences] = raw_launcher_preferences.merge("idle_timeout_ms" => value)
+  end
+
+  def launcher_preferences_supported?
+    has_attribute?("launcher_preferences")
   end
 
   def allow_ocr_processing?
@@ -114,7 +160,32 @@ class AppSetting < ApplicationRecord
     }
   end
 
+  def normalize_launcher_preferences!
+    return unless launcher_preferences_supported?
+
+    raw_options = raw_launcher_preferences
+    enabled = if raw_options.key?("enabled")
+      ActiveModel::Type::Boolean.new.cast(raw_options["enabled"])
+    else
+      WORKSPACE_LAUNCHER_DEFAULTS.fetch("enabled")
+    end
+    idle_timeout_ms = raw_options["idle_timeout_ms"].to_i
+    idle_timeout_ms = WORKSPACE_LAUNCHER_DEFAULTS.fetch("idle_timeout_ms") unless
+      WORKSPACE_LAUNCHER_IDLE_TIMEOUT_OPTIONS.map(&:last).include?(idle_timeout_ms)
+
+    self[:launcher_preferences] = {
+      "enabled" => enabled,
+      "idle_timeout_ms" => idle_timeout_ms
+    }
+  end
+
   def privacy_option_enabled?(key)
     ActiveModel::Type::Boolean.new.cast(merged_privacy_options.fetch(key))
+  end
+
+  def raw_launcher_preferences
+    return {} unless launcher_preferences_supported?
+
+    self[:launcher_preferences].to_h.stringify_keys
   end
 end

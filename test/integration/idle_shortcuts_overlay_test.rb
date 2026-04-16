@@ -56,24 +56,48 @@ class IdleShortcutsOverlayTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select ".idle-shortcuts-backdrop[data-controller='idle-shortcuts'][data-idle-shortcuts-storage-key-value='workspace-launcher']", count: 1
-    assert_select ".idle-shortcuts-grid--launcher .idle-shortcuts-card", count: 6
-    assert_select ".idle-shortcuts-card", text: /Photo/
-    assert_select ".idle-shortcuts-card[data-idle-shortcuts-command='open-modal'][data-idle-shortcuts-modal-id='workspace-voice-note-modal']", text: /Voice notes/
-    assert_select ".idle-shortcuts-card[data-idle-shortcuts-command='open-modal'][data-idle-shortcuts-modal-id='workspace-scan-modal']", text: /Scan documents/
+    assert_select ".idle-shortcuts-backdrop[data-idle-shortcuts-idle-ms-value='60000']", count: 1
+    assert_select ".idle-shortcuts-group", count: 3
+    assert_select ".idle-shortcuts-group__eyebrow", text: "Workspace"
+    assert_select ".idle-shortcuts-group__eyebrow", text: "Daily Notepad"
+    assert_select ".idle-shortcuts-group__eyebrow", text: "General"
+    assert_select ".idle-shortcuts-grid--launcher .idle-shortcuts-card", count: 9
+    assert_select ".idle-shortcuts-card[href='#{notebooks_path}']", text: /Notebook/
+    assert_select ".idle-shortcuts-card[href='#{notepad_entries_path}']", text: /Notepad/
+    assert_select ".idle-shortcuts-card", text: /Capture photo/
+    assert_select ".idle-shortcuts-card[data-idle-shortcuts-command='open-modal'][data-idle-shortcuts-modal-id='workspace-voice-note-modal']", text: /Record voice note/
+    assert_select ".idle-shortcuts-card[data-idle-shortcuts-command='open-modal'][data-idle-shortcuts-modal-id='workspace-scan-modal']", text: /Scan new document/
+    assert_select ".idle-shortcuts-card", text: /New to-do/
+    assert_select ".idle-shortcuts-card[href='#{reminders_path}']", text: /Reminders/
     assert_select ".idle-shortcuts-card[href='#{tasks_path}']", text: /Tasks/
-    assert_select ".idle-shortcuts-card[data-idle-shortcuts-command='open-modal'][data-idle-shortcuts-modal-id='workspace-new-reminder-modal']", text: /New reminder/
+    assert_select ".idle-shortcuts-card[href='#{settings_path}']", text: /Settings/
     assert_select ".idle-shortcuts-continue", text: "Continue →"
   end
 
-  test "workspace launcher exposes photo capture and shared reminder modal from tasks page" do
+  test "workspace launcher exposes shared workspace actions from tasks page" do
     sign_in!
 
     get tasks_path
 
     assert_response :success
     assert_select ".idle-shortcuts-card-wrap[data-controller='quick-capture']", count: 1
-    assert_select "#workspace-new-reminder-modal", count: 1
     assert_select "#workspace-scan-modal", count: 1
+    assert_select ".idle-shortcuts-card[href='#{reminders_path}']", count: 1
+    assert_select ".idle-shortcuts-card[href='#{settings_path}']", count: 1
+    assert_select "#workspace-new-reminder-modal", count: 0
+  end
+
+  test "workspace pages do not render the launcher when disabled in settings" do
+    sign_in!
+    @user.ensure_app_setting!.update!(launcher_preferences: {
+      "enabled" => false,
+      "idle_timeout_ms" => 180_000
+    })
+
+    get tasks_path
+
+    assert_response :success
+    assert_select ".idle-shortcuts-backdrop[data-controller='idle-shortcuts']", count: 0
   end
 
   private

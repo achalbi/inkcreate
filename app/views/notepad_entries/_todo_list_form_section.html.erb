@@ -5,7 +5,8 @@
 %>
 
 <section
-  class="ibox"
+  id="<%= dom_id(notepad_entry, :todo_list_form_section) %>"
+  class="ibox detail-section-anchor"
   data-controller="todo-list"
   data-todo-list-mode-value="draft"
   data-todo-list-draft-field-name-value="notepad_entry[todo_item_contents][]"
