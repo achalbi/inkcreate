@@ -48,6 +48,10 @@
     <%= render "shared/photo_removal_confirm_modal" %>
     <%= render "shared/reminder_dismiss_confirm_modal" %>
     <%= render "shared/reminder_snooze_modal" %>
+    <% if current_user %>
+      <%= render "shared/onboarding_wizard",
+            autoshow: !current_user.onboarding_completed? %>
+    <% end %>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/trix@2.1.18/dist/trix.umd.min.js" defer></script>

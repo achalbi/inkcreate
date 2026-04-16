@@ -537,6 +537,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_16_100000) do
     t.datetime "last_sign_in_at"
     t.inet "last_sign_in_ip"
     t.string "locale", default: "en", null: false
+    t.datetime "onboarding_completed_at"
     t.datetime "remember_created_at"
     t.datetime "reset_password_sent_at"
     t.string "reset_password_token"

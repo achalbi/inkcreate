@@ -1,0 +1,2146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Inkcreate — Tasks</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #faf6ef;
+      --surface: #fffaf1;
+      --surface-2: #fff4e3;
+      --surface-3: #f3ecdf;
+      --ink: #1b1b1d;
+      --muted: #5b5b66;
+      --subtle: #9a9aa8;
+      --border: rgba(27,27,29,0.08);
+      --border-strong: rgba(27,27,29,0.16);
+      --accent: #ff5f4e;
+      --accent-ink: #b33728;
+      --accent-soft: #ffe1dc;
+
+      --prio-low: #2eaa60;
+      --prio-medium: #e0a92a;
+      --prio-high: #ff8a3d;
+      --prio-urgent: #e4534a;
+
+      --sev-trivial-bg: #e6f5ec;
+      --sev-trivial-ink: #1f5f36;
+      --sev-minor-bg: #fff0cb;
+      --sev-minor-ink: #8a6a10;
+      --sev-major-bg: #ffe1d9;
+      --sev-major-ink: #8a3a2a;
+      --sev-blocker-bg: #ffd6d2;
+      --sev-blocker-ink: #8a2a22;
+
+      --gold-soft: #fff0cb;
+      --gold-ink: #8a6a10;
+
+      --radius: 22px;
+      --radius-md: 16px;
+      --radius-sm: 12px;
+      --shadow: 0 2px 0 rgba(27,27,29,.04);
+      --shadow-soft: 0 10px 30px rgba(27,27,29,.08);
+      --shadow-lg: 0 24px 60px rgba(27,27,29,.18);
+      --spring: cubic-bezier(.34, 1.56, .64, 1);
+      --ease: cubic-bezier(.2, .8, .2, 1);
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+      font-feature-settings: 'cv11','ss01';
+    }
+    body {
+      min-height: 100vh;
+      background-image: radial-gradient(rgba(27,27,29,0.06) 1px, transparent 1px);
+      background-size: 18px 18px;
+      background-position: -9px -9px;
+    }
+
+    button { font: inherit; color: inherit; cursor: pointer; }
+    input, textarea, select { font: inherit; color: inherit; }
+
+    /* === App shell === */
+    .app {
+      max-width: 760px;
+      margin: 0 auto;
+      min-height: 100vh;
+      padding: 28px 22px 140px;
+      position: relative;
+    }
+
+    /* === Header === */
+    .header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .header h1 {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0 0 2px;
+    }
+    .header .subtitle {
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .header .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+      box-shadow: var(--shadow);
+      transition: transform .15s var(--ease), background .15s var(--ease), border-color .15s var(--ease);
+    }
+    .btn:hover { background: var(--surface-2); }
+    .btn:active { transform: translateY(1px); }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 8px 24px rgba(255,95,78,.35);
+    }
+    .btn-primary:hover { background: #f45442; }
+    .btn-ghost {
+      background: transparent;
+      border-color: transparent;
+      box-shadow: none;
+    }
+    .btn-ghost:hover { background: var(--surface-2); }
+    .btn-danger {
+      background: #fff;
+      color: #a12a22;
+      border-color: #f3c4c0;
+    }
+    .btn-danger:hover { background: #ffe5e2; }
+
+    /* === Quick add === */
+    .quick-add-wrap {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .quick-add {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      box-shadow: var(--shadow);
+      transition: border-color .2s var(--ease), box-shadow .2s var(--ease);
+    }
+    .quick-add:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px var(--accent-soft);
+    }
+    .quick-add svg { flex-shrink: 0; color: var(--subtle); }
+    .quick-add input {
+      flex: 1;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      font-size: 15px;
+      font-weight: 500;
+    }
+    .quick-add input::placeholder { color: var(--subtle); }
+    .quick-add .kbd {
+      font-size: 11px;
+      color: var(--subtle);
+      background: var(--surface-3);
+      padding: 3px 7px;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+    .more-btn {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      border: 0;
+      font-size: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 12px 28px rgba(255,95,78,.35);
+      flex-shrink: 0;
+      transition: transform .2s var(--spring);
+    }
+    .more-btn:hover { transform: scale(1.05); }
+
+    /* === Filter tabs & tools === */
+    .tools-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .tabs {
+      display: inline-flex;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px;
+      gap: 2px;
+      box-shadow: var(--shadow);
+    }
+    .tabs button {
+      border: 0;
+      background: transparent;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background .15s var(--ease), color .15s var(--ease);
+    }
+    .tabs button .count {
+      background: var(--surface-3);
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 1px 7px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .tabs button.active {
+      background: var(--ink);
+      color: #fff;
+    }
+    .tabs button.active .count {
+      background: rgba(255,255,255,0.18);
+      color: #fff;
+    }
+    .tool-select {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--ink);
+      box-shadow: var(--shadow);
+      appearance: none;
+      -webkit-appearance: none;
+      padding-right: 28px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235b5b66' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+
+    /* === Progress === */
+    .progress {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 10px 0 18px;
+      padding: 12px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow);
+    }
+    .progress .bar {
+      flex: 1;
+      height: 8px;
+      background: var(--surface-3);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .progress .bar > div {
+      height: 100%;
+      background: linear-gradient(90deg, #2eaa60, #4ec27e);
+      border-radius: 999px;
+      transform-origin: left;
+      transition: width .6s var(--spring);
+    }
+    .progress .label {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    /* === Task list === */
+    .task-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .group-heading {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--subtle);
+      padding: 12px 6px 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .group-heading .count {
+      background: var(--surface-3);
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 1px 7px;
+      font-size: 11px;
+    }
+
+    .task-card {
+      position: relative;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 16px 14px 22px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      animation: rowIn .35s var(--spring);
+      transition: border-color .2s var(--ease), background .2s var(--ease), transform .25s var(--ease), opacity .25s var(--ease);
+    }
+    .task-card:hover { border-color: var(--border-strong); }
+    .task-card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: var(--stripe, var(--prio-medium));
+      transition: background .25s var(--ease);
+    }
+    .task-card.leaving {
+      opacity: 0;
+      transform: translateX(-24px);
+    }
+    .task-card.done .task-title {
+      color: var(--subtle);
+      text-decoration: line-through;
+    }
+    .task-card.done::before { opacity: .4; }
+    .task-card.dragging { opacity: 0.5; }
+
+    .task-main {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .check {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid var(--border-strong);
+      background: transparent;
+      padding: 0;
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+      transition: background .2s var(--spring), border-color .2s var(--ease), transform .2s var(--spring);
+    }
+    .check:hover { border-color: var(--ink); }
+    .check svg { opacity: 0; transform: scale(.6); transition: opacity .2s var(--ease), transform .2s var(--spring); color: #fff; }
+    .check[aria-checked="true"] {
+      background: var(--prio-low);
+      border-color: var(--prio-low);
+    }
+    .check[aria-checked="true"] svg { opacity: 1; transform: scale(1); }
+
+    .task-body { flex: 1; min-width: 0; }
+    .title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .task-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--ink);
+      word-break: break-word;
+    }
+
+    .sev-badge {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: var(--sev-minor-bg);
+      color: var(--sev-minor-ink);
+    }
+    .sev-badge.trivial { background: var(--sev-trivial-bg); color: var(--sev-trivial-ink); }
+    .sev-badge.minor   { background: var(--sev-minor-bg); color: var(--sev-minor-ink); }
+    .sev-badge.major   { background: var(--sev-major-bg); color: var(--sev-major-ink); }
+    .sev-badge.blocker { background: var(--sev-blocker-bg); color: var(--sev-blocker-ink); }
+
+    .tag-chip {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: var(--surface-3);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .tag-chip:hover { background: var(--surface-2); }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      font-size: 11.5px;
+      font-weight: 600;
+      border-radius: 999px;
+      background: var(--surface-3);
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .pill.reminder { background: var(--gold-soft); color: var(--gold-ink); border-color: #f1dfa8; }
+    .pill.due { background: var(--surface-3); color: var(--muted); }
+    .pill.due.overdue { background: #ffd6d2; color: #8a2a22; border-color: #f3bdb8; }
+    .pill.due.soon    { background: #ffe1d9; color: #8a3a2a; border-color: #f3c9c0; }
+    .pill.link {
+      background: var(--surface-2);
+      color: var(--accent-ink);
+      border-color: #f3d4ce;
+      cursor: pointer;
+    }
+    .pill.link:hover { background: var(--accent-soft); }
+    .pill.flash { animation: linkFlash .9s var(--ease); }
+
+    .sub-progress {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--muted);
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--surface-3);
+    }
+
+    .task-actions {
+      display: flex;
+      gap: 2px;
+      opacity: 0;
+      pointer-events: none;
+      align-self: flex-start;
+      transition: opacity .18s var(--ease);
+    }
+    .task-card:hover .task-actions,
+    .task-card:focus-within .task-actions { opacity: 1; pointer-events: auto; }
+    .icon-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      border: 0;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      transition: background .15s var(--ease), color .15s var(--ease), transform .15s var(--ease);
+    }
+    .icon-btn:hover { background: var(--surface-2); color: var(--ink); }
+    .icon-btn.active { color: var(--gold-ink); }
+    .icon-btn.flag-low     { color: var(--prio-low); }
+    .icon-btn.flag-medium  { color: var(--prio-medium); }
+    .icon-btn.flag-high    { color: var(--prio-high); }
+    .icon-btn.flag-urgent  { color: var(--prio-urgent); }
+
+    .empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px dashed var(--border-strong);
+      border-radius: var(--radius);
+    }
+    .empty h3 { margin: 0 0 6px; color: var(--ink); font-weight: 600; }
+
+    /* === Bottom nav === */
+    .bottom-nav {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      box-shadow: var(--shadow-lg);
+      z-index: 40;
+    }
+    .bottom-nav .nav-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 0;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      position: relative;
+      transition: background .15s var(--ease), color .15s var(--ease), transform .2s var(--spring);
+    }
+    .bottom-nav .nav-btn:hover { background: var(--surface-2); color: var(--ink); }
+    .bottom-nav .nav-btn.active {
+      background: var(--accent);
+      color: #fff;
+      width: 56px;
+      height: 56px;
+    }
+    .bottom-nav .nav-btn.active::after {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      border-radius: 50%;
+      border: 2px solid var(--accent-soft);
+    }
+    .nav-label {
+      position: absolute;
+      bottom: -22px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    /* === Drawer === */
+    .backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(27,27,29,0.45);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s var(--ease);
+      z-index: 50;
+    }
+    .backdrop.open { opacity: 1; pointer-events: auto; }
+
+    .drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: min(520px, 100%);
+      background: var(--bg);
+      box-shadow: var(--shadow-lg);
+      z-index: 60;
+      transform: translateX(100%);
+      transition: transform .35s var(--ease);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .drawer.open { transform: translateX(0); }
+    @media (max-width: 480px) {
+      .drawer { width: 100%; top: 5vh; bottom: 0; right: 0; border-radius: 20px 20px 0 0; transform: translateY(100%); }
+      .drawer.open { transform: translateY(0); }
+    }
+    .drawer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .drawer-header h2 { margin: 0; font-size: 15px; font-weight: 700; }
+    .drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 18px 20px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .field > label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--subtle);
+    }
+    .field input[type="text"],
+    .field input[type="date"],
+    .field input[type="datetime-local"],
+    .field textarea,
+    .field select {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color .15s var(--ease), box-shadow .15s var(--ease);
+    }
+    .field input:focus,
+    .field textarea:focus,
+    .field select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px var(--accent-soft);
+    }
+    .field textarea {
+      min-height: 90px;
+      resize: vertical;
+      font-family: inherit;
+    }
+    .inline-title {
+      font-size: 22px !important;
+      font-weight: 700 !important;
+      padding: 8px 10px !important;
+      border-radius: var(--radius-sm) !important;
+      background: transparent !important;
+      border: 1px solid transparent !important;
+    }
+    .inline-title:hover { border-color: var(--border) !important; }
+    .inline-title:focus { background: var(--surface) !important; border-color: var(--accent) !important; }
+
+    .prop-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .prop {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .prop label {
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--subtle);
+    }
+    .prop select, .prop input {
+      border: 0;
+      background: transparent;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 2px 0;
+      outline: none;
+      color: var(--ink);
+    }
+    .prop .value-btn {
+      border: 0;
+      background: transparent;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+      text-align: left;
+      padding: 2px 0;
+    }
+    .prop .value-btn.empty { color: var(--subtle); font-weight: 500; }
+
+    /* Subtasks */
+    .subtask {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+    }
+    .subtask .check { width: 18px; height: 18px; border-width: 2px; }
+    .subtask input {
+      flex: 1;
+      border: 0;
+      background: transparent;
+      font-size: 13.5px;
+      font-weight: 500;
+      outline: none;
+    }
+    .subtask.done input { color: var(--subtle); text-decoration: line-through; }
+    .subtask .icon-btn { width: 28px; height: 28px; }
+    .subtask-add {
+      display: flex;
+      gap: 8px;
+    }
+    .subtask-add input {
+      flex: 1;
+      padding: 8px 10px;
+      border: 1px dashed var(--border-strong);
+      background: transparent;
+      border-radius: 10px;
+      font-size: 13px;
+      outline: none;
+    }
+    .subtask-add input:focus { border-color: var(--accent); }
+
+    /* Tag input */
+    .tag-input-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+    }
+    .tag-input-wrap:focus-within { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+    .tag-input-wrap .tag-chip { padding: 3px 10px; }
+    .tag-input-wrap input {
+      border: 0;
+      background: transparent;
+      outline: 0;
+      flex: 1;
+      min-width: 80px;
+      font-size: 13px;
+    }
+
+    /* Activity log */
+    .activity {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .activity div { padding-left: 14px; position: relative; }
+    .activity div::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 6px;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent-soft);
+    }
+
+    /* Sync section */
+    .sync-section {
+      background: var(--surface-2);
+      border: 1px dashed var(--border-strong);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+    }
+    .sync-section h4 { margin: 0 0 6px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+    .sync-section p { margin: 0 0 8px; font-size: 12.5px; color: var(--muted); }
+
+    /* Link picker */
+    .modal {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 70;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s var(--ease);
+    }
+    .modal.open { opacity: 1; pointer-events: auto; }
+    .modal .modal-surface {
+      background: var(--bg);
+      border-radius: 20px;
+      width: min(520px, 92%);
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-lg);
+      transform: scale(.96);
+      transition: transform .25s var(--spring);
+      overflow: hidden;
+    }
+    .modal.open .modal-surface { transform: scale(1); }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .modal-header h3 { margin: 0; font-size: 15px; font-weight: 700; }
+    .modal-body { padding: 14px 18px; overflow-y: auto; }
+    .modal-footer {
+      padding: 12px 18px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface);
+    }
+    .modal-search {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      outline: none;
+    }
+    .modal-search:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+
+    .recent-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .recent-chip {
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--accent-ink);
+      cursor: pointer;
+    }
+    .recent-chip:hover { background: var(--accent-soft); }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--subtle);
+      margin: 12px 0 6px;
+    }
+    .tree { display: flex; flex-direction: column; gap: 2px; }
+    .tree-node {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 8px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--ink);
+    }
+    .tree-node:hover { background: var(--surface-2); }
+    .tree-node.selected { background: var(--accent-soft); }
+    .tree-node .twisty {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      color: var(--subtle);
+      transition: transform .2s var(--ease);
+    }
+    .tree-node.expanded .twisty { transform: rotate(90deg); }
+    .tree-children {
+      padding-left: 18px;
+      display: none;
+    }
+    .tree-children.open { display: flex; flex-direction: column; gap: 2px; }
+    .breadcrumb {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .breadcrumb strong { color: var(--ink); font-weight: 700; }
+
+    /* Reminder preset row */
+    .preset-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .preset-row button {
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .preset-row button:hover { background: var(--surface-2); }
+    .preset-row button.active { background: var(--accent); color: #fff; border-color: transparent; }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-thumb { background: rgba(27,27,29,0.12); border-radius: 999px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+
+    /* Focus ring */
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+      border-radius: 8px;
+    }
+
+    /* Screen reader only */
+    .sr-only {
+      position: absolute;
+      width: 1px; height: 1px;
+      padding: 0; margin: -1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* Animations */
+    @keyframes rowIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes linkFlash {
+      0%   { background: var(--accent-soft); box-shadow: 0 0 0 0 var(--accent); }
+      50%  { background: var(--accent); color: #fff; }
+      100% { background: var(--accent-soft); box-shadow: 0 0 0 0 rgba(0,0,0,0); }
+    }
+
+    /* Sync flow flash */
+    .sync-flash {
+      position: fixed;
+      left: 0; right: 0; top: 50%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent) 30%, var(--accent) 70%, transparent);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 200;
+    }
+    .sync-flash.on {
+      animation: syncFlash .9s var(--ease);
+    }
+    @keyframes syncFlash {
+      0% { opacity: 0; transform: scaleX(0); }
+      30% { opacity: 1; transform: scaleX(1); }
+      100% { opacity: 0; transform: scaleX(1); }
+    }
+
+    @media (max-width: 520px) {
+      .app { padding: 20px 14px 130px; }
+      .header h1 { font-size: 26px; }
+      .prop-grid { grid-template-columns: 1fr; }
+      .tabs button { padding: 6px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="sync-flash" id="syncFlash" aria-hidden="true"></div>
+
+  <div class="app" id="app">
+    <!-- HEADER -->
+    <header class="header">
+      <div>
+        <h1>Tasks</h1>
+        <div class="subtitle" id="subtitle">0 active</div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-ghost" id="testFireBtn" title="Fire a test reminder now">🔔 Test fire</button>
+        <button class="btn btn-ghost" id="promoteDemoBtn" title="Promote a sample page-level todo into a Task">↗ Promote demo todo</button>
+        <button class="btn btn-primary" id="newTaskBtn">＋ New task</button>
+      </div>
+    </header>
+
+    <!-- QUICK ADD -->
+    <div class="quick-add-wrap">
+      <label class="quick-add" for="quickAddInput">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        <input id="quickAddInput" type="text" placeholder="New task… press Enter to add" autocomplete="off" />
+        <span class="kbd">⌘K</span>
+      </label>
+      <button class="more-btn" id="openExpandedFormBtn" aria-label="Open expanded task form">⋯</button>
+    </div>
+
+    <!-- TOOLS -->
+    <div class="tools-row">
+      <div class="tabs" id="tabs" role="tablist">
+        <button data-filter="all" class="active" role="tab" aria-selected="true">All <span class="count" id="countAll">0</span></button>
+        <button data-filter="active" role="tab">Active <span class="count" id="countActive">0</span></button>
+        <button data-filter="done" role="tab">Done <span class="count" id="countDone">0</span></button>
+        <button data-filter="overdue" role="tab">Overdue <span class="count" id="countOverdue">0</span></button>
+        <button data-filter="today" role="tab">Today <span class="count" id="countToday">0</span></button>
+      </div>
+      <select id="sortSelect" class="tool-select" aria-label="Sort tasks">
+        <option value="manual">Sort: Manual</option>
+        <option value="priority">Sort: Priority</option>
+        <option value="due">Sort: Due date</option>
+        <option value="created">Sort: Created</option>
+      </select>
+      <select id="groupSelect" class="tool-select" aria-label="Group tasks">
+        <option value="none">Group: None</option>
+        <option value="priority">Group: Priority</option>
+        <option value="severity">Group: Severity</option>
+        <option value="due">Group: Due date</option>
+        <option value="notebook">Group: Linked notebook</option>
+      </select>
+    </div>
+
+    <!-- PROGRESS -->
+    <div class="progress" aria-live="polite">
+      <div class="bar"><div id="progressFill" style="width: 0%"></div></div>
+      <div class="label" id="progressLabel">0 / 0</div>
+    </div>
+
+    <!-- TASK LIST -->
+    <div class="task-list" id="taskList"></div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav" aria-label="Primary">
+    <button class="nav-btn" aria-label="Home">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12L12 4l9 8"/><path d="M5 10v10h14V10"/></svg>
+    </button>
+    <button class="nav-btn" aria-label="Notebook">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 012-2h12v18H6a2 2 0 01-2-2V5z"/><path d="M8 3v18"/></svg>
+    </button>
+    <button class="nav-btn active" aria-label="Tasks" aria-current="page">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>
+    </button>
+    <button class="nav-btn" aria-label="Notepad">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h10l4 4v14H6z"/><path d="M9 9h6M9 13h6M9 17h4"/></svg>
+    </button>
+    <button class="nav-btn" aria-label="Settings">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>
+    </button>
+  </nav>
+
+  <!-- DRAWER -->
+  <div class="backdrop" id="backdrop"></div>
+  <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+    <div class="drawer-header">
+      <h2 id="drawerTitle">Task details</h2>
+      <button class="icon-btn" id="closeDrawerBtn" aria-label="Close details">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="drawer-body" id="drawerBody"></div>
+  </aside>
+
+  <!-- LINK PICKER MODAL -->
+  <div class="modal" id="linkModal" role="dialog" aria-modal="true" aria-labelledby="linkModalTitle">
+    <div class="modal-surface">
+      <div class="modal-header">
+        <h3 id="linkModalTitle">Link task to…</h3>
+        <button class="icon-btn" id="closeLinkModalBtn" aria-label="Close link picker">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <input id="linkSearch" class="modal-search" placeholder="Search notebooks, chapters, pages…" />
+        <div class="section-label">Recently linked</div>
+        <div class="recent-row" id="recentRow"></div>
+        <div class="section-label">Browse</div>
+        <div class="tree" id="linkTree"></div>
+      </div>
+      <div class="modal-footer">
+        <div class="breadcrumb" id="linkBreadcrumb">No selection</div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-ghost" id="linkClearBtn">Clear</button>
+          <button class="btn btn-primary" id="linkConfirmBtn">Link</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SAMPLE PAGE TODO MODAL -->
+  <div class="modal" id="samplePageModal" role="dialog" aria-modal="true" aria-labelledby="sampleTitle">
+    <div class="modal-surface">
+      <div class="modal-header">
+        <h3 id="sampleTitle">Page: Work › Meetings › Apr 11</h3>
+        <button class="icon-btn" id="closeSampleBtn" aria-label="Close page preview">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="sampleBody"></div>
+      <div class="modal-footer">
+        <div class="breadcrumb">Page-level Todos live here — untouched by the Tasks feature.</div>
+        <button class="btn btn-ghost" id="closeSampleBtn2">Close</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* =====================================================================
+   Inkcreate Tasks — single-file prototype
+   A complete, self-contained Task system that lives alongside the
+   existing page-level Todo feature. See the top of this file for the
+   data model and feature checklist.
+   ===================================================================== */
+
+(() => {
+  'use strict';
+
+  // --------- Stub hierarchy data (Notebooks → Chapters → Pages) ---------
+  const HIERARCHY = [
+    { id: 'nb_work', type: 'notebook', label: 'Work', icon: '💼', children: [
+      { id: 'ch_meetings', type: 'chapter', label: 'Meetings', children: [
+        { id: 'pg_apr10', type: 'page', label: 'Apr 10 — Page 1', resources: [
+          { id: 'voice_1', type: 'voice', label: 'Voice: Standup 9:15' },
+          { id: 'todo_1',  type: 'todo',  label: 'Todo: Follow up with Priya' }
+        ]},
+        { id: 'pg_apr11', type: 'page', label: 'Apr 11 — Page 3', resources: [
+          { id: 'photo_1', type: 'photo', label: 'Photo: Whiteboard sketch' },
+          { id: 'todo_2',  type: 'todo',  label: 'Todo: Draft agenda for Thursday' },
+          { id: 'todo_3',  type: 'todo',  label: 'Todo: Send slides to Maya' }
+        ]},
+        { id: 'pg_apr12', type: 'page', label: 'Apr 12 — Page 1' },
+      ]},
+      { id: 'ch_launches', type: 'chapter', label: 'Launches', children: [
+        { id: 'pg_apr08', type: 'page', label: 'Apr 8 — Page 2' },
+        { id: 'pg_apr09', type: 'page', label: 'Apr 9 — Page 4', resources: [
+          { id: 'voice_2', type: 'voice', label: 'Voice: Demo rehearsal' }
+        ]},
+        { id: 'pg_apr11b', type: 'page', label: 'Apr 11 — Page 1' },
+      ]},
+    ]},
+    { id: 'nb_personal', type: 'notebook', label: 'Personal', icon: '🏡', children: [
+      { id: 'ch_home', type: 'chapter', label: 'Home', children: [
+        { id: 'pg_pr1', type: 'page', label: 'Apr 4 — Page 1' },
+        { id: 'pg_pr2', type: 'page', label: 'Apr 6 — Page 1', resources: [
+          { id: 'photo_3', type: 'photo', label: 'Photo: Kitchen sketch' }
+        ]},
+        { id: 'pg_pr3', type: 'page', label: 'Apr 7 — Page 2' },
+      ]},
+      { id: 'ch_health', type: 'chapter', label: 'Health', children: [
+        { id: 'pg_hh1', type: 'page', label: 'Apr 2 — Page 1' },
+        { id: 'pg_hh2', type: 'page', label: 'Apr 5 — Page 3' },
+        { id: 'pg_hh3', type: 'page', label: 'Apr 10 — Page 2' },
+      ]},
+    ]},
+    { id: 'nb_ideas', type: 'notebook', label: 'Ideas', icon: '💡', children: [
+      { id: 'ch_product', type: 'chapter', label: 'Product', children: [
+        { id: 'pg_id1', type: 'page', label: 'Apr 3 — Page 1' },
+        { id: 'pg_id2', type: 'page', label: 'Apr 6 — Page 2' },
+        { id: 'pg_id3', type: 'page', label: 'Apr 9 — Page 1' },
+      ]},
+      { id: 'ch_writing', type: 'chapter', label: 'Writing', children: [
+        { id: 'pg_wr1', type: 'page', label: 'Apr 1 — Page 1' },
+        { id: 'pg_wr2', type: 'page', label: 'Apr 5 — Page 1' },
+        { id: 'pg_wr3', type: 'page', label: 'Apr 8 — Page 1' },
+      ]},
+    ]},
+  ];
+
+  /**
+   * Build a label path for a given link resource, e.g.
+   *   {notebookId:'nb_work', chapterId:'ch_meetings', pageId:'pg_apr11'}
+   *   → "Work › Meetings › Apr 11 — Page 3"
+   */
+  function labelPath(link) {
+    const parts = [];
+    const nb = HIERARCHY.find(n => n.id === link.notebookId);
+    if (nb) parts.push(nb.label);
+    const ch = nb?.children?.find(c => c.id === link.chapterId);
+    if (ch) parts.push(ch.label);
+    const pg = ch?.children?.find(p => p.id === link.pageId);
+    if (pg) parts.push(pg.label);
+    if (link.resourceId) {
+      const res = pg?.resources?.find(r => r.id === link.resourceId);
+      if (res) parts.push(res.label);
+    }
+    return parts.join(' › ');
+  }
+
+  // --------- Sample page-level todo (for the Promote demo) ---------
+  const SAMPLE_PAGE_TODO = {
+    id: 'todo_3',
+    pageId: 'pg_apr11',
+    text: 'Send slides to Maya',
+    done: false,
+    promotedTaskId: null,
+    reminder: null
+  };
+
+  // --------- Seed Tasks ---------
+  const now = new Date();
+  function date(dayOffset, hour = 9, min = 0) {
+    const d = new Date(now);
+    d.setDate(d.getDate() + dayOffset);
+    d.setHours(hour, min, 0, 0);
+    return d;
+  }
+  const uid = () => 't_' + Math.random().toString(36).slice(2, 9);
+
+  const state = {
+    tasks: [
+      {
+        id: uid(),
+        title: 'Prepare demo deck',
+        description: 'Focus on the linking flow and the new reminder pills. Keep it under 8 slides.',
+        done: false,
+        createdAt: date(-2),
+        priority: 'high',
+        severity: 'major',
+        dueDate: date(0),
+        reminder: { at: date(0, 10, 26), recurrence: 'none' },
+        link: { type: 'page', notebookId: 'nb_work', chapterId: 'ch_meetings', pageId: 'pg_apr11', label: labelPath({ notebookId: 'nb_work', chapterId: 'ch_meetings', pageId: 'pg_apr11' }) },
+        tags: ['launch', 'deck'],
+        subtasks: [
+          { id: 'st1', title: 'Outline flow', done: true },
+          { id: 'st2', title: 'Design slides', done: false },
+          { id: 'st3', title: 'Record voiceover', done: false },
+        ],
+        attachments: []
+      },
+      {
+        id: uid(),
+        title: 'Call vendor about invoice discrepancy',
+        description: '',
+        done: true,
+        createdAt: date(-5),
+        completedAt: date(-1),
+        priority: 'medium',
+        severity: 'minor',
+        dueDate: date(-1),
+        reminder: null,
+        link: null,
+        tags: ['ops'],
+        subtasks: [],
+        attachments: []
+      },
+      {
+        id: uid(),
+        title: 'Ship v2 launch plan',
+        description: 'End-to-end doc covering rollout, comms, and rollback.',
+        done: false,
+        createdAt: date(-3),
+        priority: 'urgent',
+        severity: 'blocker',
+        dueDate: date(2),
+        reminder: { at: date(1, 9, 0), recurrence: 'daily' },
+        link: { type: 'chapter', notebookId: 'nb_work', chapterId: 'ch_launches', label: labelPath({ notebookId: 'nb_work', chapterId: 'ch_launches' }) },
+        tags: ['launch', 'priority'],
+        subtasks: [
+          { id: 'st4', title: 'Rollout plan', done: true },
+          { id: 'st5', title: 'Comms plan', done: true },
+          { id: 'st6', title: 'Rollback plan', done: false },
+          { id: 'st7', title: 'Review with team', done: false },
+          { id: 'st8', title: 'Schedule launch date', done: false },
+        ],
+        attachments: []
+      },
+      {
+        id: uid(),
+        title: 'Book dentist',
+        description: '',
+        done: false,
+        createdAt: date(-1),
+        priority: 'low',
+        severity: 'trivial',
+        dueDate: date(7),
+        reminder: null,
+        link: { type: 'notebook', notebookId: 'nb_personal', label: labelPath({ notebookId: 'nb_personal' }) },
+        tags: ['errand'],
+        subtasks: [],
+        attachments: []
+      },
+      {
+        id: uid(),
+        title: 'Prototype Task detail drawer',
+        description: '',
+        done: false,
+        createdAt: date(-4),
+        priority: 'medium',
+        severity: 'major',
+        dueDate: date(-2),
+        reminder: null,
+        link: { type: 'page', notebookId: 'nb_ideas', chapterId: 'ch_product', pageId: 'pg_id2', label: labelPath({ notebookId: 'nb_ideas', chapterId: 'ch_product', pageId: 'pg_id2' }) },
+        tags: ['design', 'product'],
+        subtasks: [
+          { id: 'st9', title: 'Spec the fields', done: true },
+          { id: 'st10', title: 'Build the UI', done: false },
+        ],
+        attachments: []
+      },
+      {
+        id: uid(),
+        title: 'Quarterly review prep',
+        description: 'Gather metrics and highlights.',
+        done: false,
+        createdAt: date(-6),
+        priority: 'high',
+        severity: 'minor',
+        dueDate: date(4),
+        reminder: { at: date(3, 18, 0), recurrence: 'weekly' },
+        link: null,
+        tags: ['review'],
+        subtasks: [],
+        attachments: []
+      }
+    ],
+    filter: 'all',
+    sort: 'manual',
+    group: 'none',
+    detailId: null,
+    // For the link picker
+    linkDraft: null,
+    linkTarget: null, // id of task currently being linked, or '__new'
+    newTaskDraft: null, // expanded form in-progress
+    tagFilter: null,
+    recentLinks: []
+  };
+
+  // --------- Helpers ---------
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  function fmtDate(d) {
+    if (!d) return '';
+    const dt = new Date(d);
+    return dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+  function fmtDateTime(d) {
+    if (!d) return '';
+    const dt = new Date(d);
+    return dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
+      ' · ' + dt.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  }
+  function startOfDay(d) { const x = new Date(d); x.setHours(0,0,0,0); return x; }
+  function sameDay(a, b) { return startOfDay(a).getTime() === startOfDay(b).getTime(); }
+  function isOverdue(task) {
+    return task.dueDate && !task.done && new Date(task.dueDate) < new Date() && !sameDay(task.dueDate, new Date());
+  }
+  function isDueSoon(task) {
+    if (!task.dueDate || task.done) return false;
+    const diff = new Date(task.dueDate).getTime() - Date.now();
+    return diff > 0 && diff < 24 * 60 * 60 * 1000;
+  }
+
+  // --------- Filtering / sorting / grouping ---------
+  function filterTasks(tasks) {
+    switch (state.filter) {
+      case 'active':  return tasks.filter(t => !t.done);
+      case 'done':    return tasks.filter(t => t.done);
+      case 'overdue': return tasks.filter(t => isOverdue(t));
+      case 'today':   return tasks.filter(t => t.dueDate && sameDay(t.dueDate, new Date()));
+      default:        return tasks.slice();
+    }
+  }
+
+  const PRIORITY_ORDER = { urgent: 0, high: 1, medium: 2, low: 3 };
+  const SEVERITY_ORDER = { blocker: 0, major: 1, minor: 2, trivial: 3 };
+  function sortTasks(list) {
+    const a = list.slice();
+    switch (state.sort) {
+      case 'priority': a.sort((x, y) => PRIORITY_ORDER[x.priority] - PRIORITY_ORDER[y.priority]); break;
+      case 'due':      a.sort((x, y) => (x.dueDate ? +new Date(x.dueDate) : Infinity) - (y.dueDate ? +new Date(y.dueDate) : Infinity)); break;
+      case 'created':  a.sort((x, y) => +new Date(y.createdAt) - +new Date(x.createdAt)); break;
+      default: /* manual: keep array order */ break;
+    }
+    return a;
+  }
+
+  function groupTasks(list) {
+    if (state.group === 'none') return [{ key: '', label: '', items: list }];
+    const groups = new Map();
+    const keyFor = t => {
+      switch (state.group) {
+        case 'priority': return t.priority;
+        case 'severity': return t.severity;
+        case 'due':      return t.dueDate ? fmtDate(t.dueDate) : 'No due date';
+        case 'notebook':
+          if (!t.link?.notebookId) return 'Unlinked';
+          return HIERARCHY.find(n => n.id === t.link.notebookId)?.label || 'Unlinked';
+      }
+      return '';
+    };
+    list.forEach(t => {
+      const k = keyFor(t);
+      if (!groups.has(k)) groups.set(k, []);
+      groups.get(k).push(t);
+    });
+    return Array.from(groups.entries()).map(([key, items]) => ({
+      key,
+      label: state.group === 'priority' || state.group === 'severity' ? String(key).toUpperCase() : key,
+      items
+    }));
+  }
+
+  // --------- Rendering ---------
+  function taskCardHTML(task) {
+    const doneAttr = task.done ? 'true' : 'false';
+    const sevClass = task.severity;
+    const subDone = task.subtasks.filter(s => s.done).length;
+    const subTotal = task.subtasks.length;
+    const stripeVar = `--stripe: var(--prio-${task.priority})`;
+
+    const pills = [];
+    if (task.reminder) {
+      pills.push(`<span class="pill reminder">🔔 ${esc(fmtDateTime(task.reminder.at))}${task.reminder.recurrence && task.reminder.recurrence !== 'none' ? ' · ' + esc(task.reminder.recurrence) : ''}</span>`);
+    }
+    if (task.dueDate) {
+      const cls = isOverdue(task) ? 'overdue' : isDueSoon(task) ? 'soon' : '';
+      pills.push(`<span class="pill due ${cls}">📅 ${esc(fmtDate(task.dueDate))}</span>`);
+    }
+    if (task.link) {
+      pills.push(`<button class="pill link" data-action="open-link" data-id="${task.id}" aria-label="Open linked resource">📓 ${esc(task.link.label)}</button>`);
+    }
+    if (subTotal > 0) {
+      pills.push(`<span class="sub-progress">☰ ${subDone}/${subTotal}</span>`);
+    }
+
+    const tagsHtml = (task.tags || []).map(t => `<button class="tag-chip" data-action="filter-tag" data-tag="${esc(t)}">#${esc(t)}</button>`).join('');
+
+    return `
+      <article class="task-card ${task.done ? 'done' : ''}" data-id="${task.id}" style="${stripeVar}" tabindex="0" data-task>
+        <div class="task-main">
+          <button class="check" role="checkbox" aria-checked="${doneAttr}" aria-label="Mark ${esc(task.title)} as ${task.done ? 'not done' : 'done'}" data-action="toggle-done" data-id="${task.id}">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12 10 18 20 6"/></svg>
+          </button>
+          <div class="task-body" data-action="open-detail" data-id="${task.id}">
+            <div class="title-row">
+              <div class="task-title">${esc(task.title)}</div>
+              <span class="sev-badge ${sevClass}">${esc(task.severity)}</span>
+              ${tagsHtml}
+            </div>
+            ${pills.length ? `<div class="meta-row">${pills.join('')}</div>` : ''}
+          </div>
+          <div class="task-actions" role="group" aria-label="Task actions">
+            <button class="icon-btn ${task.reminder ? 'active' : ''}" data-action="toggle-reminder" data-id="${task.id}" aria-label="Quick reminder">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="${task.reminder ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 1112 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 004 0"/></svg>
+            </button>
+            <button class="icon-btn flag-${task.priority}" data-action="cycle-priority" data-id="${task.id}" aria-label="Cycle priority (current: ${task.priority})">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4h12l-2 4 2 4H5"/></svg>
+            </button>
+            <button class="icon-btn" data-action="open-detail" data-id="${task.id}" aria-label="Edit task">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16 4l4 4L8 20H4v-4z"/></svg>
+            </button>
+            <button class="icon-btn" data-action="delete" data-id="${task.id}" aria-label="Delete task">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M6 6l1 14a2 2 0 002 2h6a2 2 0 002-2l1-14"/></svg>
+            </button>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  function render() {
+    // Counts
+    const all = state.tasks;
+    const active = all.filter(t => !t.done);
+    const done = all.filter(t => t.done);
+    const overdue = all.filter(isOverdue);
+    const today = all.filter(t => t.dueDate && sameDay(t.dueDate, new Date()));
+    $('#countAll').textContent = all.length;
+    $('#countActive').textContent = active.length;
+    $('#countDone').textContent = done.length;
+    $('#countOverdue').textContent = overdue.length;
+    $('#countToday').textContent = today.length;
+    $('#subtitle').textContent = `${active.length} active · ${done.length} done`;
+
+    // Progress
+    const pct = all.length ? Math.round((done.length / all.length) * 100) : 0;
+    $('#progressFill').style.width = pct + '%';
+    $('#progressLabel').textContent = `${done.length} / ${all.length}`;
+
+    // List
+    let list = filterTasks(all);
+    if (state.tagFilter) list = list.filter(t => t.tags.includes(state.tagFilter));
+    list = sortTasks(list);
+    const groups = groupTasks(list);
+
+    const host = $('#taskList');
+    if (!list.length) {
+      host.innerHTML = `<div class="empty"><h3>Nothing here yet</h3><p>Tasks you add will show up here. Try the “New task” button or press ⌘K.</p></div>`;
+      return;
+    }
+
+    host.innerHTML = groups.map(g => {
+      const heading = state.group === 'none' ? '' :
+        `<div class="group-heading">${esc(g.label || '—')} <span class="count">${g.items.length}</span></div>`;
+      return heading + g.items.map(taskCardHTML).join('');
+    }).join('');
+
+    // Tag filter indicator
+    if (state.tagFilter) {
+      host.insertAdjacentHTML('afterbegin',
+        `<div class="group-heading">Filtering by #${esc(state.tagFilter)} <button class="btn btn-ghost" data-action="clear-tag">Clear</button></div>`);
+    }
+  }
+
+  // --------- CRUD ---------
+  function addTask(partial) {
+    const t = Object.assign({
+      id: uid(),
+      title: '',
+      description: '',
+      done: false,
+      createdAt: new Date(),
+      priority: 'medium',
+      severity: 'minor',
+      dueDate: null,
+      reminder: null,
+      link: null,
+      tags: [],
+      subtasks: [],
+      attachments: []
+    }, partial);
+    state.tasks.unshift(t);
+    render();
+    return t;
+  }
+
+  function updateTask(id, patch) {
+    const t = state.tasks.find(x => x.id === id);
+    if (!t) return;
+    Object.assign(t, patch);
+    if (patch.done && !t.completedAt) t.completedAt = new Date();
+    if (patch.done === false) t.completedAt = undefined;
+    // Auto-complete parent when all subtasks done
+    if (patch.subtasks && patch.subtasks.length && patch.subtasks.every(s => s.done)) {
+      t.done = true;
+      if (!t.completedAt) t.completedAt = new Date();
+    }
+    render();
+    if (state.detailId === id) renderDrawer();
+  }
+
+  function deleteTask(id) {
+    const card = $(`.task-card[data-id="${id}"]`);
+    if (card) {
+      card.classList.add('leaving');
+      setTimeout(() => {
+        state.tasks = state.tasks.filter(t => t.id !== id);
+        if (state.detailId === id) closeDrawer();
+        render();
+      }, 220);
+    } else {
+      state.tasks = state.tasks.filter(t => t.id !== id);
+      render();
+    }
+  }
+
+  function cyclePriority(id) {
+    const order = ['low', 'medium', 'high', 'urgent'];
+    const t = state.tasks.find(x => x.id === id);
+    if (!t) return;
+    t.priority = order[(order.indexOf(t.priority) + 1) % order.length];
+    render();
+  }
+
+  // --------- Detail drawer ---------
+  function openDrawer(id) {
+    state.detailId = id;
+    $('#backdrop').classList.add('open');
+    $('#drawer').classList.add('open');
+    renderDrawer();
+    setTimeout(() => $('#drawer .inline-title')?.focus(), 180);
+  }
+  function closeDrawer() {
+    state.detailId = null;
+    $('#backdrop').classList.remove('open');
+    $('#drawer').classList.remove('open');
+  }
+
+  function renderDrawer() {
+    const t = state.tasks.find(x => x.id === state.detailId);
+    if (!t) { $('#drawerBody').innerHTML = ''; return; }
+
+    const subtaskRows = t.subtasks.map(s => `
+      <div class="subtask ${s.done ? 'done' : ''}" data-sub-id="${s.id}">
+        <button class="check" role="checkbox" aria-checked="${s.done}" data-action="toggle-sub" data-id="${t.id}" data-sub="${s.id}" aria-label="Toggle subtask">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12 10 18 20 6"/></svg>
+        </button>
+        <input type="text" value="${esc(s.title)}" data-action="edit-sub" data-id="${t.id}" data-sub="${s.id}" />
+        <button class="icon-btn" data-action="delete-sub" data-id="${t.id}" data-sub="${s.id}" aria-label="Delete subtask">✕</button>
+      </div>
+    `).join('');
+
+    const tagChipsHtml = t.tags.map(tag => `<span class="tag-chip">#${esc(tag)} <span data-action="remove-tag" data-id="${t.id}" data-tag="${esc(tag)}" style="cursor:pointer;margin-left:2px">✕</span></span>`).join('');
+
+    const linkLabel = t.link ? t.link.label : '';
+
+    $('#drawerBody').innerHTML = `
+      <div class="field">
+        <input class="inline-title" data-action="edit-title" data-id="${t.id}" value="${esc(t.title)}" />
+      </div>
+
+      <div class="field">
+        <label>Description</label>
+        <textarea data-action="edit-desc" data-id="${t.id}" placeholder="Add notes… markdown supported">${esc(t.description || '')}</textarea>
+      </div>
+
+      <div class="prop-grid">
+        <div class="prop">
+          <label>Priority</label>
+          <select data-action="edit-priority" data-id="${t.id}">
+            <option value="low"    ${t.priority==='low'?'selected':''}>🟢 Low</option>
+            <option value="medium" ${t.priority==='medium'?'selected':''}>🟡 Medium</option>
+            <option value="high"   ${t.priority==='high'?'selected':''}>🟠 High</option>
+            <option value="urgent" ${t.priority==='urgent'?'selected':''}>🔴 Urgent</option>
+          </select>
+        </div>
+        <div class="prop">
+          <label>Severity</label>
+          <select data-action="edit-severity" data-id="${t.id}">
+            <option value="trivial" ${t.severity==='trivial'?'selected':''}>Trivial</option>
+            <option value="minor"   ${t.severity==='minor'?'selected':''}>Minor</option>
+            <option value="major"   ${t.severity==='major'?'selected':''}>Major</option>
+            <option value="blocker" ${t.severity==='blocker'?'selected':''}>Blocker</option>
+          </select>
+        </div>
+        <div class="prop">
+          <label>Due date</label>
+          <input type="date" data-action="edit-due" data-id="${t.id}" value="${t.dueDate ? new Date(t.dueDate).toISOString().slice(0,10) : ''}" />
+        </div>
+        <div class="prop">
+          <label>Reminder</label>
+          <input type="datetime-local" data-action="edit-reminder-at" data-id="${t.id}" value="${t.reminder ? toLocalInput(t.reminder.at) : ''}" />
+        </div>
+        <div class="prop" style="grid-column: 1 / -1;">
+          <label>Reminder recurrence</label>
+          <div class="preset-row" style="margin-top:4px">
+            ${['none','daily','weekly','monthly','custom'].map(r => `
+              <button data-action="edit-recurrence" data-id="${t.id}" data-rec="${r}" class="${(t.reminder?.recurrence || 'none') === r ? 'active' : ''}">${r}</button>
+            `).join('')}
+          </div>
+          <div class="preset-row" style="margin-top:6px">
+            <button data-action="preset-reminder" data-id="${t.id}" data-preset="later-today">Later today</button>
+            <button data-action="preset-reminder" data-id="${t.id}" data-preset="tomorrow">Tomorrow morning</button>
+            <button data-action="preset-reminder" data-id="${t.id}" data-preset="next-week">Next week</button>
+          </div>
+        </div>
+        <div class="prop" style="grid-column: 1 / -1;">
+          <label>Linked resource</label>
+          <button class="value-btn ${t.link ? '' : 'empty'}" data-action="open-link-picker" data-id="${t.id}">
+            ${t.link ? '📓 ' + esc(linkLabel) : 'Pick a notebook, chapter, page, voice, photo, or todo…'}
+          </button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Tags</label>
+        <div class="tag-input-wrap">
+          ${tagChipsHtml}
+          <input type="text" data-action="add-tag" data-id="${t.id}" placeholder="Add tag…" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Subtasks ${t.subtasks.length ? `(${t.subtasks.filter(s=>s.done).length}/${t.subtasks.length})` : ''}</label>
+        ${subtaskRows || '<div class="empty" style="padding:16px;border-radius:12px">No subtasks yet</div>'}
+        <div class="subtask-add">
+          <input type="text" data-action="add-sub" data-id="${t.id}" placeholder="Add subtask… press Enter" />
+        </div>
+      </div>
+
+      <div class="sync-section">
+        <h4>Sync to page <span style="color:var(--accent-ink)">↗</span></h4>
+        <p>Create a page-level Todo from this Task, or jump to the existing page-level Todo it came from. Tasks and Todos stay separate — this only creates a reference.</p>
+        <div style="display:flex; gap:8px; flex-wrap:wrap">
+          <button class="btn" data-action="add-to-page" data-id="${t.id}">↗ Add to page as Todo</button>
+          ${t.link?.type === 'todo' ? `<button class="btn btn-ghost" data-action="open-linked-todo" data-id="${t.id}">Jump to linked todo</button>` : ''}
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Activity</label>
+        <div class="activity">
+          <div>Created ${esc(fmtDateTime(t.createdAt))}</div>
+          ${t.completedAt ? `<div>Completed ${esc(fmtDateTime(t.completedAt))}</div>` : ''}
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; padding-top:10px;">
+        <button class="btn btn-danger" data-action="delete-from-drawer" data-id="${t.id}">🗑 Delete task</button>
+      </div>
+    `;
+  }
+
+  function toLocalInput(d) {
+    const dt = new Date(d);
+    const pad = n => String(n).padStart(2, '0');
+    return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+  }
+
+  // --------- Link picker ---------
+  const linkModal = $('#linkModal');
+  function openLinkPicker(targetId) {
+    state.linkTarget = targetId;
+    state.linkDraft = null;
+    renderLinkTree();
+    renderRecent();
+    $('#linkBreadcrumb').textContent = 'No selection';
+    linkModal.classList.add('open');
+    setTimeout(() => $('#linkSearch')?.focus(), 200);
+  }
+  function closeLinkPicker() { linkModal.classList.remove('open'); state.linkTarget = null; }
+
+  function renderLinkTree(query = '') {
+    const q = query.trim().toLowerCase();
+    const host = $('#linkTree');
+    host.innerHTML = HIERARCHY.map(nb => nodeHTML(nb, 0, q)).join('');
+    // wire handlers via delegation (set up once below)
+  }
+  function nodeHTML(node, depth, q) {
+    const hasChildren = node.type === 'notebook' || node.type === 'chapter' || node.type === 'page';
+    const childNodes = node.type === 'page' ? (node.resources || []) : (node.children || []);
+    const matches = !q || node.label.toLowerCase().includes(q) ||
+      (childNodes.some(c => nodeMatches(c, q)));
+    if (!matches) return '';
+    const icon = {
+      notebook: '📓', chapter: '📂', page: '📄', voice: '🎙', photo: '🖼', todo: '☑'
+    }[node.type] || '•';
+    const expanded = !!q; // auto-expand when searching
+    return `
+      <div>
+        <div class="tree-node ${expanded ? 'expanded' : ''}" data-link-node data-type="${node.type}" data-id="${node.id}">
+          ${hasChildren && childNodes.length ? `<span class="twisty">▶</span>` : `<span class="twisty"></span>`}
+          <span>${icon}</span>
+          <span>${esc(node.label)}</span>
+        </div>
+        ${childNodes.length ? `<div class="tree-children ${expanded ? 'open' : ''}">
+          ${childNodes.map(c => nodeHTML(c, depth + 1, q)).join('')}
+        </div>` : ''}
+      </div>
+    `;
+  }
+  function nodeMatches(n, q) {
+    if (n.label.toLowerCase().includes(q)) return true;
+    const kids = n.type === 'page' ? (n.resources || []) : (n.children || []);
+    return kids.some(k => nodeMatches(k, q));
+  }
+
+  function renderRecent() {
+    const host = $('#recentRow');
+    if (!state.recentLinks.length) {
+      host.innerHTML = '<div style="color:var(--subtle); font-size:12px">Nothing yet — links you pick will appear here.</div>';
+      return;
+    }
+    host.innerHTML = state.recentLinks.map((link, i) =>
+      `<button class="recent-chip" data-recent="${i}">📓 ${esc(link.label)}</button>`
+    ).join('');
+  }
+
+  function linkPathFromSelection(type, id) {
+    // Walk hierarchy to build the link object
+    for (const nb of HIERARCHY) {
+      if (nb.id === id && type === 'notebook') {
+        return { type: 'notebook', notebookId: nb.id };
+      }
+      for (const ch of (nb.children || [])) {
+        if (ch.id === id && type === 'chapter') {
+          return { type: 'chapter', notebookId: nb.id, chapterId: ch.id };
+        }
+        for (const pg of (ch.children || [])) {
+          if (pg.id === id && type === 'page') {
+            return { type: 'page', notebookId: nb.id, chapterId: ch.id, pageId: pg.id };
+          }
+          for (const res of (pg.resources || [])) {
+            if (res.id === id && type === res.type) {
+              return { type: res.type, notebookId: nb.id, chapterId: ch.id, pageId: pg.id, resourceId: res.id };
+            }
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  // --------- Events ---------
+  document.addEventListener('click', e => {
+    const node = e.target.closest('[data-action]');
+    // Link tree picker events
+    const treeNode = e.target.closest('[data-link-node]');
+    if (treeNode) {
+      const type = treeNode.dataset.type;
+      const id = treeNode.dataset.id;
+      // Toggle expand
+      const wrapper = treeNode.parentElement;
+      const kids = wrapper?.querySelector('.tree-children');
+      if (kids) {
+        treeNode.classList.toggle('expanded');
+        kids.classList.toggle('open');
+      }
+      const draft = linkPathFromSelection(type, id);
+      if (draft) {
+        draft.label = labelPath(draft);
+        state.linkDraft = draft;
+        $$('.tree-node').forEach(n => n.classList.remove('selected'));
+        treeNode.classList.add('selected');
+        $('#linkBreadcrumb').innerHTML = 'Selected: <strong>' + esc(draft.label) + '</strong>';
+      }
+      return;
+    }
+    const recent = e.target.closest('[data-recent]');
+    if (recent) {
+      const idx = parseInt(recent.dataset.recent, 10);
+      const draft = state.recentLinks[idx];
+      if (draft) {
+        state.linkDraft = draft;
+        $('#linkBreadcrumb').innerHTML = 'Selected: <strong>' + esc(draft.label) + '</strong>';
+      }
+      return;
+    }
+
+    if (!node) return;
+    const action = node.dataset.action;
+    const id = node.dataset.id;
+
+    switch (action) {
+      case 'toggle-done': {
+        const t = state.tasks.find(x => x.id === id);
+        if (t) updateTask(id, { done: !t.done });
+        break;
+      }
+      case 'cycle-priority': cyclePriority(id); break;
+      case 'delete': deleteTask(id); break;
+      case 'delete-from-drawer': deleteTask(id); break;
+      case 'open-detail': openDrawer(id); break;
+      case 'open-link': {
+        const t = state.tasks.find(x => x.id === id);
+        if (t?.link) {
+          console.log('[Inkcreate] navigate to', t.link);
+          node.classList.add('flash');
+          setTimeout(() => node.classList.remove('flash'), 900);
+          if (t.link.type === 'todo') openSamplePage();
+        }
+        break;
+      }
+      case 'toggle-reminder': {
+        const t = state.tasks.find(x => x.id === id);
+        if (!t) break;
+        if (t.reminder) updateTask(id, { reminder: null });
+        else updateTask(id, { reminder: { at: new Date(Date.now() + 60*60*1000), recurrence: 'none' }});
+        break;
+      }
+      case 'filter-tag': {
+        state.tagFilter = node.dataset.tag;
+        render();
+        break;
+      }
+      case 'clear-tag': state.tagFilter = null; render(); break;
+      case 'open-link-picker': openLinkPicker(id); break;
+      case 'add-to-page': {
+        const t = state.tasks.find(x => x.id === id);
+        if (!t) break;
+        console.log('[Inkcreate] Added as page-level Todo:', t.title, '(linked back to Task', t.id, ')');
+        flashSync();
+        // Link the task back to the new todo as a reference
+        if (!t.link) {
+          const link = { type: 'todo', notebookId: 'nb_work', chapterId: 'ch_meetings', pageId: 'pg_apr11', resourceId: 'todo_new_' + t.id };
+          link.label = labelPath(link) + ' · ' + t.title;
+          updateTask(id, { link });
+        }
+        alert('Created a page-level Todo on “Work › Meetings › Apr 11” that references this Task.\n\n(Page-level Todos and app-level Tasks are separate — this just adds a reference.)');
+        break;
+      }
+      case 'open-linked-todo': openSamplePage(); break;
+      case 'preset-reminder': {
+        const d = new Date();
+        const preset = node.dataset.preset;
+        if (preset === 'later-today') d.setHours(d.getHours() + 3, 0, 0, 0);
+        else if (preset === 'tomorrow') { d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0); }
+        else if (preset === 'next-week') { d.setDate(d.getDate() + 7); d.setHours(9, 0, 0, 0); }
+        const t = state.tasks.find(x => x.id === id);
+        updateTask(id, { reminder: { at: d, recurrence: t.reminder?.recurrence || 'none' } });
+        break;
+      }
+      case 'edit-recurrence': {
+        const rec = node.dataset.rec;
+        const t = state.tasks.find(x => x.id === id);
+        const reminder = t.reminder ? { ...t.reminder, recurrence: rec } : { at: new Date(Date.now() + 60*60*1000), recurrence: rec };
+        updateTask(id, { reminder });
+        break;
+      }
+      case 'toggle-sub': {
+        const subId = node.dataset.sub;
+        const t = state.tasks.find(x => x.id === id);
+        const subtasks = t.subtasks.map(s => s.id === subId ? { ...s, done: !s.done } : s);
+        updateTask(id, { subtasks });
+        break;
+      }
+      case 'delete-sub': {
+        const subId = node.dataset.sub;
+        const t = state.tasks.find(x => x.id === id);
+        updateTask(id, { subtasks: t.subtasks.filter(s => s.id !== subId) });
+        break;
+      }
+      case 'remove-tag': {
+        const tag = node.dataset.tag;
+        const t = state.tasks.find(x => x.id === id);
+        updateTask(id, { tags: t.tags.filter(x => x !== tag) });
+        break;
+      }
+    }
+  });
+
+  // Inputs: change events for inline edits
+  document.addEventListener('change', e => {
+    const node = e.target.closest('[data-action]');
+    if (!node) return;
+    const action = node.dataset.action;
+    const id = node.dataset.id;
+    switch (action) {
+      case 'edit-priority': updateTask(id, { priority: node.value }); break;
+      case 'edit-severity': updateTask(id, { severity: node.value }); break;
+      case 'edit-due': updateTask(id, { dueDate: node.value ? new Date(node.value) : null }); break;
+      case 'edit-reminder-at': {
+        if (!node.value) { updateTask(id, { reminder: null }); break; }
+        const t = state.tasks.find(x => x.id === id);
+        updateTask(id, { reminder: { at: new Date(node.value), recurrence: t.reminder?.recurrence || 'none' } });
+        break;
+      }
+    }
+  });
+
+  // Inputs: live edits on text fields
+  document.addEventListener('input', e => {
+    const node = e.target.closest('[data-action]');
+    if (!node) return;
+    const action = node.dataset.action;
+    const id = node.dataset.id;
+    if (action === 'edit-title') {
+      const t = state.tasks.find(x => x.id === id);
+      if (!t) return;
+      t.title = node.value;
+      // Soft re-render of main list card title without rebuilding the drawer
+      const card = $(`.task-card[data-id="${id}"] .task-title`);
+      if (card) card.textContent = node.value;
+    } else if (action === 'edit-desc') {
+      const t = state.tasks.find(x => x.id === id);
+      if (t) t.description = node.value;
+    } else if (action === 'edit-sub') {
+      const subId = node.dataset.sub;
+      const t = state.tasks.find(x => x.id === id);
+      const s = t?.subtasks.find(x => x.id === subId);
+      if (s) s.title = node.value;
+    }
+  });
+
+  // Enter on subtask add, tag add, quick-add
+  document.addEventListener('keydown', e => {
+    const node = e.target.closest('[data-action]');
+
+    if (node) {
+      const action = node.dataset.action;
+      const id = node.dataset.id;
+      if (e.key === 'Enter') {
+        if (action === 'add-sub' && node.value.trim()) {
+          const t = state.tasks.find(x => x.id === id);
+          const sub = { id: 'st_' + Math.random().toString(36).slice(2,8), title: node.value.trim(), done: false };
+          updateTask(id, { subtasks: [...t.subtasks, sub] });
+          node.value = '';
+          e.preventDefault();
+          return;
+        }
+        if (action === 'add-tag' && node.value.trim()) {
+          const t = state.tasks.find(x => x.id === id);
+          const tag = node.value.trim().replace(/^#/, '');
+          if (!t.tags.includes(tag)) updateTask(id, { tags: [...t.tags, tag] });
+          node.value = '';
+          e.preventDefault();
+          return;
+        }
+      }
+    }
+
+    // Global shortcuts
+    const typing = /input|textarea|select/i.test(e.target.tagName);
+
+    if ((e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      $('#quickAddInput').focus();
+      return;
+    }
+    if (e.key === 'Escape') {
+      if (linkModal.classList.contains('open')) return closeLinkPicker();
+      if ($('#samplePageModal').classList.contains('open')) return closeSamplePage();
+      if ($('#drawer').classList.contains('open')) return closeDrawer();
+    }
+    if (e.key === 'Enter' && e.target.id === 'quickAddInput' && e.target.value.trim()) {
+      addTask({ title: e.target.value.trim() });
+      e.target.value = '';
+      return;
+    }
+    if (!typing && e.key === ' ') {
+      const focused = document.activeElement?.closest('.task-card');
+      if (focused) {
+        e.preventDefault();
+        const id = focused.dataset.id;
+        const t = state.tasks.find(x => x.id === id);
+        if (t) updateTask(id, { done: !t.done });
+      }
+    }
+  });
+
+  // Filter tabs
+  $('#tabs').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-filter]');
+    if (!btn) return;
+    state.filter = btn.dataset.filter;
+    $$('#tabs button').forEach(b => {
+      const on = b === btn;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-selected', on);
+    });
+    render();
+  });
+
+  // Sort/group
+  $('#sortSelect').addEventListener('change', e => { state.sort = e.target.value; render(); });
+  $('#groupSelect').addEventListener('change', e => { state.group = e.target.value; render(); });
+
+  // New task / expanded form
+  $('#newTaskBtn').addEventListener('click', () => {
+    const t = addTask({ title: 'Untitled task' });
+    openDrawer(t.id);
+  });
+  $('#openExpandedFormBtn').addEventListener('click', () => {
+    const t = addTask({ title: $('#quickAddInput').value.trim() || 'Untitled task' });
+    $('#quickAddInput').value = '';
+    openDrawer(t.id);
+  });
+
+  // Drawer close
+  $('#closeDrawerBtn').addEventListener('click', closeDrawer);
+  $('#backdrop').addEventListener('click', () => {
+    if ($('#drawer').classList.contains('open')) closeDrawer();
+  });
+
+  // Link modal wiring
+  $('#closeLinkModalBtn').addEventListener('click', closeLinkPicker);
+  $('#linkClearBtn').addEventListener('click', () => {
+    if (state.linkTarget) updateTask(state.linkTarget, { link: null });
+    closeLinkPicker();
+  });
+  $('#linkConfirmBtn').addEventListener('click', () => {
+    if (!state.linkDraft || !state.linkTarget) { closeLinkPicker(); return; }
+    const draft = { ...state.linkDraft, label: labelPath(state.linkDraft) };
+    updateTask(state.linkTarget, { link: draft });
+    // Add to recents (dedupe)
+    state.recentLinks = [draft, ...state.recentLinks.filter(r => labelPath(r) !== labelPath(draft))].slice(0, 5);
+    closeLinkPicker();
+  });
+  $('#linkSearch').addEventListener('input', e => renderLinkTree(e.target.value));
+
+  // Sample page modal
+  function openSamplePage() {
+    const body = $('#sampleBody');
+    body.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:12px;color:var(--subtle);letter-spacing:.06em;text-transform:uppercase">Page-level Todos (not Tasks)</div>
+        <div class="subtask"><button class="check" aria-checked="false" role="checkbox"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12 10 18 20 6"/></svg></button><input value="Draft agenda for Thursday" readonly /></div>
+        <div class="subtask done"><button class="check" aria-checked="true" role="checkbox"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12 10 18 20 6"/></svg></button><input value="Confirm room booking" readonly /></div>
+        <div class="subtask"><button class="check" aria-checked="false" role="checkbox"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12 10 18 20 6"/></svg></button><input value="Send slides to Maya" readonly /></div>
+        <p style="font-size:12.5px;color:var(--muted);margin:6px 0 0">These are the existing per-page Todos. The new Tasks feature lives at the app level and links <em>to</em> them — it doesn't replace them.</p>
+      </div>
+    `;
+    $('#samplePageModal').classList.add('open');
+  }
+  function closeSamplePage() { $('#samplePageModal').classList.remove('open'); }
+  $('#closeSampleBtn').addEventListener('click', closeSamplePage);
+  $('#closeSampleBtn2').addEventListener('click', closeSamplePage);
+
+  // Promote demo — a sample page-level todo becomes a Task
+  $('#promoteDemoBtn').addEventListener('click', () => {
+    if (SAMPLE_PAGE_TODO.promotedTaskId) {
+      alert(`This sample page-level todo has already been promoted into Task ${SAMPLE_PAGE_TODO.promotedTaskId}.\n\nThe original todo is still on the page — they now reference each other.`);
+      return;
+    }
+    const link = { type: 'todo', notebookId: 'nb_work', chapterId: 'ch_meetings', pageId: 'pg_apr11', resourceId: SAMPLE_PAGE_TODO.id };
+    link.label = labelPath(link) + ' · ' + SAMPLE_PAGE_TODO.text;
+    const t = addTask({
+      title: SAMPLE_PAGE_TODO.text,
+      priority: 'medium',
+      severity: 'minor',
+      link
+    });
+    SAMPLE_PAGE_TODO.promotedTaskId = t.id;
+    flashSync();
+    console.log('[Inkcreate] Promoted page todo', SAMPLE_PAGE_TODO.id, '→ Task', t.id);
+  });
+
+  // Test fire reminder
+  $('#testFireBtn').addEventListener('click', async () => {
+    const t = state.tasks.find(x => x.reminder) || state.tasks[0];
+    if (!t) return;
+    const body = `${t.title} — from the Tasks prototype`;
+    let delivered = false;
+    try {
+      if ('Notification' in window) {
+        if (Notification.permission === 'granted') {
+          new Notification('Inkcreate reminder', { body, icon: '/icons/app-icon.svg' });
+          delivered = true;
+        } else if (Notification.permission !== 'denied') {
+          const perm = await Notification.requestPermission();
+          if (perm === 'granted') {
+            new Notification('Inkcreate reminder', { body, icon: '/icons/app-icon.svg' });
+            delivered = true;
+          }
+        }
+      }
+    } catch (_) { /* ignore */ }
+    if (!delivered) alert('🔔 Reminder fired: ' + body + '\n\n(Browser notifications not granted — showing inline alert instead.)');
+  });
+
+  // Sync flash overlay
+  function flashSync() {
+    const el = $('#syncFlash');
+    el.classList.remove('on');
+    void el.offsetWidth;
+    el.classList.add('on');
+  }
+
+  // Bottom nav: purely decorative except Tasks
+  $$('.bottom-nav .nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      $$('.bottom-nav .nav-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  // Initial render
+  render();
+
+  // Helpful console welcome
+  console.log('%cInkcreate Tasks prototype ready', 'color:#ff5f4e;font-weight:700;font-size:14px');
+  console.log('Shortcuts:  ⌘K focus quick-add · Enter add task · Space toggle done · Esc close modals');
+})();
+</script>
+</body>
+</html>
