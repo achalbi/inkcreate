@@ -65,6 +65,10 @@ class User < ApplicationRecord
     has_attribute?(:time_zone_locked) && self[:time_zone_locked]
   end
 
+  def onboarding_completed?
+    has_attribute?(:onboarding_completed_at) && onboarding_completed_at.present?
+  end
+
   private
 
   def assign_bootstrap_role
