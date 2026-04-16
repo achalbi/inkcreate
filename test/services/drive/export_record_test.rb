@@ -192,14 +192,14 @@ class DriveExportRecordTest < ActiveSupport::TestCase
 
     notes_markdown = drive_service.file_content_by_name("notes.md")
     manifest_file = drive_service.created_files.find { |file| file.name == "manifest.json" }
-    photo_file = drive_service.created_files.find { |file| file.name.start_with?("photo-01-") }
+    photo_file = drive_service.created_files.find { |file| file.name.end_with?("-meeting-board.jpg") }
 
     assert_includes notes_markdown, "## To-do list"
     assert_includes notes_markdown, "## Voice notes"
     assert_includes notes_markdown, "## Scanned documents"
     assert photo_file.present?
     refute_equal manifest_file.parents, photo_file.parents
-    assert drive_service.file_names.any? { |name| name.start_with?("voice-note-01-") }
+    assert drive_service.file_names.any? { |name| name.start_with?("voice-note-#{voice_note.id}-") && name.end_with?(".m4a") }
     assert drive_service.file_names.any? { |name| name.end_with?("-preview.jpg") }
     assert drive_service.file_names.any? { |name| name.end_with?(".pdf") }
     assert drive_service.file_names.any? { |name| name.end_with?("-ocr.txt") }
@@ -261,7 +261,7 @@ class DriveExportRecordTest < ActiveSupport::TestCase
     assert_equal({}, export.metadata["remote_scanned_document_text_file_ids"])
   end
 
-  test "re-export updates existing remote files instead of creating duplicates" do
+  test "re-export reuses existing ids and updates only changed remote files" do
     user = build_user(email: "drive-export-record-rerun@example.com")
     entry = user.notepad_entries.create!(
       entry_date: Date.new(2026, 4, 16),
@@ -331,14 +331,113 @@ class DriveExportRecordTest < ActiveSupport::TestCase
 
       assert_includes updated_ids, original_notes_file_id
       assert_includes updated_ids, original_manifest_file_id
-      assert_includes updated_ids, original_photo_file_id
-      assert_includes updated_ids, original_voice_file_id
-      assert_includes updated_ids, original_preview_file_id
-      assert_includes updated_ids, original_pdf_file_id
+      refute_includes updated_ids, original_photo_file_id
+      refute_includes updated_ids, original_voice_file_id
+      refute_includes updated_ids, original_preview_file_id
+      refute_includes updated_ids, original_pdf_file_id
       assert_includes updated_ids, original_text_file_id
       assert_includes drive_service.file_content_by_name("notes.md"), "Updated notes."
       assert_equal "Updated transcript.", JSON.parse(drive_service.file_content_by_name("manifest.json"))["voice_notes"].first["transcript"]
       assert_equal "Agenda v2", JSON.parse(drive_service.file_content_by_name("manifest.json"))["scanned_documents"].first["extracted_text"]
+    end
+  end
+
+  test "adding a photo does not rewrite existing photo files" do
+    user = build_user(email: "drive-export-record-photo-siblings@example.com")
+    entry = user.notepad_entries.create!(
+      entry_date: Date.new(2026, 4, 16),
+      title: "",
+      notes: "Photo sync."
+    )
+    entry.photos.attach(image_attachment("first-board.jpg"))
+    export = GoogleDriveExport.create!(
+      user: user,
+      exportable: entry,
+      status: :pending,
+      remote_photo_file_ids: {},
+      metadata: { Drive::RecordExportSections::PENDING_METADATA_KEY => Drive::RecordExportSections::ALL }
+    )
+    drive_service = FakeDriveService.new
+
+    with_drive_stubs(drive_service) do
+      Drive::ExportRecord.new(google_drive_export: export).call
+      export.reload
+
+      original_created_count = drive_service.created_files.size
+      original_photo_file_id = export.remote_photo_file_ids.values.first
+
+      drive_service.updated_files.clear
+      entry.photos.attach(image_attachment("second-board.jpg"))
+      export.update!(
+        status: :pending,
+        metadata: export.metadata.merge(
+          Drive::RecordExportSections::PENDING_METADATA_KEY => [Drive::RecordExportSections::PHOTOS]
+        )
+      )
+
+      Drive::ExportRecord.new(google_drive_export: export).call
+      export.reload
+
+      assert_equal 2, export.remote_photo_file_ids.size
+      assert_equal original_created_count + 1, drive_service.created_files.size
+      refute_includes drive_service.updated_files.map(&:id), original_photo_file_id
+      assert drive_service.file_names.any? { |name| name.end_with?("-first-board.jpg") }
+      assert drive_service.file_names.any? { |name| name.end_with?("-second-board.jpg") }
+    end
+  end
+
+  test "adding a voice note does not rewrite existing audio files and exports audio mp4 as m4a" do
+    user = build_user(email: "drive-export-record-voice-siblings@example.com")
+    entry = user.notepad_entries.create!(
+      entry_date: Date.new(2026, 4, 16),
+      title: "",
+      notes: "Voice sync."
+    )
+    first_voice_note = entry.voice_notes.create!(
+      audio: audio_attachment("first-recording.mp4"),
+      duration_seconds: 21,
+      recorded_at: Time.zone.parse("2026-04-16 09:00:00"),
+      byte_size: 16,
+      mime_type: "audio/mp4"
+    )
+    export = GoogleDriveExport.create!(
+      user: user,
+      exportable: entry,
+      status: :pending,
+      remote_photo_file_ids: {},
+      metadata: { Drive::RecordExportSections::PENDING_METADATA_KEY => Drive::RecordExportSections::ALL }
+    )
+    drive_service = FakeDriveService.new
+
+    with_drive_stubs(drive_service) do
+      Drive::ExportRecord.new(google_drive_export: export).call
+      export.reload
+
+      original_created_count = drive_service.created_files.size
+      original_voice_file_id = export.metadata["remote_voice_note_audio_file_ids"][first_voice_note.id.to_s]
+      assert drive_service.file_names.any? { |name| name.start_with?("voice-note-#{first_voice_note.id}-") && name.end_with?(".m4a") }
+
+      drive_service.updated_files.clear
+      entry.voice_notes.create!(
+        audio: audio_attachment("second-recording.mp4"),
+        duration_seconds: 18,
+        recorded_at: Time.zone.parse("2026-04-16 09:05:00"),
+        byte_size: 16,
+        mime_type: "audio/mp4"
+      )
+      export.update!(
+        status: :pending,
+        metadata: export.metadata.merge(
+          Drive::RecordExportSections::PENDING_METADATA_KEY => [Drive::RecordExportSections::VOICE_NOTES]
+        )
+      )
+
+      Drive::ExportRecord.new(google_drive_export: export).call
+      export.reload
+
+      assert_equal 2, export.metadata["remote_voice_note_audio_file_ids"].size
+      assert_equal original_created_count + 1, drive_service.created_files.size
+      refute_includes drive_service.updated_files.map(&:id), original_voice_file_id
     end
   end
 
@@ -546,11 +645,11 @@ class DriveExportRecordTest < ActiveSupport::TestCase
     end
   end
 
-  def audio_attachment(filename)
+  def audio_attachment(filename, content_type: "audio/mp4")
     {
       io: StringIO.new("audio-bytes"),
       filename: filename,
-      content_type: "audio/mp4"
+      content_type: content_type
     }
   end
 

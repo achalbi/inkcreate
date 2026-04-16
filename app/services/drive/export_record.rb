@@ -1,5 +1,6 @@
 require "json"
 require "stringio"
+require "digest"
 
 module Drive
   class ExportRecord
@@ -8,10 +9,15 @@ module Drive
     PHOTOS_FOLDER_NAME = "photos".freeze
     VOICE_NOTES_FOLDER_NAME = "voice_notes".freeze
     SCANNED_DOCUMENTS_FOLDER_NAME = "scanned_documents".freeze
+    REMOTE_PHOTO_FILE_SIGNATURES_KEY = "remote_photo_file_signatures".freeze
     REMOTE_VOICE_NOTE_AUDIO_FILE_IDS_KEY = "remote_voice_note_audio_file_ids".freeze
+    REMOTE_VOICE_NOTE_AUDIO_FILE_SIGNATURES_KEY = "remote_voice_note_audio_file_signatures".freeze
     REMOTE_SCANNED_DOCUMENT_IMAGE_FILE_IDS_KEY = "remote_scanned_document_image_file_ids".freeze
+    REMOTE_SCANNED_DOCUMENT_IMAGE_FILE_SIGNATURES_KEY = "remote_scanned_document_image_file_signatures".freeze
     REMOTE_SCANNED_DOCUMENT_PDF_FILE_IDS_KEY = "remote_scanned_document_pdf_file_ids".freeze
+    REMOTE_SCANNED_DOCUMENT_PDF_FILE_SIGNATURES_KEY = "remote_scanned_document_pdf_file_signatures".freeze
     REMOTE_SCANNED_DOCUMENT_TEXT_FILE_IDS_KEY = "remote_scanned_document_text_file_ids".freeze
+    REMOTE_SCANNED_DOCUMENT_TEXT_FILE_SIGNATURES_KEY = "remote_scanned_document_text_file_signatures".freeze
 
     def initialize(google_drive_export:)
       @google_drive_export = google_drive_export
@@ -41,19 +47,33 @@ module Drive
         content: JSON.pretty_generate(manifest_payload),
         content_type: "application/json"
       ) : google_drive_export.remote_manifest_file_id
-      photo_file_ids = should_sync_photos?(requested_sections) ? sync_photos(folder_id) : google_drive_export.remote_photo_file_ids.to_h
-      voice_note_audio_file_ids = should_sync_voice_notes?(requested_sections) ? sync_voice_notes(folder_id) : export_metadata_hash(REMOTE_VOICE_NOTE_AUDIO_FILE_IDS_KEY)
-      scanned_document_file_ids = should_sync_scanned_documents?(requested_sections) ? sync_scanned_documents(folder_id) : {
+      photo_sync = should_sync_photos?(requested_sections) ? sync_photos(folder_id) : {
+        file_ids: google_drive_export.remote_photo_file_ids.to_h,
+        signatures: export_metadata_hash(REMOTE_PHOTO_FILE_SIGNATURES_KEY)
+      }
+      voice_note_sync = should_sync_voice_notes?(requested_sections) ? sync_voice_notes(folder_id) : {
+        file_ids: export_metadata_hash(REMOTE_VOICE_NOTE_AUDIO_FILE_IDS_KEY),
+        signatures: export_metadata_hash(REMOTE_VOICE_NOTE_AUDIO_FILE_SIGNATURES_KEY)
+      }
+      scanned_document_sync = should_sync_scanned_documents?(requested_sections) ? sync_scanned_documents(folder_id) : {
         images: export_metadata_hash(REMOTE_SCANNED_DOCUMENT_IMAGE_FILE_IDS_KEY),
+        image_signatures: export_metadata_hash(REMOTE_SCANNED_DOCUMENT_IMAGE_FILE_SIGNATURES_KEY),
         pdfs: export_metadata_hash(REMOTE_SCANNED_DOCUMENT_PDF_FILE_IDS_KEY),
-        texts: export_metadata_hash(REMOTE_SCANNED_DOCUMENT_TEXT_FILE_IDS_KEY)
+        pdf_signatures: export_metadata_hash(REMOTE_SCANNED_DOCUMENT_PDF_FILE_SIGNATURES_KEY),
+        texts: export_metadata_hash(REMOTE_SCANNED_DOCUMENT_TEXT_FILE_IDS_KEY),
+        text_signatures: export_metadata_hash(REMOTE_SCANNED_DOCUMENT_TEXT_FILE_SIGNATURES_KEY)
       }
       remaining_sections = pending_sections_after_processing(requested_sections)
       final_metadata = export_metadata.merge(
-        REMOTE_VOICE_NOTE_AUDIO_FILE_IDS_KEY => voice_note_audio_file_ids,
-        REMOTE_SCANNED_DOCUMENT_IMAGE_FILE_IDS_KEY => scanned_document_file_ids.fetch(:images),
-        REMOTE_SCANNED_DOCUMENT_PDF_FILE_IDS_KEY => scanned_document_file_ids.fetch(:pdfs),
-        REMOTE_SCANNED_DOCUMENT_TEXT_FILE_IDS_KEY => scanned_document_file_ids.fetch(:texts)
+        REMOTE_PHOTO_FILE_SIGNATURES_KEY => photo_sync.fetch(:signatures),
+        REMOTE_VOICE_NOTE_AUDIO_FILE_IDS_KEY => voice_note_sync.fetch(:file_ids),
+        REMOTE_VOICE_NOTE_AUDIO_FILE_SIGNATURES_KEY => voice_note_sync.fetch(:signatures),
+        REMOTE_SCANNED_DOCUMENT_IMAGE_FILE_IDS_KEY => scanned_document_sync.fetch(:images),
+        REMOTE_SCANNED_DOCUMENT_IMAGE_FILE_SIGNATURES_KEY => scanned_document_sync.fetch(:image_signatures),
+        REMOTE_SCANNED_DOCUMENT_PDF_FILE_IDS_KEY => scanned_document_sync.fetch(:pdfs),
+        REMOTE_SCANNED_DOCUMENT_PDF_FILE_SIGNATURES_KEY => scanned_document_sync.fetch(:pdf_signatures),
+        REMOTE_SCANNED_DOCUMENT_TEXT_FILE_IDS_KEY => scanned_document_sync.fetch(:texts),
+        REMOTE_SCANNED_DOCUMENT_TEXT_FILE_SIGNATURES_KEY => scanned_document_sync.fetch(:text_signatures)
       )
       final_metadata[Drive::RecordExportSections::PENDING_METADATA_KEY] = remaining_sections if remaining_sections.any?
 
@@ -61,7 +81,7 @@ module Drive
         status: :succeeded,
         remote_notes_file_id: notes_file_id,
         remote_manifest_file_id: manifest_file_id,
-        remote_photo_file_ids: photo_file_ids,
+        remote_photo_file_ids: photo_sync.fetch(:file_ids),
         exported_at: Time.current,
         error_message: nil,
         metadata: final_metadata
@@ -223,10 +243,15 @@ module Drive
     def export_metadata
       google_drive_export.reload.metadata.to_h.except(
         Drive::RecordExportSections::PENDING_METADATA_KEY,
+        REMOTE_PHOTO_FILE_SIGNATURES_KEY,
         REMOTE_VOICE_NOTE_AUDIO_FILE_IDS_KEY,
+        REMOTE_VOICE_NOTE_AUDIO_FILE_SIGNATURES_KEY,
         REMOTE_SCANNED_DOCUMENT_IMAGE_FILE_IDS_KEY,
+        REMOTE_SCANNED_DOCUMENT_IMAGE_FILE_SIGNATURES_KEY,
         REMOTE_SCANNED_DOCUMENT_PDF_FILE_IDS_KEY,
-        REMOTE_SCANNED_DOCUMENT_TEXT_FILE_IDS_KEY
+        REMOTE_SCANNED_DOCUMENT_PDF_FILE_SIGNATURES_KEY,
+        REMOTE_SCANNED_DOCUMENT_TEXT_FILE_IDS_KEY,
+        REMOTE_SCANNED_DOCUMENT_TEXT_FILE_SIGNATURES_KEY
       ).merge(
         manifest_payload,
         "exported_at" => Time.current.iso8601,
@@ -274,35 +299,44 @@ module Drive
     end
 
     def sync_photos(folder_id)
-      current_attachments = record.photos.attachments.index_by { |attachment| attachment.id.to_s }
+      current_attachments = record_photo_attachments.index_by { |attachment| attachment.id.to_s }
       stored_mapping = google_drive_export.remote_photo_file_ids.to_h.stringify_keys
+      stored_signatures = export_metadata_hash(REMOTE_PHOTO_FILE_SIGNATURES_KEY)
 
       unless binary_assets_allowed_in_backups?
         stored_mapping.each_value { |file_id| delete_remote_file(file_id) }
-        return {}
+        return { file_ids: {}, signatures: {} }
       end
 
       next_mapping = stored_mapping.slice(*current_attachments.keys)
+      next_signatures = stored_signatures.slice(*current_attachments.keys)
       photos_folder_id = current_attachments.any? ? ensure_asset_folder(folder_id, PHOTOS_FOLDER_NAME) : nil
 
       (stored_mapping.keys - current_attachments.keys).each do |removed_attachment_id|
         delete_remote_file(stored_mapping[removed_attachment_id])
+        next_signatures.delete(removed_attachment_id)
       end
 
-      current_attachments.each_with_index do |(attachment_id, attachment), index|
+      current_attachments.each do |attachment_id, attachment|
+        file_name = photo_file_name(attachment)
+        signature = blob_signature(attachment.blob, file_name: file_name)
         next_mapping[attachment_id] = upsert_blob_file(
           file_id: stored_mapping[attachment_id],
           folder_id: photos_folder_id,
           blob: attachment.blob,
-          file_name: photo_file_name(attachment, index + 1)
+          file_name: file_name,
+          content_signature: signature,
+          previous_signature: stored_signatures[attachment_id]
         )
+        next_signatures[attachment_id] = signature
       end
 
-      next_mapping
+      { file_ids: next_mapping.compact, signatures: next_signatures.compact }
     end
 
     def sync_voice_notes(folder_id)
       stored_mapping = export_metadata_hash(REMOTE_VOICE_NOTE_AUDIO_FILE_IDS_KEY)
+      stored_signatures = export_metadata_hash(REMOTE_VOICE_NOTE_AUDIO_FILE_SIGNATURES_KEY)
       current_voice_notes = record_voice_notes.index_by { |voice_note| voice_note.id.to_s }
 
       (stored_mapping.keys - current_voice_notes.keys).each do |removed_voice_note_id|
@@ -311,36 +345,46 @@ module Drive
 
       unless binary_assets_allowed_in_backups?
         stored_mapping.each_value { |file_id| delete_remote_file(file_id) }
-        return {}
+        return { file_ids: {}, signatures: {} }
       end
 
       next_mapping = stored_mapping.slice(*current_voice_notes.keys)
+      next_signatures = stored_signatures.slice(*current_voice_notes.keys)
       voice_notes_folder_id = ensure_asset_folder(folder_id, VOICE_NOTES_FOLDER_NAME)
 
-      record_voice_notes.each_with_index do |voice_note, index|
+      record_voice_notes.each do |voice_note|
         mapping_key = voice_note.id.to_s
 
         unless voice_note.audio.attached?
           delete_remote_file(stored_mapping[mapping_key])
           next_mapping.delete(mapping_key)
+          next_signatures.delete(mapping_key)
           next
         end
 
+        file_name = voice_note_file_name(voice_note)
+        signature = blob_signature(voice_note.audio.blob, file_name: file_name)
         next_mapping[mapping_key] = upsert_blob_file(
           file_id: stored_mapping[mapping_key],
           folder_id: voice_notes_folder_id,
           blob: voice_note.audio.blob,
-          file_name: voice_note_file_name(voice_note, index + 1)
+          file_name: file_name,
+          content_signature: signature,
+          previous_signature: stored_signatures[mapping_key]
         )
+        next_signatures[mapping_key] = signature
       end
 
-      next_mapping.compact
+      { file_ids: next_mapping.compact, signatures: next_signatures.compact }
     end
 
     def sync_scanned_documents(folder_id)
       stored_image_mapping = export_metadata_hash(REMOTE_SCANNED_DOCUMENT_IMAGE_FILE_IDS_KEY)
+      stored_image_signatures = export_metadata_hash(REMOTE_SCANNED_DOCUMENT_IMAGE_FILE_SIGNATURES_KEY)
       stored_pdf_mapping = export_metadata_hash(REMOTE_SCANNED_DOCUMENT_PDF_FILE_IDS_KEY)
+      stored_pdf_signatures = export_metadata_hash(REMOTE_SCANNED_DOCUMENT_PDF_FILE_SIGNATURES_KEY)
       stored_text_mapping = export_metadata_hash(REMOTE_SCANNED_DOCUMENT_TEXT_FILE_IDS_KEY)
+      stored_text_signatures = export_metadata_hash(REMOTE_SCANNED_DOCUMENT_TEXT_FILE_SIGNATURES_KEY)
       current_documents = record_scanned_documents.index_by { |document| document.id.to_s }
       removed_document_ids = (stored_image_mapping.keys | stored_pdf_mapping.keys | stored_text_mapping.keys) - current_documents.keys
 
@@ -351,56 +395,80 @@ module Drive
       end
 
       next_image_mapping = stored_image_mapping.slice(*current_documents.keys)
+      next_image_signatures = stored_image_signatures.slice(*current_documents.keys)
       next_pdf_mapping = stored_pdf_mapping.slice(*current_documents.keys)
+      next_pdf_signatures = stored_pdf_signatures.slice(*current_documents.keys)
       next_text_mapping = stored_text_mapping.slice(*current_documents.keys)
+      next_text_signatures = stored_text_signatures.slice(*current_documents.keys)
       scanned_documents_folder_id = current_documents.any? ? ensure_asset_folder(folder_id, SCANNED_DOCUMENTS_FOLDER_NAME) : nil
 
-      record_scanned_documents.each_with_index do |document, index|
+      record_scanned_documents.each do |document|
         mapping_key = document.id.to_s
-        basename = scanned_document_file_basename(document, index + 1)
+        basename = scanned_document_file_basename(document)
 
         if binary_assets_allowed_in_backups? && document.enhanced_image.attached?
+          image_file_name = "#{basename}-preview#{preferred_file_extension(document.enhanced_image.blob)}"
+          image_signature = blob_signature(document.enhanced_image.blob, file_name: image_file_name)
           next_image_mapping[mapping_key] = upsert_blob_file(
             file_id: stored_image_mapping[mapping_key],
             folder_id: scanned_documents_folder_id,
             blob: document.enhanced_image.blob,
-            file_name: "#{basename}-preview#{file_extension(document.enhanced_image.blob)}"
+            file_name: image_file_name,
+            content_signature: image_signature,
+            previous_signature: stored_image_signatures[mapping_key]
           )
+          next_image_signatures[mapping_key] = image_signature
         else
           delete_remote_file(stored_image_mapping[mapping_key])
           next_image_mapping.delete(mapping_key)
+          next_image_signatures.delete(mapping_key)
         end
 
         if binary_assets_allowed_in_backups? && document.document_pdf.attached?
+          pdf_file_name = "#{basename}#{preferred_file_extension(document.document_pdf.blob)}"
+          pdf_signature = blob_signature(document.document_pdf.blob, file_name: pdf_file_name)
           next_pdf_mapping[mapping_key] = upsert_blob_file(
             file_id: stored_pdf_mapping[mapping_key],
             folder_id: scanned_documents_folder_id,
             blob: document.document_pdf.blob,
-            file_name: "#{basename}#{file_extension(document.document_pdf.blob)}"
+            file_name: pdf_file_name,
+            content_signature: pdf_signature,
+            previous_signature: stored_pdf_signatures[mapping_key]
           )
+          next_pdf_signatures[mapping_key] = pdf_signature
         else
           delete_remote_file(stored_pdf_mapping[mapping_key])
           next_pdf_mapping.delete(mapping_key)
+          next_pdf_signatures.delete(mapping_key)
         end
 
         if document.extracted_text.present?
+          text_file_name = "#{basename}-ocr.txt"
+          text_signature = text_file_signature(document.extracted_text, file_name: text_file_name)
           next_text_mapping[mapping_key] = upsert_text_file(
             file_id: stored_text_mapping[mapping_key],
             folder_id: scanned_documents_folder_id,
-            file_name: "#{basename}-ocr.txt",
+            file_name: text_file_name,
             content: document.extracted_text,
-            content_type: "text/plain"
+            content_type: "text/plain",
+            content_signature: text_signature,
+            previous_signature: stored_text_signatures[mapping_key]
           )
+          next_text_signatures[mapping_key] = text_signature
         else
           delete_remote_file(stored_text_mapping[mapping_key])
           next_text_mapping.delete(mapping_key)
+          next_text_signatures.delete(mapping_key)
         end
       end
 
       {
         images: next_image_mapping.compact,
+        image_signatures: next_image_signatures.compact,
         pdfs: next_pdf_mapping.compact,
-        texts: next_text_mapping.compact
+        pdf_signatures: next_pdf_signatures.compact,
+        texts: next_text_mapping.compact,
+        text_signatures: next_text_signatures.compact
       }
     end
 
@@ -412,13 +480,15 @@ module Drive
       binary_assets_allowed_in_backups? ? record.photos.attachments.size : 0
     end
 
-    def upsert_text_file(file_id:, folder_id:, file_name:, content:, content_type:)
+    def upsert_text_file(file_id:, folder_id:, file_name:, content:, content_type:, content_signature: nil, previous_signature: nil)
       upsert_file(
         file_id: file_id,
         folder_id: folder_id,
         file_name: file_name,
         upload_source: StringIO.new(content),
-        content_type: content_type
+        content_type: content_type,
+        content_signature: content_signature,
+        previous_signature: previous_signature
       )
     end
 
@@ -426,30 +496,38 @@ module Drive
       record.respond_to?(:plain_notes) ? record.plain_notes : record.notes.to_s
     end
 
-    def upsert_blob_file(file_id:, folder_id:, blob:, file_name:)
+    def upsert_blob_file(file_id:, folder_id:, blob:, file_name:, content_signature: nil, previous_signature: nil)
       blob.open do |file|
         upsert_file(
           file_id: file_id,
           folder_id: folder_id,
           file_name: file_name,
           upload_source: file.path,
-          content_type: blob.content_type
+          content_type: blob.content_type,
+          content_signature: content_signature,
+          previous_signature: previous_signature
         )
       end
     end
 
-    def upsert_file(file_id:, folder_id:, file_name:, upload_source:, content_type:)
+    def upsert_file(file_id:, folder_id:, file_name:, upload_source:, content_type:, content_signature: nil, previous_signature: nil)
       metadata = Google::Apis::DriveV3::File.new(name: file_name)
 
       if file_id.present?
-        existing_file = drive_service.get_file(file_id, fields: "id,parents")
-        update_options = {
-          upload_source: upload_source,
-          content_type: content_type,
-          fields: "id"
-        }
+        existing_file = drive_service.get_file(file_id, fields: "id,name,parents")
         existing_parent_id = Array(existing_file.parents).first
-        if existing_parent_id != folder_id
+        needs_parent_update = existing_parent_id != folder_id
+        needs_name_update = existing_file.name != file_name
+        needs_content_upload = content_signature.blank? || previous_signature != content_signature
+
+        return file_id unless needs_parent_update || needs_name_update || needs_content_upload
+
+        update_options = { fields: "id" }
+        if needs_content_upload
+          update_options[:upload_source] = upload_source
+          update_options[:content_type] = content_type
+        end
+        if needs_parent_update
           update_options[:add_parents] = folder_id
           update_options[:remove_parents] = existing_parent_id if existing_parent_id.present?
         end
@@ -487,26 +565,66 @@ module Drive
         error.message.to_s.match?(/file not found|not\s+found/i)
     end
 
-    def photo_file_name(attachment, index)
-      extension = file_extension(attachment.blob)
-      base_name = File.basename(attachment.blob.filename.to_s, extension).parameterize.presence || "photo"
-      format("photo-%<index>02d-%<name>s%<extension>s", index: index, name: base_name, extension: extension)
+    def photo_file_name(attachment)
+      extension = preferred_file_extension(attachment.blob)
+      base_name = File.basename(attachment.blob.filename.to_s, File.extname(attachment.blob.filename.to_s)).parameterize.presence || "photo"
+      "photo-#{attachment.id}-#{base_name}#{extension}"
     end
 
-    def voice_note_file_name(voice_note, index)
-      extension = file_extension(voice_note.audio.blob)
+    def voice_note_file_name(voice_note)
+      extension = preferred_voice_note_extension(voice_note)
       timestamp = voice_note.recorded_at&.utc&.strftime("%Y%m%d-%H%M%S").presence || "recorded"
 
-      format("voice-note-%<index>02d-%<timestamp>s%<extension>s", index: index, timestamp: timestamp, extension: extension)
+      "voice-note-#{voice_note.id}-#{timestamp}#{extension}"
     end
 
-    def scanned_document_file_basename(document, index)
+    def scanned_document_file_basename(document)
       base_name = document.title.to_s.parameterize.presence || "scan"
-      format("scan-%<index>02d-%<name>s", index: index, name: base_name)
+      "scan-#{document.id}-#{base_name}"
     end
 
-    def file_extension(blob)
-      File.extname(blob.filename.to_s).presence || ""
+    def preferred_file_extension(blob)
+      extension = File.extname(blob.filename.to_s).downcase
+      content_type = blob.content_type.to_s.downcase
+
+      return ".m4a" if content_type == "audio/mp4" || content_type == "audio/x-m4a"
+      return ".mp3" if content_type == "audio/mpeg" || content_type == "audio/mp3"
+      return ".webm" if content_type.start_with?("audio/webm")
+      return ".ogg" if content_type.start_with?("audio/ogg")
+      return ".jpg" if content_type == "image/jpeg"
+      return ".png" if content_type == "image/png"
+      return ".webp" if content_type == "image/webp"
+      return ".pdf" if content_type == "application/pdf"
+
+      extension.presence || ""
+    end
+
+    def preferred_voice_note_extension(voice_note)
+      preferred_file_extension(voice_note.audio.blob).presence || begin
+        mime_type = voice_note.mime_type.to_s.downcase
+        return ".m4a" if mime_type == "audio/mp4" || mime_type == "audio/x-m4a"
+        return ".mp3" if mime_type == "audio/mpeg" || mime_type == "audio/mp3"
+        return ".webm" if mime_type.start_with?("audio/webm")
+        return ".ogg" if mime_type.start_with?("audio/ogg")
+
+        ""
+      end
+    end
+
+    def blob_signature(blob, file_name:)
+      Digest::SHA256.hexdigest(
+        [
+          file_name,
+          blob.checksum,
+          blob.byte_size,
+          blob.content_type,
+          blob.filename.to_s
+        ].join("|")
+      )
+    end
+
+    def text_file_signature(content, file_name:)
+      Digest::SHA256.hexdigest([file_name, content].join("|"))
     end
 
     def ensure_asset_folder(folder_id, folder_name)
@@ -591,6 +709,14 @@ module Drive
     def record_voice_notes
       @record_voice_notes ||= if record.respond_to?(:voice_notes)
         record.voice_notes.includes(audio_attachment: :blob).reorder(recorded_at: :asc, created_at: :asc).to_a
+      else
+        []
+      end
+    end
+
+    def record_photo_attachments
+      @record_photo_attachments ||= if record.respond_to?(:photos)
+        record.photos.attachments.includes(:blob).reorder(created_at: :asc, id: :asc).to_a
       else
         []
       end
@@ -737,10 +863,15 @@ module Drive
         metadata: google_drive_export.metadata.to_h.merge(
           "folder_path" => export_folder_segments,
           "folder_path_signature" => current_folder_path_signature,
+          REMOTE_PHOTO_FILE_SIGNATURES_KEY => {},
           REMOTE_VOICE_NOTE_AUDIO_FILE_IDS_KEY => {},
+          REMOTE_VOICE_NOTE_AUDIO_FILE_SIGNATURES_KEY => {},
           REMOTE_SCANNED_DOCUMENT_IMAGE_FILE_IDS_KEY => {},
+          REMOTE_SCANNED_DOCUMENT_IMAGE_FILE_SIGNATURES_KEY => {},
           REMOTE_SCANNED_DOCUMENT_PDF_FILE_IDS_KEY => {},
-          REMOTE_SCANNED_DOCUMENT_TEXT_FILE_IDS_KEY => {}
+          REMOTE_SCANNED_DOCUMENT_PDF_FILE_SIGNATURES_KEY => {},
+          REMOTE_SCANNED_DOCUMENT_TEXT_FILE_IDS_KEY => {},
+          REMOTE_SCANNED_DOCUMENT_TEXT_FILE_SIGNATURES_KEY => {}
         )
       )
     end

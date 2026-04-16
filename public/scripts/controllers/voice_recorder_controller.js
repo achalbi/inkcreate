@@ -1,8 +1,8 @@
 import { Controller } from "/scripts/vendor/stimulus.js";
 
 const MIME_CANDIDATES = [
-  "audio/webm;codecs=opus",
   "audio/mp4",
+  "audio/webm;codecs=opus",
   "audio/webm",
   "audio/ogg;codecs=opus"
 ];
@@ -270,7 +270,7 @@ export default class extends Controller {
     const durationSeconds = this.elapsedSeconds();
     const recordedAt = this.recordingStartedAt || new Date();
     const blob = new Blob(this.recordingChunks, { type: mimeType });
-    const extension = mimeType.includes("mp4") ? "m4a" : "webm";
+    const extension = this.preferredExtensionForMimeType(mimeType);
 
     this.pendingRecording = {
       durationSeconds,
@@ -284,6 +284,24 @@ export default class extends Controller {
     this.renderPreviewState();
     this.renderPreviewMetadata();
     this.setFeedback("Review the recording and save it when ready.");
+  }
+
+  preferredExtensionForMimeType(mimeType) {
+    const normalizedMimeType = String(mimeType || "").toLowerCase();
+
+    if (normalizedMimeType.includes("audio/mp4")) {
+      return "m4a";
+    }
+
+    if (normalizedMimeType.includes("audio/mpeg") || normalizedMimeType.includes("audio/mp3")) {
+      return "mp3";
+    }
+
+    if (normalizedMimeType.includes("audio/ogg")) {
+      return "ogg";
+    }
+
+    return "webm";
   }
 
   renderPreviewMetadata() {
