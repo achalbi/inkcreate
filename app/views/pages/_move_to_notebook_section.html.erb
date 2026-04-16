@@ -10,6 +10,7 @@
     chapter.id.to_s == selected_move_destination_chapter_id.to_s
   }
   move_modal_id = dom_id(page, :move_destination_modal)
+  move_to_notepad_confirm_modal_id = dom_id(page, :move_to_notepad_confirm_modal)
   move_destination_input_id = "#{move_modal_id}_input"
   move_destination_display_id = "#{move_modal_id}_display"
   move_destination_data = move_destination_notebooks.map { |notebook|
@@ -79,17 +80,7 @@
                 </span>
                 <i class="ti ti-chevron-right" aria-hidden="true"></i>
               </button>
-              <p class="help-block notepad-entry-move-panel__help">Choose a notebook in the modal, then pick a chapter and save the destination.</p>
-            </div>
-
-            <div class="workspace-form-actions notepad-entry-move-panel__actions">
-              <%= button_tag "Move to notebook chapter",
-                type: "submit",
-                name: "intent",
-                value: "move_to_notebook",
-                form: move_form_id,
-                class: "btn btn-white btn-sm notepad-entry-move-button",
-                data: { disable_with: "Moving..." } %>
+              <p class="help-block notepad-entry-move-panel__help">Choose a notebook in the modal, then pick a chapter to continue.</p>
             </div>
 
             <div
@@ -212,22 +203,25 @@
                             <% end %>
                           </div>
                         </div>
-                        <p class="help-block notepad-entry-move-modal__help">Choose the chapter inside that notebook, then save the destination.</p>
+                        <p class="help-block notepad-entry-move-modal__help">Choose the chapter inside that notebook, then move the page.</p>
                       </div>
                     </div>
                   </div>
 
                   <div class="modal-footer notebook-section-modal__footer">
-                    <div class="notebook-section-modal__page-info">Save the destination here, then move the page from the main action below.</div>
+                    <div class="notebook-section-modal__page-info">Choose the destination here, then move the page directly.</div>
                     <div class="notepad-entry-move-modal__footer-actions">
-                      <button
-                        type="button"
-                        class="btn btn-primary btn-sm notepad-entry-move-modal__save-button"
-                        data-move-destination-target="saveButton"
-                        data-action="click->move-destination#save"
-                      >
-                        Save destination
-                      </button>
+                      <%= button_tag "Move to notebook chapter",
+                        type: "submit",
+                        class: "btn btn-primary btn-sm notepad-entry-move-modal__save-button",
+                        form: move_form_id,
+                        name: "intent",
+                        value: "move_to_notebook",
+                        data: {
+                          move_destination_target: "saveButton",
+                          action: "click->move-destination#commitSelection",
+                          disable_with: "Moving..."
+                        } %>
                     </div>
                   </div>
                 </div>
@@ -255,14 +249,23 @@
 
           <div class="workspace-form-actions notepad-entry-move-panel__actions">
             <%= button_tag "Move to notepad",
-              type: "submit",
-              name: "intent",
-              value: "move_to_notepad",
-              form: move_form_id,
+              type: "button",
               class: "btn btn-white btn-sm notepad-entry-move-button",
-              data: { disable_with: "Moving..." } %>
+              data: { bs_toggle: "modal", bs_target: "##{move_to_notepad_confirm_modal_id}" } %>
           </div>
         </section>
+
+        <%= render "shared/move_record_confirm_modal",
+          modal_id: move_to_notepad_confirm_modal_id,
+          title: "Move page to notepad?",
+          body: "This will create a dated notepad entry and remove the current page from its notebook chapter.",
+          detail_label: "New notepad date",
+          detail_value: move_to_notepad_date.strftime("%b %-d, %Y"),
+          note: "All notes, photos, voice notes, scans, and checklist items move with it.",
+          confirm_label: "Move to notepad",
+          form_id: move_form_id,
+          intent: "move_to_notepad",
+          disable_with: "Moving..." %>
       </div>
     </div>
   </div>

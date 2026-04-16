@@ -142,6 +142,8 @@ class RemindersController < BrowserController
 
   def render_failed_create
     case params[:form_context]
+    when "workspace_launcher"
+      redirect_to reminders_path, alert: @reminder.errors.full_messages.to_sentence.presence || "Reminder could not be created."
     when "reminders_index"
       @new_reminder = @reminder
       load_index_state

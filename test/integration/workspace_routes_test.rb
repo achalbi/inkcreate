@@ -632,8 +632,10 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_select "form##{move_form_id}[action='#{notebook_chapter_page_path(@notebook, @chapter, @page)}']", count: 1
     assert_select "form##{move_form_id} input[name='_method'][value='patch']", count: 1
     assert_select "input[name='move_to_chapter_id'][form='#{move_form_id}']", count: 1
-    assert_select "button[name='intent'][value='move_to_notebook'][form='#{move_form_id}']", text: /Move to notebook chapter/
-    assert_select "button[name='intent'][value='move_to_notepad'][form='#{move_form_id}']", text: /Move to notepad/
+    assert_select "button[name='intent'][value='move_to_notebook'][form='#{move_form_id}']", count: 0
+    assert_select "button[data-bs-target='##{ActionView::RecordIdentifier.dom_id(@page, :move_to_notepad_confirm_modal)}']", text: /Move to notepad/
+    assert_select "##{move_modal_id} button[name='intent'][value='move_to_notebook'][form='#{move_form_id}'][data-action='click->move-destination#commitSelection']", text: /Move to notebook chapter/
+    assert_select "##{ActionView::RecordIdentifier.dom_id(@page, :move_to_notepad_confirm_modal)} button[name='intent'][value='move_to_notepad'][form='#{move_form_id}']", text: /Move to notepad/
     assert_select "##{move_modal_id} [data-move-destination-target='notebookMenu']", count: 1
     assert_select "##{move_modal_id} [data-move-destination-target='notebookMenu'] button.dropdown-item[data-notebook-id='#{destination_notebook.id}']", text: /#{Regexp.escape(destination_notebook.title)}/
     assert_select "##{move_modal_id} [data-move-destination-target='chapterMenu']", count: 1
@@ -704,7 +706,8 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_select "form##{move_form_id} input[name='notepad_entry[title]'][value='#{entry.title}']", count: 1
     assert_select "form##{move_form_id} input[name='notepad_entry[entry_date]'][value='#{entry.entry_date}']", count: 1
     assert_select "input[name='move_to_chapter_id'][form='#{move_form_id}']", count: 1
-    assert_select "button[name='intent'][value='move_to_notebook'][form='#{move_form_id}']", text: /Move to notebook chapter/
+    assert_select "button[name='intent'][value='move_to_notebook'][form='#{move_form_id}']", count: 0
+    assert_select "##{move_modal_id} button[name='intent'][value='move_to_notebook'][form='#{move_form_id}'][data-action='click->move-destination#commitSelection']", text: /Move to notebook chapter/
     assert_select "##{move_modal_id} [data-move-destination-target='notebookMenu']", count: 1
     assert_select "##{move_modal_id} [data-move-destination-target='notebookMenu'] button.dropdown-item[data-notebook-id='#{destination_notebook.id}']", text: /#{Regexp.escape(destination_notebook.title)}/
     assert_select "##{move_modal_id} [data-move-destination-target='chapterMenu']", count: 1

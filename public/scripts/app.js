@@ -21,9 +21,12 @@ import DevicePushController from "/scripts/controllers/device_push_controller.js
 import ReminderDismissConfirmController from "/scripts/controllers/reminder_dismiss_confirm_controller.js";
 import ReminderSnoozeController from "/scripts/controllers/reminder_snooze_controller.js";
 import TaskManagerController from "/scripts/controllers/task_manager_controller.js";
+import TaskDockController from "/scripts/controllers/task_dock_controller.js";
 import DocumentCaptureController from "/scripts/controllers/document_capture_controller.js";
 import SectionShortcutsController from "/scripts/controllers/section_shortcuts_controller.js";
+import StickyDockController from "/scripts/controllers/sticky_dock_controller.js";
 import OnboardingWizardController from "/scripts/controllers/onboarding_wizard_controller.js";
+import IdleShortcutsController from "/scripts/controllers/idle_shortcuts_controller.js";
 import { enableNotificationsForInstall } from "/scripts/notification_preferences.js";
 
 const AUTO_DISMISS_DELAY_MS = 5000;
@@ -90,9 +93,12 @@ application.register("device-push", DevicePushController);
 application.register("reminder-dismiss-confirm", ReminderDismissConfirmController);
 application.register("reminder-snooze", ReminderSnoozeController);
 application.register("task-manager", TaskManagerController);
+application.register("task-dock", TaskDockController);
 application.register("document-capture", DocumentCaptureController);
 application.register("section-shortcuts", SectionShortcutsController);
+application.register("sticky-dock", StickyDockController);
 application.register("onboarding-wizard", OnboardingWizardController);
+application.register("idle-shortcuts", IdleShortcutsController);
 
 document.addEventListener("DOMContentLoaded", () => scheduleTimedMessages());
 document.addEventListener("turbo:load", () => scheduleTimedMessages());

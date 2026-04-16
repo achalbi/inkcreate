@@ -61,16 +61,18 @@ export default class extends Controller {
     event?.preventDefault();
     if (!this.pendingChapterId) return;
 
-    if (this.inputElement) {
-      this.inputElement.value = this.pendingChapterId;
-    }
-
-    this.updateCommittedSelection();
+    this.persistSelection();
     this.hideModal();
   }
 
   resetPendingSelection() {
     this.syncFromInput();
+  }
+
+  commitSelection() {
+    if (!this.pendingChapterId) return;
+
+    this.persistSelection();
   }
 
   syncFromInput() {
@@ -301,6 +303,14 @@ export default class extends Controller {
 
     const modal = ModalClass.getInstance(this.modalElement) || ModalClass.getOrCreateInstance(this.modalElement);
     modal.hide();
+  }
+
+  persistSelection() {
+    if (this.inputElement) {
+      this.inputElement.value = this.pendingChapterId;
+    }
+
+    this.updateCommittedSelection();
   }
 
   get inputElement() {

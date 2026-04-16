@@ -1,0 +1,69 @@
+<%
+  modal_id = local_assigns.fetch(:modal_id)
+  title = local_assigns.fetch(:title)
+  body = local_assigns.fetch(:body)
+  confirm_label = local_assigns.fetch(:confirm_label)
+  form_id = local_assigns.fetch(:form_id)
+  intent = local_assigns.fetch(:intent)
+  detail_label = local_assigns[:detail_label]
+  detail_value = local_assigns[:detail_value]
+  note = local_assigns[:note]
+  confirm_disabled = local_assigns.fetch(:confirm_disabled, false)
+  disable_with = local_assigns[:disable_with]
+  input_id = local_assigns[:input_id]
+  display_label_id = local_assigns[:display_label_id]
+  placeholder = local_assigns[:placeholder]
+%>
+
+<div
+  class="modal fade move-record-confirm-modal"
+  id="<%= modal_id %>"
+  tabindex="-1"
+  aria-labelledby="<%= "#{modal_id}-label" %>"
+  aria-hidden="true"
+  <%= %(data-controller="move-record-confirm") if input_id.present? && display_label_id.present? %>
+  <%= %(data-move-record-confirm-input-id-value="#{input_id}") if input_id.present? %>
+  <%= %(data-move-record-confirm-display-label-id-value="#{display_label_id}") if display_label_id.present? %>
+  <%= %(data-move-record-confirm-placeholder-value="#{placeholder}") if placeholder.present? %>
+>
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title" id="<%= "#{modal_id}-label" %>"><%= title %></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body pt-2">
+        <p class="mb-0 text-secondary"><%= body %></p>
+
+        <% if detail_label.present? || detail_value.present? %>
+          <div class="move-record-confirm-modal__detail">
+            <% if detail_label.present? %>
+              <div class="move-record-confirm-modal__detail-label"><%= detail_label %></div>
+            <% end %>
+            <% if detail_value.present? %>
+              <div class="move-record-confirm-modal__detail-value" data-move-record-confirm-target="detailValue"><%= detail_value %></div>
+            <% end %>
+          </div>
+        <% end %>
+
+        <% if note.present? %>
+          <p class="move-record-confirm-modal__note"><%= note %></p>
+        <% end %>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-white btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <%= button_tag confirm_label,
+          type: "submit",
+          form: form_id,
+          name: "intent",
+          value: intent,
+          class: "btn btn-primary btn-sm",
+          disabled: confirm_disabled,
+          data: {
+            move_record_confirm_target: "confirmButton",
+            disable_with: disable_with
+          } %>
+      </div>
+    </div>
+  </div>
+</div>

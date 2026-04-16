@@ -1,6 +1,6 @@
 <%
   draft_docs = record.pending_scanned_document_payloads
-  content_id = dom_id(record, :scanned_documents_form_content)
+  content_id = "#{local_assigns[:dom_prefix].presence || dom_id(record)}_scanned_documents_form_content"
 %>
 
 <section

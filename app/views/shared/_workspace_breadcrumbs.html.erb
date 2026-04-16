@@ -4,8 +4,8 @@
 %>
 
 <% if breadcrumb_items.any? %>
-  <nav aria-label="breadcrumb" class="<%= nav_classes %>">
-    <ol class="breadcrumb">
+  <nav aria-label="breadcrumb" class="<%= nav_classes %>" data-controller="sticky-dock">
+    <ol class="breadcrumb" data-sticky-dock-target="rail">
       <% breadcrumb_items.each_with_index do |item, index| %>
         <%
           label = nil

@@ -6,6 +6,9 @@ export default class extends Controller {
     collapseThreshold: { type: Number, default: 48 }
   };
 
+  static DOCK_ENTER_OFFSET_PX = 1;
+  static DOCK_EXIT_OFFSET_PX = 14;
+
   connect() {
     this.sync = this.sync.bind(this);
     this.scheduleSync = this.scheduleSync.bind(this);
@@ -87,7 +90,11 @@ export default class extends Controller {
     const railElement = this.hasRailTarget ? this.railTarget : this.element;
 
     const topbarBottom = this.topbarElement?.getBoundingClientRect().bottom || 0;
-    const isDocked = railElement.getBoundingClientRect().top <= topbarBottom + 1;
+    const railTop = railElement.getBoundingClientRect().top;
+    const dockedBoundary = this.lastDockedState
+      ? topbarBottom + this.constructor.DOCK_EXIT_OFFSET_PX
+      : topbarBottom + this.constructor.DOCK_ENTER_OFFSET_PX;
+    const isDocked = railTop <= dockedBoundary;
 
     if (isDocked && !this.lastDockedState) {
       this.dockedScrollStart = window.scrollY;

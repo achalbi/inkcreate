@@ -559,8 +559,9 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
     assert_select ".notepad-entry-move-modal .modal-content[data-controller='move-destination'][data-move-destination-notebooks-value*='Interviews']"
     assert_select "[data-move-destination-target='chapterMenu'] button.dropdown-item.disabled", text: /Choose a notebook first/
     assert_select ".notepad-entry-move-modal [data-bs-toggle='dropdown']", count: 2
-    assert_select "button.notepad-entry-move-modal__save-button", text: /Save destination/
-    assert_select "button[name='intent'][value='move_to_notebook']", text: /Move to notebook chapter/
+    assert_select "button.notepad-entry-move-modal__save-button", text: /Move to notebook chapter/
+    assert_select ".notepad-entry-move-shell button[name='intent'][value='move_to_notebook']", count: 0
+    assert_select ".notepad-entry-move-modal button[name='intent'][value='move_to_notebook'][data-action='click->move-destination#commitSelection']", text: /Move to notebook chapter/
 
     patch notepad_entry_path(entry), params: {
       authenticity_token: authenticity_token_for(notepad_entry_path(entry)),
@@ -685,7 +686,10 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select ".page-move-shell", count: 1
-    assert_select "button[name='intent'][value='move_to_notebook']", text: /Move to notebook chapter/
+    move_form_id = ActionView::RecordIdentifier.dom_id(page, :move_form)
+    move_modal_id = ActionView::RecordIdentifier.dom_id(page, :move_destination_modal)
+    assert_select ".page-move-shell button[name='intent'][value='move_to_notebook'][form='#{move_form_id}']", count: 0
+    assert_select "##{move_modal_id} button[name='intent'][value='move_to_notebook'][form='#{move_form_id}'][data-action='click->move-destination#commitSelection']", text: /Move to notebook chapter/
 
     patch notebook_chapter_page_path(source_notebook, source_chapter, page), params: {
       authenticity_token: authenticity_token_for(notebook_chapter_page_path(source_notebook, source_chapter, page)),

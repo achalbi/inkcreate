@@ -30,11 +30,14 @@ export default class extends Controller {
   // ─── Lifecycle ──────────────────────────────────────────────────────────
   connect() {
     this.boundKeydown = this.handleKeydown.bind(this);
+    this.boundOpenQuickAddRequest = () => this.openQuickAdd();
     document.addEventListener("keydown", this.boundKeydown);
+    window.addEventListener("task-manager:open-quick-add", this.boundOpenQuickAddRequest);
   }
 
   disconnect() {
     document.removeEventListener("keydown", this.boundKeydown);
+    window.removeEventListener("task-manager:open-quick-add", this.boundOpenQuickAddRequest);
   }
 
   // ─── Quick-add panel ────────────────────────────────────────────────────

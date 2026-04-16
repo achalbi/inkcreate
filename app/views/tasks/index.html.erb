@@ -57,9 +57,8 @@
      data-task-manager-filter-value="<%= @tasks_filter %>">
 
   <div class="workspace-index-actions task-index-actions"
-       data-controller="section-shortcuts"
-       data-section-shortcuts-collapse-threshold-value="56"
-       data-section-shortcuts-target="rail">
+       data-controller="task-dock"
+       data-task-dock-collapse-threshold-value="56">
     <div class="workspace-index-actions__left">
       <div class="workspace-index-controls">
         <div class="task-filter-tabs" role="tablist" aria-label="Task filters">
@@ -156,7 +155,7 @@
     </div>
     <div class="task-completion-overview"
          aria-label="Task completion"
-         data-section-shortcuts-target="collapseOnDock">
+         data-task-dock-target="collapseOnDock">
       <div class="task-completion-overview__copy">
         <span><%= done_count %> of <%= total %> tasks completed</span>
       </div>
