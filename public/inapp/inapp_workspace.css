@@ -6413,7 +6413,6 @@ body.workspace-body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 0;
-  gap: 0.45rem;
   align-items: stretch;
   margin-bottom: 0.62rem;
   padding: 0;
@@ -6495,20 +6494,14 @@ body.workspace-body {
 .todo-list-composer__content {
   min-width: 0;
   padding-right: 0.42rem;
-  padding: 0.08rem 0.48rem;
-  border: 1px solid rgba(80, 62, 45, 0.1);
-  border-radius: 0.78rem;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 
 .todo-list-composer__input {
   width: 100%;
   min-height: 1.72rem;
-  min-height: 1.58rem;
   border: 0 !important;
   padding-inline: 0;
-  padding-block: 0.14rem;
+  padding-block: 0.22rem;
   background: transparent !important;
   box-shadow: none !important;
   appearance: none;
@@ -6536,9 +6529,6 @@ body.workspace-body {
   font-weight: 800;
   letter-spacing: 0.01em;
   white-space: nowrap;
-  padding-inline: 0.56rem;
-  border-radius: 0.72rem;
-  font-weight: 700;
   box-shadow: none;
 }
 
@@ -6546,52 +6536,6 @@ body.workspace-body {
   min-width: 4.2rem;
   min-height: 100%;
   align-self: stretch;
-  min-width: 2.24rem;
-  min-height: 100%;
-  align-self: stretch;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 1px solid rgba(230, 98, 57, 0.18);
-  border-radius: 0.78rem;
-  background: rgba(255, 244, 238, 0.96);
-  color: #e66239;
-  box-shadow: 0 6px 14px rgba(230, 98, 57, 0.08);
-}
-
-.todo-list-composer__submit--icon:hover,
-.todo-list-composer__submit--icon:focus-visible {
-  background: rgba(255, 236, 226, 0.98);
-  border-color: rgba(230, 98, 57, 0.24);
-  color: #cf572f;
-}
-
-.todo-list-composer__submit--icon .ti {
-  font-size: 0.92rem;
-  font-weight: 700;
-}
-
-.todo-list-filters {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.45rem;
-  margin-bottom: 0.45rem;
-}
-
-.todo-list-filters__group {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.14rem;
-  padding: 0.14rem;
-  border: 1px solid rgba(80, 62, 45, 0.08);
-  border-radius: 999px;
-  background: rgba(248, 244, 237, 0.68);
-}
-
-.todo-list-filters__button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -6960,7 +6904,6 @@ body.workspace-body {
 @media (max-width: 767.98px) {
   .todo-list-composer {
     grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-columns: minmax(0, 1fr) 2.24rem;
   }
 
   .todo-list-composer__field {
@@ -7063,14 +7006,12 @@ body.workspace-body {
   width: 100%;
   box-sizing: border-box;
   max-height: 8rem;
-  margin: 0 0 0.95rem;
   padding: 0.9rem 1rem;
   border: 1px solid var(--inapp-border);
   border-radius: 1rem;
   background: rgba(255, 255, 255, 0.56);
   box-shadow: 0 8px 18px rgba(54, 43, 32, 0.04);
   overflow: hidden;
-  overflow-anchor: none;
   transform-origin: top center;
   transition:
     max-height 0.24s ease,
@@ -7099,14 +7040,6 @@ body.workspace-body {
 .task-completion-overview__copy {
   display: block;
   margin-bottom: 0.3rem;
-}
-
-.task-completion-overview__copy {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin-bottom: 0.55rem;
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--inapp-muted);
@@ -7156,7 +7089,6 @@ body.workspace-body {
     0 12px 28px rgba(54, 43, 32, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.4);
   overflow: visible;
-  overflow-anchor: none;
   isolation: isolate;
   transform: translateZ(0);
   backface-visibility: hidden;
@@ -7171,9 +7103,6 @@ body.workspace-body {
     0 14px 24px rgba(54, 43, 32, 0.08),
     inset 0 -1px 0 rgba(255, 255, 255, 0.34);
   transform: translateY(-1px) translateZ(0);
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.65rem;
 }
 
 .task-index-actions .workspace-index-actions__left {
@@ -7189,8 +7118,6 @@ body.workspace-body {
   flex-wrap: wrap;
   overflow: visible;
   padding-bottom: 0;
-  flex-wrap: wrap;
-  overflow: visible;
 }
 
 .task-index-actions__right {
@@ -7353,67 +7280,6 @@ body.workspace-body {
   color: #fff;
 }
 
-  width: 100%;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-}
-
-.task-filter-tabs {
-  min-width: 0;
-  max-width: 100%;
-}
-
-/* ── Toolbar (filter tabs + sort selects) ───────────────────────────────── */
-.task-toolbar {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-.task-filter-tabs {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 2px;
-  background: #fff;
-  border: 1px solid var(--inapp-border);
-  border-radius: 999px;
-  padding: 4px;
-  box-shadow: 0 1px 0 rgba(27,27,29,.04);
-}
-.task-filter-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 14px;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--inapp-muted);
-  text-decoration: none;
-  transition: background .15s ease, color .15s ease;
-}
-.task-filter-tab:hover { color: var(--inapp-ink); background: var(--inapp-surface-2, #f5efe8); }
-.task-filter-tab.active { background: var(--inapp-ink); color: #fff; }
-.task-filter-tab-count {
-  font-size: 0.688rem;
-  font-weight: 700;
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: rgba(255,255,255,.18);
-}
-.task-filter-tab:not(.active) .task-filter-tab-count {
-  background: rgba(27,27,29,.07);
-  color: var(--inapp-muted);
-}
-.task-toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-}
-.task-sort-form { display: inline-flex; }
 .task-meta-select {
   border: 1px solid var(--inapp-border);
   background: #fff;
@@ -7443,17 +7309,6 @@ body.workspace-body {
   color: var(--inapp-primary, #ff5f4e);
   font-size: 0.72rem;
   font-weight: 700;
-.task-tag-filter-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  max-width: 100%;
-  border-radius: 999px;
-  background: var(--inapp-primary-soft, #ffe1dc);
-  color: var(--inapp-primary, #ff5f4e);
-  font-size: 0.75rem;
-  font-weight: 600;
 }
 
 .task-tag-filter-pill,
@@ -7476,7 +7331,6 @@ body.workspace-body {
   background: rgba(230, 98, 57, 0.1);
   color: inherit;
 }
-.task-tag-filter-clear { color: inherit; text-decoration: none; }
 
 /* ── Progress bar ───────────────────────────────────────────────────────── */
 .task-progress-row {
@@ -7520,7 +7374,6 @@ body.workspace-body {
 
 .task-list-section__intro {
   margin: 0 0 0.35rem;
-  margin: 0;
   font-size: 0.86rem;
   line-height: 1.55;
   color: var(--inapp-muted);
@@ -8103,8 +7956,6 @@ body.workspace-body {
   .task-index-actions .workspace-index-controls {
     gap: 0.45rem;
     align-items: stretch;
-  .task-index-actions .workspace-index-controls {
-    gap: 0.45rem;
   }
 
   .task-filter-tabs {
@@ -8113,8 +7964,6 @@ body.workspace-body {
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 0.3rem;
     padding: 0;
-    gap: 3px;
-    padding: 3px;
   }
 
   .task-filter-tab {
@@ -8147,20 +7996,6 @@ body.workspace-body {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.45rem;
-    justify-content: center;
-    padding: 5px 4px;
-    gap: 3px;
-    font-size: 0.66rem;
-  }
-
-  .task-filter-tab-count {
-    font-size: 0.58rem;
-    padding: 1px 4px;
-  }
-
-  .task-tag-filter-pill {
-    font-size: 0.68rem;
-    padding: 3px 8px;
   }
 
   .task-section-titlebar {
