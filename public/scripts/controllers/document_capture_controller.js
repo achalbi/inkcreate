@@ -1,4 +1,5 @@
 import { Controller } from "/scripts/vendor/stimulus.js";
+import { cameraVideoConstraints, canvasToCaptureDataUrl } from "/scripts/capture_quality.js";
 
 // ── Stimulus Controller ───────────────────────────────────────────────────────
 export default class extends Controller {
@@ -257,7 +258,7 @@ export default class extends Controller {
 
     try {
       this._stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } }
+        video: cameraVideoConstraints()
       });
       this.videoTarget.srcObject = this._stream;
       this.videoTarget.onloadedmetadata = () => {
@@ -1092,7 +1093,7 @@ export default class extends Controller {
       tags: JSON.stringify(
         (this.reviewTagsTarget.value || "").split(",").map(tag => tag.trim()).filter(Boolean)
       ),
-      image_data: canvas.toDataURL("image/jpeg", 0.92)
+      image_data: canvasToCaptureDataUrl(canvas)
     };
   }
 

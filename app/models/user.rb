@@ -69,6 +69,17 @@ class User < ApplicationRecord
     has_attribute?(:onboarding_completed_at) && onboarding_completed_at.present?
   end
 
+  def valid_password?(password)
+    super
+  rescue BCrypt::Errors::InvalidHash
+    Rails.logger.warn(
+      event: "auth.invalid_password_hash",
+      user_id: id,
+      email: email
+    )
+    false
+  end
+
   private
 
   def assign_bootstrap_role

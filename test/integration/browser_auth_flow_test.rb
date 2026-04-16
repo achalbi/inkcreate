@@ -231,6 +231,51 @@ class BrowserAuthFlowTest < ActionDispatch::IntegrationTest
     assert_select "a[href='#{admin_users_path}']", text: /Review users|Manage users|User roles/
   end
 
+  test "sign in treats malformed password hashes as invalid credentials" do
+    user = User.create!(
+      email: "invalid-hash@example.com",
+      password: "Password123!",
+      password_confirmation: "Password123!",
+      time_zone: "UTC",
+      locale: "en",
+      role: :user
+    )
+    user.update_column(:encrypted_password, "not-a-bcrypt-hash")
+
+    get browser_sign_in_path
+    post browser_sign_in_path, params: {
+      authenticity_token: authenticity_token_for(browser_sign_in_path),
+      user: { email: user.email, password: "Password123!" }
+    }
+
+    assert_response :unprocessable_entity
+    assert_select ".alert", text: /Invalid email or password/
+  end
+
+  test "sign in handles invalid hash raised directly during password verification" do
+    user = User.create!(
+      email: "raised-invalid-hash@example.com",
+      password: "Password123!",
+      password_confirmation: "Password123!",
+      time_zone: "UTC",
+      locale: "en",
+      role: :user
+    )
+
+    with_singleton_override(User, :find_for_authentication, ->(*) { user }) do
+      user.stub(:valid_password?, ->(*) { raise BCrypt::Errors::InvalidHash }) do
+        get browser_sign_in_path
+        post browser_sign_in_path, params: {
+          authenticity_token: authenticity_token_for(browser_sign_in_path),
+          user: { email: user.email, password: "Password123!" }
+        }
+      end
+    end
+
+    assert_response :unprocessable_entity
+    assert_select ".alert", text: /Invalid email or password/
+  end
+
   private
 
   def build_google_client(email:)

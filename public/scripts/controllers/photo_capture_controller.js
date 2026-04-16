@@ -1,4 +1,5 @@
 import { Controller } from "/scripts/vendor/stimulus.js";
+import { cameraVideoConstraints, canvasToCaptureFile, optimizeImageFiles } from "/scripts/capture_quality.js";
 
 export default class extends Controller {
   static targets = ["input", "cameraInput", "cameraFrame", "cameraPanel", "defaultActions", "previewActions", "previewGrid", "retainedGrid", "retainedInput", "retainedItem", "emptyState", "cameraToggle", "errorModal", "errorTitle", "errorMessage"];
@@ -111,11 +112,7 @@ export default class extends Controller {
       this.stopStream();
 
       this.stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: "environment" },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
-        },
+        video: cameraVideoConstraints(),
         audio: false
       });
 
@@ -161,8 +158,8 @@ export default class extends Controller {
     const context = canvas.getContext("2d");
     context.drawImage(this.video, 0, 0, canvas.width, canvas.height);
 
-    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92));
-    if (!blob) {
+    const file = await canvasToCaptureFile(canvas, { fileNamePrefix: "note-capture" });
+    if (!file) {
       this.showError({
         title: "Capture failed",
         message: "The browser could not create the image. Try again."
@@ -170,8 +167,7 @@ export default class extends Controller {
       return;
     }
 
-    const file = new File([blob], `note-capture-${Date.now()}.jpg`, { type: "image/jpeg" });
-    this.addFiles([file]);
+    await this.addFiles([file]);
   }
 
   cancel(event) {
@@ -223,13 +219,13 @@ export default class extends Controller {
     this.cameraInputTarget.click();
   }
 
-  acceptCameraCapture(event) {
+  async acceptCameraCapture(event) {
     const files = Array.from(event?.target?.files || []);
     if (files.length === 0) {
       return;
     }
 
-    this.addFiles(files);
+    await this.addFiles(files);
     event.target.value = "";
 
     if (this.shouldAutoSaveAfterCameraCapture()) {
@@ -237,7 +233,7 @@ export default class extends Controller {
     }
   }
 
-  syncFromInput() {
+  async syncFromInput() {
     const files = Array.from(this.inputTarget.files || []);
     const source = this.pendingInputSource;
 
@@ -248,7 +244,7 @@ export default class extends Controller {
       return;
     }
 
-    this.addFiles(files);
+    await this.addFiles(files);
 
     if (source === "gallery" && this.shouldAutoSaveAfterCameraCapture()) {
       this.submitFormAfterCameraCapture();
@@ -265,8 +261,9 @@ export default class extends Controller {
     this.inputTarget.click();
   }
 
-  addFiles(files) {
-    this.pendingFiles = [...this.pendingFiles, ...files];
+  async addFiles(files) {
+    const optimizedFiles = await optimizeImageFiles(files);
+    this.pendingFiles = [...this.pendingFiles, ...optimizedFiles];
 
     this.syncInputFiles();
 

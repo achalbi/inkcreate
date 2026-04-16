@@ -1,4 +1,5 @@
 import { Controller } from "/scripts/vendor/stimulus.js";
+import { currentCaptureQualityPreset, optimizeImageFiles } from "/scripts/capture_quality.js";
 
 export default class extends Controller {
   static targets = ["form", "cameraInput", "galleryInput", "cameraButton", "galleryButton", "status"];
@@ -17,7 +18,7 @@ export default class extends Controller {
     this.openInput(this.galleryInputTarget);
   }
 
-  submitFromSelection(event) {
+  async submitFromSelection(event) {
     const input = event.currentTarget;
     const files = Array.from(input.files || []);
 
@@ -27,7 +28,15 @@ export default class extends Controller {
 
     this.submitting = true;
     this.setButtonsDisabled(true);
-    this.showStatus("Creating your daily page and opening edit mode...");
+    this.showStatus(
+      currentCaptureQualityPreset() === "original"
+        ? "Creating your daily page and opening edit mode..."
+        : "Optimizing your image and creating the daily page..."
+    );
+
+    const optimizedFiles = await optimizeImageFiles(files);
+    this.replaceInputFiles(input, optimizedFiles);
+
     window.InkcreatePageLoader?.show("Creating your daily page...");
 
     if (typeof this.formTarget.requestSubmit === "function") {
@@ -73,5 +82,11 @@ export default class extends Controller {
 
     this.statusTarget.hidden = false;
     this.statusTarget.textContent = message;
+  }
+
+  replaceInputFiles(input, files) {
+    const dataTransfer = new DataTransfer();
+    files.forEach((file) => dataTransfer.items.add(file));
+    input.files = dataTransfer.files;
   }
 }

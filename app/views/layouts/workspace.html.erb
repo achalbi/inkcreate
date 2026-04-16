@@ -1,5 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" data-time-zone="<%= effective_time_zone_name %>">
+<html
+  lang="en"
+  data-time-zone="<%= effective_time_zone_name %>"
+  data-capture-quality-preset="<%= current_user&.ensure_app_setting!&.capture_quality_preset || AppSetting::IMAGE_QUALITY_DEFAULTS.fetch("capture_quality_preset") %>"
+>
   <head>
     <title>Inkcreate Workspace</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">

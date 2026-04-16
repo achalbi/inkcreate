@@ -1,4 +1,5 @@
 import { Controller } from "/scripts/vendor/stimulus.js";
+import { cameraVideoConstraints, canvasToCaptureFile, canvasToPreviewDataUrl } from "/scripts/capture_quality.js";
 
 export default class extends Controller {
   static targets = ["preview"];
@@ -12,7 +13,7 @@ export default class extends Controller {
     this.stop();
 
     this.stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: "environment" } },
+      video: cameraVideoConstraints(),
       audio: false
     });
 
@@ -36,17 +37,20 @@ export default class extends Controller {
     const context = canvas.getContext("2d");
     context.drawImage(this.video, 0, 0, canvas.width, canvas.height);
 
-    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92));
-    const file = new File([blob], `capture-${Date.now()}.jpg`, { type: "image/jpeg" });
+    const file = await canvasToCaptureFile(canvas);
+    if (!file) {
+      window.alert("The browser could not create the image. Try again.");
+      return;
+    }
 
     this.element.dispatchEvent(new CustomEvent("inkcreate:file-selected", {
       bubbles: true,
-      detail: { file, previewDataUrl: canvas.toDataURL("image/jpeg", 0.7) }
+      detail: { file, previewDataUrl: canvasToPreviewDataUrl(canvas) }
     }));
 
     this.previewTarget.innerHTML = "";
     const image = document.createElement("img");
-    image.src = canvas.toDataURL("image/jpeg", 0.7);
+    image.src = canvasToPreviewDataUrl(canvas);
     image.alt = "Captured notebook preview";
     this.previewTarget.appendChild(image);
     this.stop();

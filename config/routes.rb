@@ -2,6 +2,7 @@ require "sidekiq/web"
 
 Rails.application.routes.draw do
   root "home#show"
+  post "/onboarding/dismiss", to: "onboarding#dismiss", as: :onboarding_dismiss
   get "/privacy-policy", to: "legal#privacy_policy", as: :privacy_policy
   get "/terms-of-service", to: "legal#terms_of_service", as: :terms_of_service
   get "/auth/sign-in", to: "web/auth/sessions#new", as: :browser_sign_in
@@ -130,6 +131,7 @@ Rails.application.routes.draw do
     resource :backup, only: %i[show update], controller: "backup" do
       post :sync, on: :member
     end
+    resource :capture_quality, only: %i[show update], controller: "capture_quality"
     resource :privacy, only: %i[show update], controller: "privacy"
     resource :drive_connection, only: %i[create update destroy], controller: "drive_connections" do
       post :create_folder, on: :collection

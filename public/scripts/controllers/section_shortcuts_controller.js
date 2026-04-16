@@ -12,6 +12,7 @@ export default class extends Controller {
     this.topbarElement = document.getElementById("topbar");
     this.activeSectionId = null;
     this.dockedScrollStart = null;
+    this.isCollapsedOnDock = false;
     this.lastDockedState = false;
 
     this.sections = this.linkTargets.map((link) => {
@@ -92,6 +93,7 @@ export default class extends Controller {
       this.dockedScrollStart = window.scrollY;
     } else if (!isDocked) {
       this.dockedScrollStart = null;
+      this.isCollapsedOnDock = false;
     }
 
     this.lastDockedState = isDocked;
@@ -100,11 +102,18 @@ export default class extends Controller {
   }
 
   syncCollapsedState(isDocked) {
+    const dockedScrollDelta = this.dockedScrollStart === null ? 0 : window.scrollY - this.dockedScrollStart;
+    const expandThreshold = Math.max(8, this.collapseThresholdValue - 20);
     const shouldCollapse = Boolean(
       isDocked &&
       this.dockedScrollStart !== null &&
-      window.scrollY - this.dockedScrollStart >= this.collapseThresholdValue
+      (
+        dockedScrollDelta >= this.collapseThresholdValue ||
+        (this.isCollapsedOnDock && dockedScrollDelta >= expandThreshold)
+      )
     );
+
+    this.isCollapsedOnDock = shouldCollapse;
 
     this.element.classList.toggle("has-collapsed-docked-content", shouldCollapse);
 

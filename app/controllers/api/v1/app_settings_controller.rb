@@ -13,7 +13,7 @@ module Api
       private
 
       def app_setting_params
-        params.require(:app_setting).permit(:ocr_mode, :ai_enabled, :backup_enabled, :backup_provider)
+        params.require(:app_setting).permit(:ocr_mode, :ai_enabled, :backup_enabled, :backup_provider, :capture_quality_preset)
       end
     end
   end
