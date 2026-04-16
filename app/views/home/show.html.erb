@@ -1,11 +1,11 @@
-<%= render "shared/workspace_header",
+<!-- <%= render "shared/workspace_header",
   # breadcrumbs: ["Home"],
   eyebrow: "Home",
   title: "Choose how you want to organize your work.",
-  description: "Notebook keeps project-based material structured by chapter and page. Notepad keeps fast daily capture organized by date." %>
+  description: "Notebook keeps project-based material structured by chapter and page. Notepad keeps fast daily capture organized by date." %> -->
 
 <div class="wrapper wrapper-content animated fadeInRight">
-  <%= render "upcoming_reminders" %>
+  <%= render "how_it_works_card" %>
 
   <section class="row g-2 g-md-3 home-metric-grid">
     <div class="col-4 col-md-4">
@@ -36,26 +36,8 @@
       </div>
     </div>
   </section>
+  <%= render "upcoming_reminders" %>
 
-  <%# ── How it works card ───────────────────────────────────────────────────── %>
-  <section class="row g-2 g-md-3 m-b-sm">
-    <div class="col-12">
-      <div class="ibox float-e-margins home-howto-card">
-        <div class="home-howto-inner">
-          <div class="home-howto-text">
-            <div class="home-howto-eyebrow">✦ Quick guide</div>
-            <h5 class="home-howto-title">New to Inkcreate? See how it works.</h5>
-            <p class="home-howto-body">Notebooks, daily notepad, voice notes, scanned documents, and to-do lists — a 60-second walkthrough.</p>
-          </div>
-          <button
-            class="btn btn-primary btn-sm home-howto-btn"
-            onclick="window.dispatchEvent(new CustomEvent('onboarding:show'))"
-            type="button"
-          >▶ Show intro</button>
-        </div>
-      </div>
-    </div>
-  </section>
 
   <section class="row">
     <div class="col-lg-6">
