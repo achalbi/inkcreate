@@ -18,8 +18,10 @@ export default class extends Controller {
     this._showHandler = () => this.show();
     window.addEventListener("onboarding:show", this._showHandler);
 
-    // Auto-show on first visit
-    if (this.autoshowValue) {
+    // Auto-show on first visit — guarded by sessionStorage so Turbo navigations
+    // don't re-trigger it on every link click.
+    if (this.autoshowValue && !sessionStorage.getItem("onboarding:autoshow-seen")) {
+      sessionStorage.setItem("onboarding:autoshow-seen", "1");
       this.show();
     }
   }
