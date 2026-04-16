@@ -468,7 +468,7 @@ class GoogleDriveRecordExportTriggersTest < ActionDispatch::IntegrationTest
   def capture_scheduled_records
     scheduled = []
 
-    Drive::ScheduleRecordExport.stub :new, ->(record:) {
+    Drive::ScheduleRecordExport.stub :new, ->(record:, **) {
       runner = Object.new
       runner.define_singleton_method(:call) { scheduled << record }
       runner

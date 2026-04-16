@@ -29,6 +29,10 @@ class VoiceNote < ApplicationRecord
     page || notepad_entry
   end
 
+  def drive_record_export_sections
+    [Drive::RecordExportSections::VOICE_NOTES]
+  end
+
   def sync_audio_metadata
     return unless audio.attached?
 

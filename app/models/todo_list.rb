@@ -44,6 +44,10 @@ class TodoList < ApplicationRecord
     owner
   end
 
+  def drive_record_export_sections
+    [Drive::RecordExportSections::TODO]
+  end
+
   def normalize_booleans
     self.enabled = true if enabled.nil?
     self.hide_completed = false if hide_completed.nil?

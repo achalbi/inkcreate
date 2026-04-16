@@ -33,10 +33,17 @@ class DriveExportRecordTest < ActiveSupport::TestCase
       OpenStruct.new(id: file.id, name: file.name, parents: file.parents)
     end
 
-    def update_file(file_id, metadata, upload_source: nil, content_type: nil, **)
+    def update_file(file_id, metadata, upload_source: nil, content_type: nil, add_parents: nil, remove_parents: nil, **)
       file = @files.fetch(file_id)
       file.name = metadata.name if metadata.respond_to?(:name) && metadata.name.present?
-      file.parents = Array(metadata.parents) if metadata.respond_to?(:parents) && metadata.parents.present?
+      if add_parents.present? || remove_parents.present?
+        next_parents = Array(file.parents)
+        next_parents -= Array(remove_parents)
+        next_parents |= Array(add_parents)
+        file.parents = next_parents
+      elsif metadata.respond_to?(:parents) && metadata.parents.present?
+        file.parents = Array(metadata.parents)
+      end
       file.content = read_upload_source(upload_source) if upload_source
       file.content_type = content_type if content_type.present?
       updated_files << FakeRemoteFile.new(
@@ -46,6 +53,11 @@ class DriveExportRecordTest < ActiveSupport::TestCase
         content: file.content,
         content_type: file.content_type
       )
+      OpenStruct.new(id: file.id, name: file.name, parents: file.parents)
+    end
+
+    def get_file(file_id, **)
+      file = @files.fetch(file_id)
       OpenStruct.new(id: file.id, name: file.name, parents: file.parents)
     end
 
@@ -247,6 +259,200 @@ class DriveExportRecordTest < ActiveSupport::TestCase
     assert_equal({}, export.metadata["remote_scanned_document_image_file_ids"])
     assert_equal({}, export.metadata["remote_scanned_document_pdf_file_ids"])
     assert_equal({}, export.metadata["remote_scanned_document_text_file_ids"])
+  end
+
+  test "re-export updates existing remote files instead of creating duplicates" do
+    user = build_user(email: "drive-export-record-rerun@example.com")
+    entry = user.notepad_entries.create!(
+      entry_date: Date.new(2026, 4, 16),
+      title: "",
+      notes: "Initial notes."
+    )
+    entry.photos.attach(image_attachment("whiteboard.jpg"))
+    voice_note = entry.voice_notes.create!(
+      audio: audio_attachment("standup.m4a"),
+      duration_seconds: 28,
+      recorded_at: Time.zone.parse("2026-04-16 09:00:00"),
+      byte_size: 16,
+      mime_type: "audio/mp4",
+      transcript: "Initial transcript."
+    )
+    scanned_document = entry.scanned_documents.create!(
+      user: user,
+      title: "Agenda",
+      enhanced_image: image_attachment("agenda-preview.jpg"),
+      document_pdf: pdf_attachment("agenda.pdf"),
+      extracted_text: "Agenda v1"
+    )
+    export = GoogleDriveExport.create!(
+      user: user,
+      exportable: entry,
+      status: :pending,
+      remote_photo_file_ids: {}
+    )
+    drive_service = FakeDriveService.new
+
+    with_drive_stubs(drive_service) do
+      Drive::ExportRecord.new(google_drive_export: export).call
+      export.reload
+
+      original_created_file_ids = drive_service.created_files.map(&:id)
+      original_notes_file_id = export.remote_notes_file_id
+      original_manifest_file_id = export.remote_manifest_file_id
+      original_photo_file_id = export.remote_photo_file_ids.values.first
+      original_voice_file_id = export.metadata["remote_voice_note_audio_file_ids"][voice_note.id.to_s]
+      original_preview_file_id = export.metadata["remote_scanned_document_image_file_ids"][scanned_document.id.to_s]
+      original_pdf_file_id = export.metadata["remote_scanned_document_pdf_file_ids"][scanned_document.id.to_s]
+      original_text_file_id = export.metadata["remote_scanned_document_text_file_ids"][scanned_document.id.to_s]
+
+      entry.update_columns(notes: "Updated notes.", updated_at: Time.current + 1.second)
+      voice_note.update_columns(transcript: "Updated transcript.", updated_at: Time.current + 1.second)
+      scanned_document.update_columns(extracted_text: "Agenda v2", updated_at: Time.current + 1.second)
+      export.update!(
+        status: :pending,
+        metadata: export.metadata.merge(
+          Drive::RecordExportSections::PENDING_METADATA_KEY => Drive::RecordExportSections::ALL
+        )
+      )
+
+      Drive::ExportRecord.new(google_drive_export: export).call
+      export.reload
+
+      assert_equal original_created_file_ids, drive_service.created_files.map(&:id)
+      assert_equal original_notes_file_id, export.remote_notes_file_id
+      assert_equal original_manifest_file_id, export.remote_manifest_file_id
+      assert_equal original_photo_file_id, export.remote_photo_file_ids.values.first
+      assert_equal original_voice_file_id, export.metadata["remote_voice_note_audio_file_ids"][voice_note.id.to_s]
+      assert_equal original_preview_file_id, export.metadata["remote_scanned_document_image_file_ids"][scanned_document.id.to_s]
+      assert_equal original_pdf_file_id, export.metadata["remote_scanned_document_pdf_file_ids"][scanned_document.id.to_s]
+      assert_equal original_text_file_id, export.metadata["remote_scanned_document_text_file_ids"][scanned_document.id.to_s]
+
+      updated_ids = drive_service.updated_files.map(&:id)
+
+      assert_includes updated_ids, original_notes_file_id
+      assert_includes updated_ids, original_manifest_file_id
+      assert_includes updated_ids, original_photo_file_id
+      assert_includes updated_ids, original_voice_file_id
+      assert_includes updated_ids, original_preview_file_id
+      assert_includes updated_ids, original_pdf_file_id
+      assert_includes updated_ids, original_text_file_id
+      assert_includes drive_service.file_content_by_name("notes.md"), "Updated notes."
+      assert_equal "Updated transcript.", JSON.parse(drive_service.file_content_by_name("manifest.json"))["voice_notes"].first["transcript"]
+      assert_equal "Agenda v2", JSON.parse(drive_service.file_content_by_name("manifest.json"))["scanned_documents"].first["extracted_text"]
+    end
+  end
+
+  test "targeted record export only updates notes and manifest files" do
+    user = build_user(email: "drive-export-record-targeted@example.com")
+    entry = user.notepad_entries.create!(
+      entry_date: Date.new(2026, 4, 16),
+      title: "",
+      notes: "Initial notes."
+    )
+    entry.photos.attach(image_attachment("plan.jpg"))
+    voice_note = entry.voice_notes.create!(
+      audio: audio_attachment("plan.m4a"),
+      duration_seconds: 18,
+      recorded_at: Time.zone.parse("2026-04-16 09:05:00"),
+      byte_size: 16,
+      mime_type: "audio/mp4",
+      transcript: "Initial transcript."
+    )
+    scanned_document = entry.scanned_documents.create!(
+      user: user,
+      title: "Plan scan",
+      enhanced_image: image_attachment("plan-preview.jpg"),
+      document_pdf: pdf_attachment("plan.pdf"),
+      extracted_text: "Plan v1"
+    )
+    export = GoogleDriveExport.create!(
+      user: user,
+      exportable: entry,
+      status: :pending,
+      remote_photo_file_ids: {},
+      metadata: { Drive::RecordExportSections::PENDING_METADATA_KEY => Drive::RecordExportSections::ALL }
+    )
+    drive_service = FakeDriveService.new
+
+    with_drive_stubs(drive_service) do
+      Drive::ExportRecord.new(google_drive_export: export).call
+      export.reload
+
+      drive_service.updated_files.clear
+      created_count = drive_service.created_files.size
+      photo_file_id = export.remote_photo_file_ids.values.first
+      voice_file_id = export.metadata["remote_voice_note_audio_file_ids"][voice_note.id.to_s]
+      preview_file_id = export.metadata["remote_scanned_document_image_file_ids"][scanned_document.id.to_s]
+      pdf_file_id = export.metadata["remote_scanned_document_pdf_file_ids"][scanned_document.id.to_s]
+      text_file_id = export.metadata["remote_scanned_document_text_file_ids"][scanned_document.id.to_s]
+
+      entry.update_columns(notes: "Notes only update.", updated_at: Time.current + 1.second)
+      export.update!(
+        status: :pending,
+        metadata: export.metadata.merge(
+          Drive::RecordExportSections::PENDING_METADATA_KEY => [Drive::RecordExportSections::RECORD]
+        )
+      )
+
+      Drive::ExportRecord.new(google_drive_export: export).call
+      export.reload
+
+      updated_ids = drive_service.updated_files.map(&:id)
+
+      assert_equal created_count, drive_service.created_files.size
+      assert_includes updated_ids, export.remote_notes_file_id
+      assert_includes updated_ids, export.remote_manifest_file_id
+      refute_includes updated_ids, photo_file_id
+      refute_includes updated_ids, voice_file_id
+      refute_includes updated_ids, preview_file_id
+      refute_includes updated_ids, pdf_file_id
+      refute_includes updated_ids, text_file_id
+    end
+  end
+
+  test "targeted photo export only updates photo files and manifest" do
+    user = build_user(email: "drive-export-record-photo-targeted@example.com")
+    entry = user.notepad_entries.create!(
+      entry_date: Date.new(2026, 4, 16),
+      title: "",
+      notes: "Initial notes."
+    )
+    export = GoogleDriveExport.create!(
+      user: user,
+      exportable: entry,
+      status: :pending,
+      remote_photo_file_ids: {},
+      metadata: { Drive::RecordExportSections::PENDING_METADATA_KEY => Drive::RecordExportSections::ALL }
+    )
+    drive_service = FakeDriveService.new
+
+    with_drive_stubs(drive_service) do
+      Drive::ExportRecord.new(google_drive_export: export).call
+      export.reload
+
+      drive_service.updated_files.clear
+      original_notes_file_id = export.remote_notes_file_id
+      original_manifest_file_id = export.remote_manifest_file_id
+      original_created_count = drive_service.created_files.size
+
+      entry.photos.attach(image_attachment("board.jpg"))
+      export.update!(
+        status: :pending,
+        metadata: export.metadata.merge(
+          Drive::RecordExportSections::PENDING_METADATA_KEY => [Drive::RecordExportSections::PHOTOS]
+        )
+      )
+
+      Drive::ExportRecord.new(google_drive_export: export).call
+      export.reload
+
+      updated_ids = drive_service.updated_files.map(&:id)
+
+      assert_includes updated_ids, original_manifest_file_id
+      refute_includes updated_ids, original_notes_file_id
+      assert_equal original_created_count + 1, drive_service.created_files.size
+      assert_equal 1, export.remote_photo_file_ids.size
+    end
   end
 
   test "omits binary media files when media backups are disabled but still exports structured text data" do

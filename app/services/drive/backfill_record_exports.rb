@@ -32,9 +32,59 @@ module Drive
       export = GoogleDriveExport.find_by(exportable: record)
       return true if export.blank?
       return true if export.status_failed?
+      return true if export.metadata.to_h[Drive::RecordExportSections::PENDING_METADATA_KEY].present?
       return true if export.exported_at.blank?
 
-      record.updated_at.present? && export.exported_at < record.updated_at
+      export.exported_at < record_last_change_at(record)
+    end
+
+    def record_last_change_at(record)
+      [
+        record.updated_at,
+        photo_change_at(record),
+        voice_note_change_at(record),
+        scanned_document_change_at(record),
+        todo_change_at(record)
+      ].compact.max || record.updated_at || Time.at(0)
+    end
+
+    def photo_change_at(record)
+      return unless record.respond_to?(:photos)
+
+      record.photos.attachments.maximum(:created_at)
+    end
+
+    def voice_note_change_at(record)
+      return unless record.respond_to?(:voice_notes)
+
+      record.voice_notes.maximum(:updated_at)
+    end
+
+    def scanned_document_change_at(record)
+      return unless record.respond_to?(:scanned_documents)
+
+      record.scanned_documents.maximum(:updated_at)
+    end
+
+    def todo_change_at(record)
+      return unless record.respond_to?(:todo_list)
+
+      todo_list = record.todo_list
+      return if todo_list.blank?
+
+      [
+        todo_list.updated_at,
+        todo_list.todo_items.maximum(:updated_at),
+        reminder_change_at(todo_list)
+      ].compact.max
+    end
+
+    def reminder_change_at(todo_list)
+      reminder_scope = Reminder.where(
+        target_type: "TodoItem",
+        target_id: todo_list.todo_items.select(:id)
+      )
+      reminder_scope.maximum(:updated_at)
     end
   end
 end

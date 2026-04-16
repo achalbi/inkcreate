@@ -30,7 +30,7 @@ module DriveRecordExportableChange
     owner = @drive_record_export_owner || drive_record_export_owner
     return unless owner&.persisted?
 
-    Drive::ScheduleRecordExport.new(record: owner).call
+    Drive::ScheduleRecordExport.new(record: owner, sections: drive_record_export_sections).call
   end
 
   def store_drive_record_export_owner
@@ -39,5 +39,9 @@ module DriveRecordExportableChange
 
   def drive_record_export_owner_update_worthy?
     previous_changes.except("updated_at").present?
+  end
+
+  def drive_record_export_sections
+    nil
   end
 end

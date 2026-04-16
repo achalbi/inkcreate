@@ -34,6 +34,10 @@ class TodoItem < ApplicationRecord
     owner
   end
 
+  def drive_record_export_sections
+    [Drive::RecordExportSections::TODO]
+  end
+
   def normalize_content
     self.content = content.to_s.squish
   end

@@ -1,8 +1,9 @@
 module Drive
   class ScheduleRecordExport
-    def initialize(record:)
+    def initialize(record:, sections: nil)
       @record = record
       @user = record.user
+      @sections = Drive::RecordExportSections.normalize(sections)
     end
 
     def call
@@ -14,7 +15,9 @@ module Drive
       google_drive_export = GoogleDriveExport.find_or_initialize_by(exportable: record)
       google_drive_export.user ||= user
       google_drive_export.remote_photo_file_ids ||= {}
+      merge_pending_sections!(google_drive_export)
       if active_export?(google_drive_export)
+        google_drive_export.save! if google_drive_export.changed?
         log_skip(reason: "already_pending", google_drive_export: google_drive_export)
         return nil
       end
@@ -33,7 +36,7 @@ module Drive
 
     private
 
-    attr_reader :record, :user
+    attr_reader :record, :user, :sections
 
     def skip_reason
       return @skip_reason if defined?(@skip_reason)
@@ -53,6 +56,14 @@ module Drive
     def active_export?(google_drive_export)
       google_drive_export.persisted? &&
         (google_drive_export.status_pending? || google_drive_export.status_running?)
+    end
+
+    def merge_pending_sections!(google_drive_export)
+      metadata = google_drive_export.metadata.to_h
+      metadata[Drive::RecordExportSections::PENDING_METADATA_KEY] = Drive::RecordExportSections.normalize(
+        metadata[Drive::RecordExportSections::PENDING_METADATA_KEY].to_a + sections
+      )
+      google_drive_export.metadata = metadata
     end
 
     def log_skip(reason:, google_drive_export: nil)

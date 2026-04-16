@@ -117,4 +117,8 @@ class Reminder < ApplicationRecord
 
     target.owner
   end
+
+  def drive_record_export_sections
+    [Drive::RecordExportSections::TODO]
+  end
 end

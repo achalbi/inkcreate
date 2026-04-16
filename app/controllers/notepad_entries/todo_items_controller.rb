@@ -37,7 +37,7 @@ module NotepadEntries
       with_suppressed_drive_record_export_callbacks do
         move_to_position!(@todo_item, new_position)
       end
-      schedule_drive_export(@notepad_entry)
+      schedule_drive_export(@notepad_entry, sections: [Drive::RecordExportSections::TODO])
       render_section(message: "To-do item reordered.")
     rescue ActionController::ParameterMissing
       render_error("Choose a new position for the to-do item.")

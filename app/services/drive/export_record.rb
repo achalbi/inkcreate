@@ -22,33 +22,40 @@ module Drive
     def call
       ensure_drive_ready!
 
-      google_drive_export.update!(
-        status: :running,
-        last_attempted_at: Time.current,
-        drive_folder_id: user.google_drive_folder_id,
-        error_message: nil
-      )
+      requested_sections = prepare_export!
 
       relocate_remote_folder_if_structure_changed!
 
       folder_id = ensure_remote_folder!
-      notes_file_id = upsert_text_file(
+      notes_file_id = should_update_notes_file?(requested_sections) ? upsert_text_file(
         file_id: google_drive_export.remote_notes_file_id,
         folder_id: folder_id,
         file_name: NOTES_FILE_NAME,
         content: notes_content,
         content_type: "text/markdown"
-      )
-      manifest_file_id = upsert_text_file(
+      ) : google_drive_export.remote_notes_file_id
+      manifest_file_id = should_update_manifest_file?(requested_sections) ? upsert_text_file(
         file_id: google_drive_export.remote_manifest_file_id,
         folder_id: folder_id,
         file_name: MANIFEST_FILE_NAME,
         content: JSON.pretty_generate(manifest_payload),
         content_type: "application/json"
+      ) : google_drive_export.remote_manifest_file_id
+      photo_file_ids = should_sync_photos?(requested_sections) ? sync_photos(folder_id) : google_drive_export.remote_photo_file_ids.to_h
+      voice_note_audio_file_ids = should_sync_voice_notes?(requested_sections) ? sync_voice_notes(folder_id) : export_metadata_hash(REMOTE_VOICE_NOTE_AUDIO_FILE_IDS_KEY)
+      scanned_document_file_ids = should_sync_scanned_documents?(requested_sections) ? sync_scanned_documents(folder_id) : {
+        images: export_metadata_hash(REMOTE_SCANNED_DOCUMENT_IMAGE_FILE_IDS_KEY),
+        pdfs: export_metadata_hash(REMOTE_SCANNED_DOCUMENT_PDF_FILE_IDS_KEY),
+        texts: export_metadata_hash(REMOTE_SCANNED_DOCUMENT_TEXT_FILE_IDS_KEY)
+      }
+      remaining_sections = pending_sections_after_processing(requested_sections)
+      final_metadata = export_metadata.merge(
+        REMOTE_VOICE_NOTE_AUDIO_FILE_IDS_KEY => voice_note_audio_file_ids,
+        REMOTE_SCANNED_DOCUMENT_IMAGE_FILE_IDS_KEY => scanned_document_file_ids.fetch(:images),
+        REMOTE_SCANNED_DOCUMENT_PDF_FILE_IDS_KEY => scanned_document_file_ids.fetch(:pdfs),
+        REMOTE_SCANNED_DOCUMENT_TEXT_FILE_IDS_KEY => scanned_document_file_ids.fetch(:texts)
       )
-      photo_file_ids = sync_photos(folder_id)
-      voice_note_audio_file_ids = sync_voice_notes(folder_id)
-      scanned_document_file_ids = sync_scanned_documents(folder_id)
+      final_metadata[Drive::RecordExportSections::PENDING_METADATA_KEY] = remaining_sections if remaining_sections.any?
 
       google_drive_export.update!(
         status: :succeeded,
@@ -57,14 +64,11 @@ module Drive
         remote_photo_file_ids: photo_file_ids,
         exported_at: Time.current,
         error_message: nil,
-        metadata: export_metadata.merge(
-          REMOTE_VOICE_NOTE_AUDIO_FILE_IDS_KEY => voice_note_audio_file_ids,
-          REMOTE_SCANNED_DOCUMENT_IMAGE_FILE_IDS_KEY => scanned_document_file_ids.fetch(:images),
-          REMOTE_SCANNED_DOCUMENT_PDF_FILE_IDS_KEY => scanned_document_file_ids.fetch(:pdfs),
-          REMOTE_SCANNED_DOCUMENT_TEXT_FILE_IDS_KEY => scanned_document_file_ids.fetch(:texts)
-        )
+        metadata: final_metadata
       )
+      enqueue_follow_up_export_if_needed!(remaining_sections)
     rescue StandardError => error
+      restore_pending_sections!(requested_sections)
       google_drive_export.update!(
         status: :failed,
         last_attempted_at: Time.current,
@@ -76,6 +80,17 @@ module Drive
     private
 
     attr_reader :google_drive_export, :record, :user
+
+    def prepare_export!
+      requested_sections = effective_requested_sections
+      google_drive_export.update!(
+        status: :running,
+        last_attempted_at: Time.current,
+        drive_folder_id: user.google_drive_folder_id,
+        error_message: nil
+      )
+      requested_sections
+    end
 
     def ensure_drive_ready!
       raise ArgumentError, "Google Drive backup is not configured" unless user.google_drive_ready?
@@ -206,7 +221,8 @@ module Drive
     end
 
     def export_metadata
-      google_drive_export.metadata.to_h.except(
+      google_drive_export.reload.metadata.to_h.except(
+        Drive::RecordExportSections::PENDING_METADATA_KEY,
         REMOTE_VOICE_NOTE_AUDIO_FILE_IDS_KEY,
         REMOTE_SCANNED_DOCUMENT_IMAGE_FILE_IDS_KEY,
         REMOTE_SCANNED_DOCUMENT_PDF_FILE_IDS_KEY,
@@ -397,17 +413,13 @@ module Drive
     end
 
     def upsert_text_file(file_id:, folder_id:, file_name:, content:, content_type:)
-      metadata = Google::Apis::DriveV3::File.new(name: file_name, parents: [folder_id])
-      io = StringIO.new(content)
-
-      if file_id.present?
-        drive_service.update_file(file_id, metadata, upload_source: io, content_type: content_type, fields: "id")
-        file_id
-      else
-        drive_service.create_file(metadata, upload_source: io, content_type: content_type, fields: "id").id
-      end
-    rescue Google::Apis::ClientError
-      drive_service.create_file(metadata, upload_source: StringIO.new(content), content_type: content_type, fields: "id").id
+      upsert_file(
+        file_id: file_id,
+        folder_id: folder_id,
+        file_name: file_name,
+        upload_source: StringIO.new(content),
+        content_type: content_type
+      )
     end
 
     def record_notes_text
@@ -415,20 +427,47 @@ module Drive
     end
 
     def upsert_blob_file(file_id:, folder_id:, blob:, file_name:)
-      metadata = Google::Apis::DriveV3::File.new(name: file_name, parents: [folder_id])
+      blob.open do |file|
+        upsert_file(
+          file_id: file_id,
+          folder_id: folder_id,
+          file_name: file_name,
+          upload_source: file.path,
+          content_type: blob.content_type
+        )
+      end
+    end
 
-      blob.open do |file|
-        if file_id.present?
-          drive_service.update_file(file_id, metadata, upload_source: file.path, content_type: blob.content_type, fields: "id")
-          file_id
-        else
-          drive_service.create_file(metadata, upload_source: file.path, content_type: blob.content_type, fields: "id").id
+    def upsert_file(file_id:, folder_id:, file_name:, upload_source:, content_type:)
+      metadata = Google::Apis::DriveV3::File.new(name: file_name)
+
+      if file_id.present?
+        existing_file = drive_service.get_file(file_id, fields: "id,parents")
+        update_options = {
+          upload_source: upload_source,
+          content_type: content_type,
+          fields: "id"
+        }
+        existing_parent_id = Array(existing_file.parents).first
+        if existing_parent_id != folder_id
+          update_options[:add_parents] = folder_id
+          update_options[:remove_parents] = existing_parent_id if existing_parent_id.present?
         end
+
+        rewind_upload_source(upload_source)
+        drive_service.update_file(file_id, metadata, **update_options)
+        file_id
+      else
+        metadata.parents = [folder_id]
+        rewind_upload_source(upload_source)
+        drive_service.create_file(metadata, upload_source: upload_source, content_type: content_type, fields: "id").id
       end
-    rescue Google::Apis::ClientError
-      blob.open do |file|
-        drive_service.create_file(metadata, upload_source: file.path, content_type: blob.content_type, fields: "id").id
-      end
+    rescue Google::Apis::ClientError => error
+      raise unless missing_remote_file?(error)
+
+      metadata.parents = [folder_id]
+      rewind_upload_source(upload_source)
+      drive_service.create_file(metadata, upload_source: upload_source, content_type: content_type, fields: "id").id
     end
 
     def delete_remote_file(file_id)
@@ -437,6 +476,15 @@ module Drive
       drive_service.delete_file(file_id)
     rescue Google::Apis::ClientError
       nil
+    end
+
+    def rewind_upload_source(upload_source)
+      upload_source.rewind if upload_source.respond_to?(:rewind)
+    end
+
+    def missing_remote_file?(error)
+      error.respond_to?(:status_code) && error.status_code.to_i == 404 ||
+        error.message.to_s.match?(/file not found|not\s+found/i)
     end
 
     def photo_file_name(attachment, index)
@@ -471,6 +519,73 @@ module Drive
 
     def export_metadata_hash(key)
       google_drive_export.metadata.to_h.fetch(key, {}).to_h.stringify_keys
+    end
+
+    def effective_requested_sections
+      requested_sections = pending_requested_sections
+      return Drive::RecordExportSections::ALL if full_export_required?(requested_sections)
+
+      requested_sections
+    end
+
+    def pending_requested_sections
+      Drive::RecordExportSections.normalize(
+        google_drive_export.metadata.to_h[Drive::RecordExportSections::PENDING_METADATA_KEY]
+      )
+    end
+
+    def full_export_required?(requested_sections)
+      google_drive_export.remote_folder_id.blank? ||
+        google_drive_export.remote_notes_file_id.blank? ||
+        google_drive_export.remote_manifest_file_id.blank? ||
+        requested_sections == Drive::RecordExportSections::ALL
+    end
+
+    def pending_sections_after_processing(processed_sections)
+      current_pending_sections = Drive::RecordExportSections.normalize(
+        google_drive_export.reload.metadata.to_h[Drive::RecordExportSections::PENDING_METADATA_KEY]
+      )
+      Drive::RecordExportSections.remaining(
+        current: current_pending_sections,
+        processed: processed_sections
+      )
+    end
+
+    def enqueue_follow_up_export_if_needed!(remaining_sections)
+      return if remaining_sections.blank?
+
+      google_drive_export.update!(status: :pending, error_message: nil)
+      Async::Dispatcher.enqueue_record_export(google_drive_export.id)
+    end
+
+    def restore_pending_sections!(requested_sections)
+      metadata = google_drive_export.reload.metadata.to_h
+      metadata[Drive::RecordExportSections::PENDING_METADATA_KEY] = Drive::RecordExportSections.normalize(
+        metadata[Drive::RecordExportSections::PENDING_METADATA_KEY].to_a + Array(requested_sections)
+      )
+      google_drive_export.update_column(:metadata, metadata)
+    rescue StandardError
+      nil
+    end
+
+    def should_update_notes_file?(requested_sections)
+      Drive::RecordExportSections.notes_required?(requested_sections)
+    end
+
+    def should_update_manifest_file?(requested_sections)
+      Drive::RecordExportSections.manifest_required?(requested_sections)
+    end
+
+    def should_sync_photos?(requested_sections)
+      Drive::RecordExportSections.photos_required?(requested_sections)
+    end
+
+    def should_sync_voice_notes?(requested_sections)
+      Drive::RecordExportSections.voice_notes_required?(requested_sections)
+    end
+
+    def should_sync_scanned_documents?(requested_sections)
+      Drive::RecordExportSections.scanned_documents_required?(requested_sections)
     end
 
     def record_voice_notes

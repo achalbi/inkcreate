@@ -85,6 +85,36 @@ class Drive::ScheduleRecordExportTest < ActiveSupport::TestCase
     assert_equal "already_pending", events.last[:payload][:reason]
   end
 
+  test "merges requested sections into an already pending export" do
+    user, entry = build_entry(email: "schedule-record-export-sections@example.com")
+    user.update!(
+      google_drive_refresh_token: "refresh-token",
+      google_drive_connected_at: Time.current,
+      google_drive_folder_id: "drive-folder-sections"
+    )
+    user.ensure_app_setting!.update!(backup_enabled: true, backup_provider: "google_drive")
+
+    export = GoogleDriveExport.create!(
+      user: user,
+      exportable: entry,
+      status: :pending,
+      remote_photo_file_ids: {},
+      metadata: { Drive::RecordExportSections::PENDING_METADATA_KEY => [Drive::RecordExportSections::RECORD] }
+    )
+
+    Async::Dispatcher.stub :enqueue_record_export, ->(*) { flunk "should not enqueue again" } do
+      Drive::ScheduleRecordExport.new(
+        record: entry,
+        sections: [Drive::RecordExportSections::PHOTOS]
+      ).call
+    end
+
+    assert_equal(
+      [Drive::RecordExportSections::RECORD, Drive::RecordExportSections::PHOTOS],
+      export.reload.metadata.fetch(Drive::RecordExportSections::PENDING_METADATA_KEY)
+    )
+  end
+
   test "suppresses duplicate enqueue when export is already running" do
     user, entry = build_entry(email: "schedule-record-export-running@example.com")
     user.update!(

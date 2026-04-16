@@ -21,7 +21,7 @@ class PagesController < BrowserController
     assign_pending_content_from_params(@page, page_params, raw_page_attributes)
 
     if @page.save
-      with_deferred_drive_record_export(@page) do
+      with_deferred_drive_record_export(@page, sections: Drive::RecordExportSections::ALL) do
         attach_pending_photos(@page)
         persist_pending_voice_notes(@page)
         persist_pending_todo_list(@page, page_params)
@@ -49,7 +49,7 @@ class PagesController < BrowserController
     assign_pending_content_from_params(@page, page_params, raw_page_attributes)
 
     if @page.update(page_attributes)
-      with_deferred_drive_record_export(@page) do
+      with_deferred_drive_record_export(@page, sections: drive_export_sections_for_page_update) do
         attach_pending_photos(@page)
         persist_pending_voice_notes(@page)
         persist_pending_todo_list(@page, page_params)
@@ -75,7 +75,7 @@ class PagesController < BrowserController
   def destroy_photo
     attachment = @page.photos.attachments.find(params[:attachment_id])
     attachment.purge
-    schedule_drive_export(@page)
+    schedule_drive_export(@page, sections: [Drive::RecordExportSections::PHOTOS])
     redirect_back fallback_location: notebook_chapter_page_path(@notebook, @chapter, @page), notice: "Photo removed."
   end
 
@@ -212,6 +212,23 @@ class PagesController < BrowserController
 
       nil
     end
+  end
+
+  def drive_export_sections_for_page_update
+    sections = []
+    sections << Drive::RecordExportSections::RECORD if (@page.saved_changes.keys - ["updated_at"]).any?
+    sections << Drive::RecordExportSections::PHOTOS if Array(page_params[:photos]).reject(&:blank?).any?
+    sections << Drive::RecordExportSections::VOICE_NOTES if @page.pending_voice_note_uploads.any?
+    sections << Drive::RecordExportSections::TODO if page_todo_fields_submitted?
+    sections << Drive::RecordExportSections::SCANNED_DOCUMENTS if @page.pending_scanned_document_payloads.any?
+    Drive::RecordExportSections.normalize(sections)
+  end
+
+  def page_todo_fields_submitted?
+    raw_attrs = raw_page_attributes
+    raw_attrs.key?(:todo_list_enabled) ||
+      raw_attrs.key?(:todo_list_hide_completed) ||
+      raw_attrs.key?(:todo_item_contents)
   end
 
   def persist_pending_voice_notes(page)

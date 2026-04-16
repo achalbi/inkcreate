@@ -60,6 +60,10 @@ class ScannedDocument < ApplicationRecord
     page || notepad_entry
   end
 
+  def drive_record_export_sections
+    [Drive::RecordExportSections::SCANNED_DOCUMENTS]
+  end
+
   def exactly_one_owner
     if page_id.present? && notepad_entry_id.present?
       errors.add(:base, "cannot belong to both a page and a notepad entry")

@@ -42,7 +42,7 @@ class NotepadEntriesController < BrowserController
     assign_pending_content_from_params(@notepad_entry, notepad_entry_params, raw_notepad_entry_attributes)
 
     if @notepad_entry.save
-      with_deferred_drive_record_export(@notepad_entry) do
+      with_deferred_drive_record_export(@notepad_entry, sections: Drive::RecordExportSections::ALL) do
         attach_pending_photos(@notepad_entry)
         persist_pending_voice_notes(@notepad_entry)
         persist_pending_todo_list(@notepad_entry, notepad_entry_params)
@@ -70,7 +70,7 @@ class NotepadEntriesController < BrowserController
     end
 
     if @notepad_entry.update(notepad_entry_attributes)
-      with_deferred_drive_record_export(@notepad_entry) do
+      with_deferred_drive_record_export(@notepad_entry, sections: drive_export_sections_for_notepad_update) do
         attach_pending_photos(@notepad_entry)
         persist_pending_voice_notes(@notepad_entry)
         persist_pending_todo_list(@notepad_entry, notepad_entry_params)
@@ -91,7 +91,7 @@ class NotepadEntriesController < BrowserController
   def destroy_photo
     attachment = @notepad_entry.photos.attachments.find(params[:attachment_id])
     attachment.purge
-    schedule_drive_export(@notepad_entry)
+    schedule_drive_export(@notepad_entry, sections: [Drive::RecordExportSections::PHOTOS])
     redirect_back fallback_location: notepad_entry_path(@notepad_entry), notice: "Photo removed."
   end
 
@@ -194,6 +194,23 @@ class NotepadEntriesController < BrowserController
     end
   end
 
+  def drive_export_sections_for_notepad_update
+    sections = []
+    sections << Drive::RecordExportSections::RECORD if (@notepad_entry.saved_changes.keys - ["updated_at"]).any?
+    sections << Drive::RecordExportSections::PHOTOS if Array(notepad_entry_params[:photos]).reject(&:blank?).any?
+    sections << Drive::RecordExportSections::VOICE_NOTES if @notepad_entry.pending_voice_note_uploads.any?
+    sections << Drive::RecordExportSections::TODO if notepad_todo_fields_submitted?
+    sections << Drive::RecordExportSections::SCANNED_DOCUMENTS if @notepad_entry.pending_scanned_document_payloads.any?
+    Drive::RecordExportSections.normalize(sections)
+  end
+
+  def notepad_todo_fields_submitted?
+    raw_attrs = raw_notepad_entry_attributes
+    raw_attrs.key?(:todo_list_enabled) ||
+      raw_attrs.key?(:todo_list_hide_completed) ||
+      raw_attrs.key?(:todo_item_contents)
+  end
+
   def persist_pending_voice_notes(entry)
     return unless VoiceNote.notepad_entries_supported?
 
@@ -254,7 +271,7 @@ class NotepadEntriesController < BrowserController
     @notepad_entry.allow_blank_content = allow_blank_content_for_update?(notes_value: notepad_entry_params[:notes])
 
     if @notepad_entry.update(notepad_entry_params.slice(:title, :notes))
-      schedule_drive_export(@notepad_entry)
+      schedule_drive_export(@notepad_entry, sections: [Drive::RecordExportSections::RECORD])
       redirect_to notepad_entry_path(@notepad_entry), notice: "Notepad entry updated."
     else
       @show_quick_edit_modal = true
