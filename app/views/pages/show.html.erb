@@ -2,6 +2,9 @@
   todo_lists_available = TodoList.schema_ready? && TodoItem.schema_ready?
   voice_notes_available = VoiceNote.schema_ready?
   voice_note_count = voice_notes_available ? @page.voice_notes.size : 0
+  photo_count = @page.photos.count
+  scanned_document_count = @page.scanned_documents.count
+  todo_items = todo_lists_available ? @page.todo_list&.display_todo_items&.to_a || [] : []
   move_form_id = dom_id(@page, :move_form)
   overview_section_id = dom_id(@page, :overview_section)
   photos_section_id = dom_id(@page, :photos_section)
@@ -20,12 +23,11 @@
   todo_progress_label = if todo_lists_available && @page.todo_list&.enabled?
     "#{@page.todo_list.completed_count}/#{@page.todo_list.total_count} to-dos"
   end
+  has_content = @page.plain_notes.present? || @page.photos.attached? ||
+                voice_note_count.positive? || todo_items.any? || scanned_document_count.positive?
 %>
 
 <div class="wrapper wrapper-content animated fadeInRight">
-  <%= render "shared/workspace_breadcrumbs",
-    items: [["Home", dashboard_path], ["Notebook", notebooks_path], [@notebook.title, notebook_path(@notebook)], [@chapter.title, notebook_chapter_path(@notebook, @chapter)], @page.display_title] %>
-
   <nav class="detail-section-shortcuts" aria-label="Jump to page sections" data-controller="section-shortcuts">
     <div class="detail-section-shortcuts__rail" data-section-shortcuts-target="rail">
       <span class="detail-section-shortcuts__indicator" data-section-shortcuts-target="indicator" aria-hidden="true"></span>
@@ -46,155 +48,199 @@
     </div>
   </nav>
 
-  <section id="<%= overview_section_id %>" class="ibox float-e-margins detail-section-anchor">
-    <div class="ibox-title">
-      <h5>Page overview</h5>
-      <div class="ibox-tools">
-        <span class="label label-info">Page <%= @page.position %></span>
-        <%= link_to edit_notebook_chapter_page_path(@notebook, @chapter, @page), class: "btn btn-sm btn-icon notebook-overview-edit-button", title: "Edit page", aria: { label: "Edit page" } do %>
-          <i class="ti ti-edit" aria-hidden="true"></i>
-        <% end %>
-        <%= button_to notebook_chapter_page_path(@notebook, @chapter, @page),
-          method: :delete,
-          form: { class: "notebook-overview-delete-form", onsubmit: "return confirm('Delete this page?');" },
-          class: "btn btn-sm btn-icon notebook-overview-delete-button",
-          title: "Delete page",
-          aria: { label: "Delete page" } do %>
-          <i class="ti ti-trash" aria-hidden="true"></i>
-        <% end %>
-        <%= render "shared/ibox_toggle_button", target_id: dom_id(@page, :overview_content) %>
-      </div>
-    </div>
-    <div id="<%= dom_id(@page, :overview_content) %>" class="ibox-content collapse show">
-      <div class="row">
-        <div class="col-sm-8 detail-overview-stack">
-          <h2 class="m-t-none"><%= @page.display_title %></h2>
-          <% if @page.plain_notes.present? %>
-            <div class="detail-overview-notes detail-notes-copy trix-content workspace-trix-content"><%= render "shared/rich_notes", notes: @page.notes %></div>
-          <% else %>
-            <p class="detail-overview-notes detail-overview-notes--empty">No notes added yet.</p>
-          <% end %>
-          <p class="m-b-none detail-overview-meta">
-            <span class="label label-default"><%= pluralize(@page.photos.count, "photo") %></span>
-            <% if voice_notes_available %>
-              <span class="label label-default"><%= pluralize(voice_note_count, "voice note") %></span>
-            <% end %>
-            <% if todo_progress_label.present? %>
-              <span class="label label-default"><%= todo_progress_label %></span>
-            <% end %>
-            <% if @page.captured_on.present? %>
-              <span class="label label-info"><%= @page.captured_on.strftime("%b %-d, %Y") %></span>
-            <% else %>
-              <span class="label label-default">No date yet</span>
-            <% end %>
-          </p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="row notes-gallery-row">
-    <div id="<%= photos_section_id %>" class="col-12 detail-section-anchor">
-      <div class="ibox">
-        <%= form_with model: [@notebook, @chapter, @page],
-          data: { photo_capture_auto_save: true, controller: "photo-capture" },
-          html: { class: "detail-photo-gallery-actions-form" } do |form| %>
-          <%= render "shared/photo_gallery_actions",
-            form:,
-            tips_target_id: dom_id(@page, :gallery_capture_tips),
-            render_buttons: false,
-            render_field: false %>
-
-          <div class="ibox-title">
-            <div class="detail-photo-gallery-heading">
-              <h5 class="detail-photo-gallery-title">Photo gallery</h5>
-              <span class="label label-info detail-photo-gallery-count"><%= @page.photos.count %></span>
-            </div>
-            <div class="ibox-tools d-flex align-items-center gap-2">
-              <button
-                type="button"
-                class="btn btn-white btn-sm btn-icon photo-section-info-button"
-                data-bs-toggle="collapse"
-                data-bs-target="#<%= dom_id(@page, :gallery_capture_tips) %>"
-                aria-expanded="false"
-                aria-controls="<%= dom_id(@page, :gallery_capture_tips) %>"
-                title="Capture tips"
-                aria-label="Capture tips"
-              >
-                <i class="ti ti-info-circle" aria-hidden="true"></i>
-              </button>
-              <%= render "shared/ibox_toggle_button", target_id: dom_id(@page, :gallery_content) %>
-            </div>
-          </div>
-          <div id="<%= dom_id(@page, :gallery_content) %>" class="ibox-content collapse show">
-            <div class="ibox-content__inner detail-photo-gallery-content-inner">
-              <%= render "shared/photo_gallery_actions",
-                form:,
-                tips_target_id: dom_id(@page, :gallery_capture_tips),
-                hint_text: "Use these buttons to capture a photo or upload one from the gallery.",
-                include_camera_input: false,
-                render_info_button: false %>
-
-              <% if @page.photos.attached? %>
-                <div class="detail-photo-grid detail-photo-grid--gallery">
-                  <% @page.photos.attachments.sort_by(&:created_at).reverse_each do |attachment| %>
-                    <div class="detail-photo-grid__item">
-                      <div class="thumbnail">
-                        <%= render "shared/photo_lightbox",
-                          photo: attachment,
-                          alt: @page.display_title,
-                          image_style: "width: 100%; height: 240px; object-fit: cover;",
-                          removal_path: photo_notebook_chapter_page_path(@notebook, @chapter, @page, attachment),
-                          removal_message: "This photo will be removed from the page." %>
-                      </div>
-                    </div>
-                  <% end %>
-                </div>
-              <% else %>
-                <%= render "shared/empty_state", title: "No photos yet", description: "Upload one or more photos to keep this page visually complete." %>
+  <div class="notepad-doc">
+    <div class="notepad-doc__canvas">
+      <header id="<%= overview_section_id %>" class="notepad-doc__header detail-section-anchor">
+        <div class="notepad-doc__header-row">
+          <div class="notepad-doc__header-content">
+            <h1 class="notepad-doc__title"><%= @page.display_title %></h1>
+            <p class="notepad-doc__date m-b-none">
+              <%= @chapter.title %> · Page <%= @page.position %>
+              <% if @page.captured_on.present? %>
+                · <%= @page.captured_on.strftime("%A, %B %-d, %Y") %>
               <% end %>
+            </p>
+          </div>
+        </div>
+
+        <div class="notepad-doc__meta">
+          <% if @page.plain_notes.present? %>
+            <span class="notepad-doc__meta-chip">
+              <i class="ti ti-file-text" aria-hidden="true"></i> Notes
+            </span>
+          <% end %>
+          <% if photo_count.positive? %>
+            <span class="notepad-doc__meta-chip">
+              <i class="ti ti-photo" aria-hidden="true"></i>
+              <%= pluralize(photo_count, "photo") %>
+            </span>
+          <% end %>
+          <% if voice_notes_available && voice_note_count.positive? %>
+            <span class="notepad-doc__meta-chip">
+              <i class="ti ti-microphone" aria-hidden="true"></i>
+              <%= pluralize(voice_note_count, "voice note") %>
+            </span>
+          <% end %>
+          <% if todo_progress_label.present? %>
+            <span class="notepad-doc__meta-chip">
+              <i class="ti ti-checkbox" aria-hidden="true"></i>
+              <%= todo_progress_label %>
+            </span>
+          <% end %>
+          <% if scanned_document_count.positive? %>
+            <span class="notepad-doc__meta-chip">
+              <i class="ti ti-scan" aria-hidden="true"></i>
+              <%= pluralize(scanned_document_count, "scan") %>
+            </span>
+          <% end %>
+
+          <%= link_to edit_notebook_chapter_page_path(@notebook, @chapter, @page),
+            class: "notepad-doc__meta-chip notepad-doc__meta-action",
+            title: "Edit page",
+            aria: { label: "Edit page" } do %>
+            <i class="ti ti-pencil" aria-hidden="true"></i>
+            Edit
+          <% end %>
+
+          <%= button_to quick_create_notebook_chapter_pages_path(@notebook, @chapter),
+            method: :post,
+            class: "notepad-doc__meta-chip notepad-doc__meta-action",
+            form_class: "button_to d-inline-block",
+            title: "Create new page",
+            aria: { label: "Create new page" } do %>
+            <i class="ti ti-plus" aria-hidden="true"></i>
+            New page
+          <% end %>
+
+          <%= button_to notebook_chapter_page_path(@notebook, @chapter, @page),
+            method: :delete,
+            class: "notepad-doc__meta-chip notepad-doc__meta-action",
+            form_class: "button_to d-inline-block",
+            form: { onsubmit: "return confirm('Delete this page?');" },
+            title: "Delete page",
+            aria: { label: "Delete page" } do %>
+            <i class="ti ti-trash" aria-hidden="true"></i>
+            Delete
+          <% end %>
+        </div>
+      </header>
+
+      <div class="notepad-doc__body">
+        <% if @page.plain_notes.present? %>
+          <div class="notepad-doc__block notepad-doc__block--text">
+            <div class="detail-notes-copy trix-content workspace-trix-content">
+              <%= render "shared/rich_notes", notes: @page.notes %>
             </div>
+          </div>
+        <% end %>
+
+        <div
+          id="<%= photos_section_id %>"
+          class="notepad-doc__block notepad-doc__block--media detail-section-anchor"
+        >
+          <%= form_with model: [@notebook, @chapter, @page],
+            data: { photo_capture_auto_save: true, controller: "photo-capture" },
+            html: { class: "d-contents" } do |form| %>
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              tabindex="-1"
+              aria-hidden="true"
+              class="photo-section-camera-input"
+              data-photo-capture-target="cameraInput"
+              data-action="change->photo-capture#acceptCameraCapture"
+            >
+            <%= render "shared/photo_capture_field",
+              form:,
+              field_name: :photos %>
+
+            <div class="notepad-doc__block-header">
+              <div class="notepad-doc__block-label">
+                <i class="ti ti-photo" aria-hidden="true"></i>
+                Photos<% if photo_count.positive? %> · <%= photo_count %><% end %>
+              </div>
+              <div class="notepad-doc__block-actions">
+                <button
+                  type="button"
+                  class="btn btn-white btn-sm"
+                  data-action="photo-capture#openCameraApp"
+                  data-photo-capture-target="cameraToggle"
+                  aria-pressed="false"
+                  title="Capture photo"
+                >
+                  <i class="ti ti-camera" aria-hidden="true"></i><span> Capture</span>
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-white btn-sm"
+                  data-action="photo-capture#chooseFromGallery"
+                  title="Upload photo"
+                >
+                  <i class="ti ti-photo-plus" aria-hidden="true"></i><span> Upload</span>
+                </button>
+              </div>
+            </div>
+
+            <% if @page.photos.attached? %>
+              <div>
+                <%= render "pages/photo_strip",
+                  notebook: @notebook,
+                  chapter: @chapter,
+                  page: @page %>
+              </div>
+            <% else %>
+              <p class="text-muted m-b-none" style="font-size: 0.875rem;">No photos yet — use the buttons above to capture or upload.</p>
+            <% end %>
+          <% end %>
+        </div>
+
+        <% if voice_notes_available %>
+          <%= render "pages/voice_notes_section", notebook: @notebook, chapter: @chapter, page: @page %>
+        <% end %>
+
+        <% if todo_lists_available %>
+          <%= render "pages/todo_list_section", notebook: @notebook, chapter: @chapter, page: @page %>
+        <% else %>
+          <%= render "pages/todo_list_unavailable_section" %>
+        <% end %>
+
+        <%= render "pages/scanned_documents_section",
+          notebook: @notebook,
+          chapter: @chapter,
+          page: @page %>
+
+        <% unless has_content %>
+          <div class="notepad-doc__block notepad-doc__block--empty">
+            <p class="text-muted m-b-none">No content yet. Use the <strong>+</strong> button below to add photos, voice notes, to-dos, or scanned documents.</p>
           </div>
         <% end %>
       </div>
     </div>
 
-    <% if voice_notes_available %>
-      <div class="col-12">
-        <%= render "pages/voice_notes_section", notebook: @notebook, chapter: @chapter, page: @page %>
-      </div>
+    <%= form_with model: [@notebook, @chapter, @page],
+      method: :patch,
+      html: { id: move_form_id, class: "d-none" } do %>
+      <%# Hidden patch form used by the move section below. %>
     <% end %>
 
-    <% if todo_lists_available %>
-      <div class="col-12">
-        <%= render "pages/todo_list_section", notebook: @notebook, chapter: @chapter, page: @page %>
-      </div>
-    <% else %>
-      <div class="col-12">
-        <%= render "pages/todo_list_unavailable_section" %>
-      </div>
-    <% end %>
-
-    <div class="col-12">
-      <%= render "pages/scanned_documents_section",
-            notebook: @notebook, chapter: @chapter, page: @page %>
+    <div id="<%= move_to_notebook_section_id %>" class="detail-section-anchor m-t-lg">
+      <%= render "pages/move_to_notebook_section",
+        notebook: @notebook,
+        chapter: @chapter,
+        page: @page,
+        form_id: move_form_id,
+        move_destination_notebooks: @move_destination_notebooks,
+        selected_move_destination_chapter_id: @selected_move_destination_chapter_id,
+        selected_move_destination_label: @selected_move_destination_label %>
     </div>
-  </section>
-
-  <%= form_with model: [@notebook, @chapter, @page],
-    method: :patch,
-    html: { id: move_form_id, class: "d-none" } do %>
-    <%# Hidden patch form used by the move section below. %>
-  <% end %>
-
-  <div id="<%= move_to_notebook_section_id %>" class="detail-section-anchor">
-    <%= render "pages/move_to_notebook_section",
-      notebook: @notebook,
-      chapter: @chapter,
-      page: @page,
-      form_id: move_form_id,
-      move_destination_notebooks: @move_destination_notebooks,
-      selected_move_destination_chapter_id: @selected_move_destination_chapter_id,
-      selected_move_destination_label: @selected_move_destination_label %>
   </div>
+
+  <%= render "pages/quick_actions",
+    photos_section_id:,
+    voice_notes_section_id:,
+    voice_notes_enabled: voice_notes_available,
+    todo_list_section_id:,
+    todo_lists_enabled: todo_lists_available,
+    scanned_documents_section_id: %>
 </div>

@@ -2260,6 +2260,20 @@ body.workspace-body {
   flex-wrap: wrap;
 }
 
+.workspace-body .notebook-list-card__inline-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  line-height: 1.1;
+}
+
+.workspace-body .notebook-list-card__inline-action i {
+  font-size: 0.8rem;
+}
+
 .workspace-body .notebook-list-card__title {
   display: block;
   margin: 0;
@@ -2936,7 +2950,17 @@ body.workspace-body {
 .workspace-body .notepad-entry-move-shell {
 }
 
+.workspace-body .notepad-entry-merge-shell {
+}
+
 .workspace-body .notepad-entry-move-shell .ibox-content {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  border-top: 1px solid rgba(230, 98, 57, 0.08);
+  background: linear-gradient(135deg, rgba(230, 98, 57, 0.05), rgba(255, 255, 255, 0.98));
+}
+
+.workspace-body .notepad-entry-merge-shell .ibox-content {
   padding-top: 1rem;
   padding-bottom: 1rem;
   border-top: 1px solid rgba(230, 98, 57, 0.08);
@@ -6226,6 +6250,11 @@ body.workspace-body {
 .workspace-body .notebook-detail-deleted-chapter-list-content .notebook-list-stack--separated > .notebook-list-card > .notebook-list-card__body,
 .workspace-body .notebook-detail-page-list-content .notebook-list-stack--separated > .notebook-list-card > .notebook-list-card__body {
   padding: 0.92rem 0.98rem;
+}
+
+.workspace-body #current-notebooks-content .notebook-list-card__title,
+.workspace-body #archived-notebooks-content .notebook-list-card__title {
+  font-size: 0.96rem;
 }
 
 .workspace-body .ibox[data-ibox-collapsible="true"] .ibox-content.collapse.show {
@@ -11497,44 +11526,6 @@ body.task-modal-open { overflow: hidden; }
   gap: 1rem;
 }
 
-/* ── Format export modal ────────────────────────── */
-.notepad-format-modal .modal-dialog {
-  max-width: 700px;
-}
-
-.notepad-format-output {
-  font-family: 'Menlo', 'Monaco', 'Consolas', 'Courier New', monospace;
-  font-size: 0.8rem;
-  line-height: 1.65;
-  background: var(--inapp-bg);
-  border: 1px solid var(--inapp-border);
-  border-radius: var(--inapp-radius-md);
-  padding: 1.25rem 1.5rem;
-  white-space: pre-wrap;
-  max-height: 55vh;
-  overflow-y: auto;
-  color: var(--inapp-ink);
-  resize: vertical;
-  width: 100%;
-  outline: none;
-}
-
-.notepad-format-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1rem;
-  background: var(--inapp-paper);
-  border-top: 1px solid var(--inapp-border);
-  border-radius: 0 0 var(--inapp-radius-md) var(--inapp-radius-md);
-}
-
-.notepad-format-toolbar__label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--inapp-muted);
-  flex: 1;
-}
 
 /* ── Edit form document mode ───────────────────── */
 .notepad-doc-edit {

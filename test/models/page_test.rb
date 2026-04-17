@@ -124,6 +124,15 @@ class PageTest < ActiveSupport::TestCase
     assert page.valid?
   end
 
+  test "allows a blank page shell when explicitly requested" do
+    chapter = build_chapter(email: "page-blank-shell@example.com")
+    page = chapter.pages.new(title: "", captured_on: Date.new(2026, 4, 5))
+    page.allow_blank_content = true
+
+    assert page.valid?
+    assert_equal "Apr 5, 2026 - Page 1", page.display_title
+  end
+
   test "adds the current suffix to a manually entered title" do
     chapter = build_chapter(email: "page-manual-title@example.com")
 

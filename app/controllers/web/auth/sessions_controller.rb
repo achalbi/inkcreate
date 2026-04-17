@@ -7,6 +7,11 @@ module Web
       def new; end
 
       def create
+        unless password_auth_available?
+          flash.now[:alert] = "Email and password sign-in is disabled. Continue with Google instead."
+          return render :new, status: :unprocessable_entity
+        end
+
         user = User.find_for_authentication(email: session_params.fetch(:email))
 
         unless password_matches?(user, session_params.fetch(:password))

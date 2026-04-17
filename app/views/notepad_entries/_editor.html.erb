@@ -11,6 +11,7 @@
   voice_notes_section_id = dom_id(@notepad_entry, :voice_notes_section)
   todo_list_section_id = persisted_entry ? dom_id(@notepad_entry, :todo_list_section) : dom_id(@notepad_entry, :todo_list_form_section)
   scanned_documents_section_id = dom_id(@notepad_entry, :scanned_documents_section)
+  merge_section_id = dom_id(@notepad_entry, :merge_section)
   move_to_notebook_section_id = dom_id(@notepad_entry, :move_to_notebook_section)
   photo_count = @notepad_entry.photos.count
   voice_note_count = persisted_entry && voice_notes_available ? @notepad_entry.voice_notes.count : 0
@@ -32,6 +33,7 @@
   section_shortcuts << { label: "Voice notes", short_label: "Voice", icon: "ti-microphone", target: voice_notes_section_id } if voice_notes_available
   section_shortcuts << { label: "To-do list", short_label: "To-do", icon: "ti-checkbox", target: todo_list_section_id } if todo_lists_available
   section_shortcuts << { label: "Scanned documents", short_label: "Scans", icon: "ti-scan", target: scanned_documents_section_id }
+  section_shortcuts << { label: "Merge pages", short_label: "Merge", icon: "ti-link", target: merge_section_id } if persisted_entry
   section_shortcuts << { label: "Move to notebook", short_label: "Move", icon: "ti-arrows-transfer-up-down", target: move_to_notebook_section_id } if persisted_entry
 %>
 
@@ -181,6 +183,11 @@
 
     <%# ── Move to notebook ─────────────────────────── %>
     <% if persisted_entry %>
+      <%= render "notepad_entries/merge_section",
+        notepad_entry: @notepad_entry,
+        merge_candidates: @merge_candidates,
+        editing: true %>
+
       <div id="<%= move_to_notebook_section_id %>" class="detail-section-anchor m-t-lg">
         <%= render "notepad_entries/move_to_notebook_section",
           notepad_entry: @notepad_entry,

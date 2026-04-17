@@ -9,7 +9,8 @@ class Page < ApplicationRecord
     :pending_existing_scanned_document_count,
     :pending_todo_item_contents,
     :pending_todo_list_enabled,
-    :pending_todo_list_hide_completed
+    :pending_todo_list_hide_completed,
+    :allow_blank_content
 
   belongs_to :chapter
   has_many_attached :photos
@@ -81,6 +82,10 @@ class Page < ApplicationRecord
     ActiveModel::Type::Boolean.new.cast(@pending_todo_list_hide_completed) == true
   end
 
+  def allow_blank_content?
+    ActiveModel::Type::Boolean.new.cast(@allow_blank_content) == true
+  end
+
   private
 
   def sync_title_with_page_number
@@ -118,6 +123,7 @@ class Page < ApplicationRecord
   end
 
   def content_present
+    return if allow_blank_content?
     return if plain_notes.present?
     return if photos.attached? || pending_photo_blobs.any?
     return if voice_notes_available? && (voice_notes.exists? || pending_voice_note_uploads.any?)

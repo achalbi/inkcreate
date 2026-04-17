@@ -31,10 +31,11 @@
       <h5>Pages</h5>
       <div class="ibox-tools">
         <%= link_to new_notebook_chapter_page_path(@notebook, @chapter),
-          class: "ibox-toggle-button notebook-detail-section__add",
-          title: "Add page",
-          aria: { label: "Add page" } do %>
+          class: "btn btn-primary btn-sm notebook-detail-section__add",
+          title: "Create new page",
+          aria: { label: "Create new page" } do %>
           <i class="ti ti-plus" aria-hidden="true"></i>
+          <span>New page</span>
         <% end %>
         <%= render "shared/ibox_toggle_button", target_id: dom_id(@chapter, :pages_content) %>
       </div>
@@ -51,4 +52,10 @@
       <% end %>
     </div>
   </section>
+
+  <%= render "shared/workspace_fab",
+    path: quick_create_notebook_chapter_pages_path(@notebook, @chapter),
+    method: :post,
+    class_name: "workspace-fab--borderless",
+    title: "Create new page" %>
 </div>

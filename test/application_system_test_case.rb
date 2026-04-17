@@ -20,6 +20,12 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
 
   driven_by :headless_chromium
 
+  setup do
+    GlobalSetting.instance.update!(password_auth_enabled: true) if GlobalSetting.table_exists?
+  rescue ActiveRecord::StatementInvalid, PG::UndefinedTable
+    nil
+  end
+
   private
 
   def set_datetime_local_field(element, value)

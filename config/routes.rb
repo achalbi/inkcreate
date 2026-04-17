@@ -27,6 +27,10 @@ Rails.application.routes.draw do
       end
 
       resources :pages do
+        collection do
+          post :quick_create
+        end
+
         member do
           patch :move
           delete "photos/:attachment_id", action: :destroy_photo, as: :photo
@@ -59,6 +63,7 @@ Rails.application.routes.draw do
     end
 
     member do
+      post :merge
       get :pdf
       delete "photos/:attachment_id", action: :destroy_photo, as: :photo
     end

@@ -315,6 +315,24 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_equal %w[ti-camera ti-photo-plus ti-microphone ti-list-check ti-scan], items
   end
 
+  test "page edit page renders floating quick actions launcher" do
+    sign_in!
+
+    get edit_notebook_chapter_page_path(@notebook, @chapter, @page)
+
+    assert_response :success
+
+    document = Nokogiri::HTML.parse(response.body)
+    launcher = document.at_css(".notepad-quick-actions[data-controller='notepad-quick-actions']")
+    toggle = launcher&.at_css(".notepad-quick-actions__toggle")
+    items = launcher&.css(".notepad-quick-actions__item i")&.map { |node| node["class"].to_s[/ti-[^ ]+/] }
+
+    assert launcher.present?, "Expected the notebook page edit screen to render the quick actions launcher"
+    assert toggle.present?, "Expected the quick actions + toggle button"
+    assert_equal "false", toggle["aria-expanded"]
+    assert_equal %w[ti-camera ti-photo-plus ti-microphone ti-list-check ti-scan], items
+  end
+
   test "notepad edit page renders floating section dock" do
     sign_in!
 
@@ -428,7 +446,9 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     get notepad_entry_path(entry)
 
     assert_response :success
-    assert_select "a.dropdown-item[href='#{pdf_notepad_entry_path(entry, autoprint: 1)}'][target='_blank']", text: /PDF document/
+    assert_select "a.notepad-doc__meta-action[href='#{pdf_notepad_entry_path(entry, autoprint: 1)}'][target='_blank']", text: /PDF/
+    refute_includes response.body, "Markdown"
+    refute_includes response.body, "Plain text / ASCII doc"
   end
 
   test "notepad pdf export includes all visible content sections" do
@@ -483,14 +503,15 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "html[data-export-format='pdf']", count: 1
-    assert_select ".notepad-pdf-sheet__title", text: "Full export entry"
-    assert_select ".notepad-pdf-section--notes strong", text: "rich notes"
-    assert_select ".notepad-pdf-section--photos .notepad-pdf-photo-card", count: 1
-    assert_select ".notepad-pdf-section--voice .notepad-pdf-voice-note", count: 1
-    assert_select ".notepad-pdf-section--voice", text: /Voice memo summary/
-    assert_select ".notepad-pdf-section--todos .notepad-pdf-checklist__item", count: 2
-    assert_select ".notepad-pdf-section--scans .notepad-pdf-scan", count: 1
-    assert_select ".notepad-pdf-section--scans", text: /Meeting scan/
+    assert_select "body.workspace-body--pdf-export", count: 1
+    assert_select ".notepad-doc__title", text: "Full export entry"
+    assert_select ".notepad-doc__block--text strong", text: "rich notes"
+    assert_select ".notepad-doc__block--media .notepad-doc__photo-strip .notepad-doc__photo-item", count: 1
+    assert_select ".notepad-doc__block--voice .voice-note-list-card--export", count: 1
+    assert_select ".notepad-doc__block--voice", text: /Voice memo summary/
+    assert_select ".notepad-doc__block--todos .todo-list-item", count: 2
+    assert_select ".notepad-doc__block--scans .sdoc-card", count: 1
+    assert_select ".notepad-doc__block--scans", text: /Meeting scan/
   end
 
   test "page show page keeps scanned document cards focused on pdf actions" do
@@ -542,15 +563,34 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     get edit_notebook_chapter_page_path(@notebook, @chapter, @page)
 
     assert_response :success
+    document = Nokogiri::HTML.parse(response.body)
+    edit_form_id = ActionView::RecordIdentifier.dom_id(@page, :edit_form)
+    edit_form = document.at_css("form##{edit_form_id}")
+    todo_section = document.at_css("##{ActionView::RecordIdentifier.dom_id(@page, :todo_list_section)}")
+    save_button = document.at_css(".notepad-doc-edit__footer .page-details-save-button[form='#{edit_form_id}']")
+
     assert_select "form[action='#{notebook_chapter_page_todo_items_path(@notebook, @chapter, @page)}'] textarea[name='todo_item[content]']", count: 1
     assert_select "form[action='#{notebook_chapter_page_todo_items_path(@notebook, @chapter, @page)}'] .todo-list-composer__badge .ti-checkbox", count: 1
-    assert_select "form[action='#{notebook_chapter_page_todo_items_path(@notebook, @chapter, @page)}'] .todo-list-composer__submit", text: /Add/
-    assert_select ".todo-list-filters__button", count: 0
+    assert_select "form[action='#{notebook_chapter_page_todo_items_path(@notebook, @chapter, @page)}'] .todo-list-composer__submit .ti-plus", count: 1
+    assert_select ".todo-list-progress__summary", text: /1 of 2 completed/
     assert_select ".todo-list-item__input[title='Pack charger']", count: 1
     assert_select ".todo-list-item__input[title='Review notes']", count: 1
-    assert_select ".todo-list-section__hint", text: /Drag to reorder/
+    assert edit_form.present?, "Expected the page update form to render on the edit page"
+    assert todo_section.present?, "Expected the live to-do section to render"
+    assert_nil edit_form.at_css("##{ActionView::RecordIdentifier.dom_id(@page, :todo_list_section)}"),
+      "Expected the live to-do section to stay outside the page update form"
+    assert save_button.present?, "Expected the save button to target the page update form explicitly"
+    delete_form = document.at_css(".notepad-doc-edit__footer form.button_to[action='#{notebook_chapter_page_path(@notebook, @chapter, @page)}']")
+    assert delete_form.present?, "Expected the persisted page edit footer to render a delete form"
+    assert_equal "return confirm('Delete this page?');", delete_form["onsubmit"]
     assert_no_match "Enable the checklist and queue items before saving this page.", response.body
     assert_no_match "Saved items on this page", response.body
+    assert_select "nav.detail-section-shortcuts[data-controller='section-shortcuts']", count: 1
+    assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(@page, :details_section)}']", count: 1
+    assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(@page, :notes_section)}']", count: 1
+    assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(@page, :photos_section)}']", count: 1
+    assert_select ".notepad-doc__meta a.notepad-doc__meta-action[href='#{notebook_chapter_page_path(@notebook, @chapter, @page)}']", text: /View/
+    assert_select ".notepad-doc__meta form.button_to[action='#{quick_create_notebook_chapter_pages_path(@notebook, @chapter)}'] button.notepad-doc__meta-action", text: /New page/
   end
 
   test "new page form shows the to-do composer without an enable toggle" do
@@ -559,15 +599,41 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     get new_notebook_chapter_page_path(@notebook, @chapter)
 
     assert_response :success
+    document = Nokogiri::HTML.parse(response.body)
+    launcher = document.at_css(".notepad-quick-actions[data-controller='notepad-quick-actions']")
+    items = launcher&.css(".notepad-quick-actions__item i")&.map { |node| node["class"].to_s[/ti-[^ ]+/] }
+
+    assert_select ".notepad-doc-edit__canvas", count: 1
+    assert_select ".notepad-doc__block--voice", count: 1
+    assert_select ".notepad-doc__block--scans", count: 1
+    assert_select ".notepad-doc__block--todos", count: 1
     assert_select "textarea[data-todo-list-target='draftInput']", count: 1
     assert_select ".todo-list-composer__badge .ti-checkbox", count: 1
-    assert_select ".todo-list-composer__submit", text: /Add/
+    assert_select ".todo-list-composer__submit .ti-plus", count: 1
     assert_select "input[name='page[todo_list_enabled]'][value='false']", count: 1
     assert_no_match "Enable list", response.body
     assert_no_match "Enable to-do list", response.body
     assert_no_match "Enable the checklist and queue items before saving this page.", response.body
     assert_no_match "Saved with this form", response.body
     assert_match "Add checklist items before saving.", response.body
+    assert launcher.present?, "Expected the notebook new page screen to render the quick actions launcher"
+    assert_equal %w[ti-camera ti-photo-plus ti-microphone ti-list-check ti-scan], items
+    assert_select "nav.detail-section-shortcuts[data-controller='section-shortcuts']", count: 1
+    assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(Page.new, :details_section)}']", count: 1
+    assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(Page.new, :notes_section)}']", count: 1
+    assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(Page.new, :photos_section)}']", count: 1
+    assert_select ".notepad-doc__meta a.notepad-doc__meta-action[href='#{notebook_chapter_path(@notebook, @chapter)}']", text: /Chapter/
+  end
+
+  test "chapter show page exposes the new page action without inline page edit controls" do
+    sign_in!
+
+    get notebook_chapter_path(@notebook, @chapter)
+
+    assert_response :success
+    assert_select "a.notebook-detail-section__add[href='#{new_notebook_chapter_page_path(@notebook, @chapter)}']", text: /New page/
+    assert_select ".notebook-list-card__inline-action", count: 0
+    assert_select "form.button_to[action='#{quick_create_notebook_chapter_pages_path(@notebook, @chapter)}'] button.workspace-fab", count: 1
   end
 
   test "notepad edit page renders the live to-do list section for persisted entries" do
@@ -800,6 +866,31 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_select "##{move_modal_id} [data-move-destination-target='chapterMenu'] button.dropdown-item.disabled", text: /Choose a notebook first/
     assert_select "##{move_modal_id} [data-bs-toggle='dropdown']", count: 2
     assert_select "##{move_modal_id} select", count: 0
+  end
+
+  test "page show page exposes edit and new page actions in the document header" do
+    sign_in!
+
+    get notebook_chapter_page_path(@notebook, @chapter, @page)
+
+    assert_response :success
+    document = Nokogiri::HTML.parse(response.body)
+    launcher = document.at_css(".notepad-quick-actions[data-controller='notepad-quick-actions']")
+    toggle = launcher&.at_css(".notepad-quick-actions__toggle")
+    items = launcher&.css(".notepad-quick-actions__item i")&.map { |node| node["class"].to_s[/ti-[^ ]+/] }
+    delete_form = document.at_css(".notepad-doc__meta form.button_to[action='#{notebook_chapter_page_path(@notebook, @chapter, @page)}']")
+
+    assert_select ".notepad-doc__header##{ActionView::RecordIdentifier.dom_id(@page, :overview_section)}", count: 1
+    assert_select "a.notepad-doc__meta-action[href='#{edit_notebook_chapter_page_path(@notebook, @chapter, @page)}']", text: /Edit/
+    assert_select ".notepad-doc__meta form.button_to[action='#{quick_create_notebook_chapter_pages_path(@notebook, @chapter)}'] button.notepad-doc__meta-action", text: /New page/
+    assert delete_form.present?, "Expected the notebook page header to render a delete form"
+    assert_equal "return confirm('Delete this page?');", delete_form["onsubmit"]
+    assert_equal "Delete", delete_form.at_css("button.notepad-doc__meta-action")&.text&.strip
+    assert_select ".notepad-doc__title", text: @page.display_title
+    assert launcher.present?, "Expected the notebook page show screen to render the quick actions launcher"
+    assert toggle.present?, "Expected the quick actions + toggle button"
+    assert_equal "false", toggle["aria-expanded"]
+    assert_equal %w[ti-camera ti-photo-plus ti-microphone ti-list-check ti-scan], items
   end
 
   test "notepad show page renders a quick edit modal for title and notes" do

@@ -4,10 +4,18 @@ module Web
       before_action :redirect_signed_in_user, only: :new
 
       def new
+        return redirect_to(browser_sign_in_path) if google_only_auth_mode?
+
         @user = User.new
       end
 
       def create
+        unless password_auth_available?
+          @user = User.new
+          flash.now[:alert] = "Email and password sign-up is disabled. Continue with Google instead."
+          return render "web/auth/sessions/new", status: :unprocessable_entity
+        end
+
         @user = User.new(registration_params)
         @user.assign_attributes(time_zone: effective_time_zone_name, locale: "en")
 

@@ -15,6 +15,18 @@ class PagesController < BrowserController
     @page.title = @page.display_title
   end
 
+  def quick_create
+    @page = @chapter.pages.new(captured_on: Time.zone.today, title: "")
+    @page.allow_blank_content = true
+
+    if @page.save
+      redirect_to edit_notebook_chapter_page_path(@notebook, @chapter, @page),
+        notice: "Page created. You can add notes, photos, or more voice notes now."
+    else
+      redirect_to notebook_chapter_path(@notebook, @chapter), alert: @page.errors.full_messages.to_sentence
+    end
+  end
+
   def create
     @page = @chapter.pages.new(page_attributes)
     preserve_pending_photos(@page, page_params)
@@ -28,7 +40,7 @@ class PagesController < BrowserController
         persist_pending_scanned_documents(@page, payloads: @page.pending_scanned_document_payloads, user: current_user)
         @page.pending_scanned_document_payloads = []
       end
-      redirect_to notebook_chapter_page_path(@notebook, @chapter, @page), notice: "Page created."
+      redirect_to create_redirect_path(@page), notice: create_notice_message
     else
       render :new, status: :unprocessable_entity
     end
@@ -47,6 +59,7 @@ class PagesController < BrowserController
 
     preserve_pending_photos(@page, page_params)
     assign_pending_content_from_params(@page, page_params, raw_page_attributes)
+    @page.allow_blank_content = allow_blank_content_for_update?(notes_value: page_attributes[:notes])
 
     if @page.update(page_attributes)
       with_deferred_drive_record_export(@page, sections: drive_export_sections_for_page_update) do
@@ -419,6 +432,39 @@ class PagesController < BrowserController
 
     source_list.todo_items.update_all(todo_list_id: target_list.id, updated_at: Time.current)
     source_list.destroy!
+  end
+
+  def allow_blank_content_for_update?(notes_value:)
+    blank_page_shell? &&
+      notes_value.to_s.blank? &&
+      @page.retained_photo_signed_ids.empty? &&
+      @page.pending_voice_note_uploads.empty? &&
+      @page.pending_scanned_document_payloads.empty? &&
+      @page.pending_todo_item_contents.empty?
+  end
+
+  def blank_page_shell?
+    @page.notes.to_s.blank? &&
+      !@page.photos.attached? &&
+      !@page.voice_notes.exists? &&
+      !@page.scanned_documents.exists? &&
+      !@page.todo_items.exists?
+  end
+
+  def create_redirect_path(page)
+    return edit_notebook_chapter_page_path(@notebook, @chapter, page) if redirect_to_edit_after_create?
+
+    notebook_chapter_page_path(@notebook, @chapter, page)
+  end
+
+  def create_notice_message
+    return "Page created. You can add notes, photos, or more voice notes now." if redirect_to_edit_after_create?
+
+    "Page created."
+  end
+
+  def redirect_to_edit_after_create?
+    params[:after_create].to_s == "edit"
   end
 
   def move_scanned_documents_to_notepad(entry)

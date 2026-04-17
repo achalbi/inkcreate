@@ -39,7 +39,19 @@ class ActiveSupport::TestCase
 end
 
 class ActionDispatch::IntegrationTest
+  setup do
+    enable_password_auth_for_browser_tests
+  end
+
   private
+
+  def enable_password_auth_for_browser_tests
+    return unless GlobalSetting.table_exists?
+
+    GlobalSetting.instance.update!(password_auth_enabled: true)
+  rescue ActiveRecord::StatementInvalid, PG::UndefinedTable
+    nil
+  end
 
   def authenticity_token_for(action_path)
     document = Nokogiri::HTML.parse(response.body)

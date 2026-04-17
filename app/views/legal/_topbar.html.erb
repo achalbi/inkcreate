@@ -1,22 +1,16 @@
-<header class="topbar">
-  <a class="brand" href="<%= root_path %>">
-    <img class="brand-mark" src="/icons/app-icon.svg" alt="Inkcreate icon">
-    <span class="brand-copy">
-      <strong>Inkcreate</strong>
-      <span>Notebook OCR Companion</span>
-    </span>
-  </a>
-
-  <div class="topbar-right">
-    <nav aria-label="Legal pages">
-      <%= link_to "Privacy Policy", privacy_policy_path, class: ("is-active" if current_page?(privacy_policy_path)) %>
-      <%= link_to "Terms of Service", terms_of_service_path, class: ("is-active" if current_page?(terms_of_service_path)) %>
-    </nav>
-
-    <% if user_signed_in? %>
-      <div class="nav-actions">
-        <%= link_to "Open workspace", dashboard_path, class: "mini-button mini-button-primary" %>
-      </div>
-    <% end %>
-  </div>
-</header>
+<%= render "shared/public_topbar",
+  menu_id: "legal-menu",
+  nav_label: "Legal pages",
+  nav_links: [
+    { label: "Privacy Policy", path: privacy_policy_path },
+    { label: "Terms of Service", path: terms_of_service_path }
+  ],
+  action_container_class: ("nav-actions-auth" unless user_signed_in?),
+  action_links: if user_signed_in?
+    [{ label: "Open workspace", path: dashboard_path, class_name: "mini-button mini-button-primary" }]
+  else
+    [
+      { label: "Sign in", path: browser_sign_in_path, class_name: "mini-button" },
+      { label: google_only_auth_mode? ? "Start with Google" : "Get started free", path: public_auth_entry_path, class_name: "mini-button mini-button-primary" }
+    ]
+  end %>

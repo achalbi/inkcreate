@@ -1,26 +1,20 @@
-<div class="page-shell">
-  <header class="topbar">
-    <a class="brand" href="<%= root_path %>">
-      <img class="brand-mark" src="/icons/app-icon.svg" alt="Inkcreate icon">
-      <span class="brand-copy">
-        <strong>Inkcreate</strong>
-        <span>Notebook OCR Companion</span>
-      </span>
-    </a>
-  </header>
+<% if google_only_auth_mode? %>
+  <%= render "web/auth/google_only_access" %>
+<% else %>
+  <div class="page-shell">
+    <%= render "shared/public_topbar" %>
 
-  <section class="auth-shell auth-shell-single">
-    <article class="auth-panel">
-      <div class="eyebrow">Sign in</div>
-      <h1>Resume your notebook workflow.</h1>
-      <p>
-        Sign in to review captures, search extracted text, manage your notebooks,
-        and continue the OCR flow from the same workspace.
-      </p>
+    <section class="auth-shell">
+      <article class="auth-panel">
+        <div class="eyebrow">Sign in</div>
+        <h1>Resume your notebook workflow.</h1>
+        <p>
+          Sign in to review captures, search extracted text, manage your notebooks,
+          and continue the OCR flow from the same workspace.
+        </p>
 
-      <%= render "web/auth/google_auth_button", label: "Continue with Google" %>
+        <%= render "web/auth/google_auth_button", label: "Continue with Google", show_divider: true %>
 
-      <% if GlobalSetting.password_auth_enabled? %>
         <%= form_with url: browser_sign_in_path, scope: :user, class: "auth-form" do |form| %>
           <div class="field">
             <%= form.label :email %>
@@ -38,13 +32,19 @@
         <div class="helper-links">
           <a href="<%= browser_sign_up_path %>">Need an account? Create one</a>
         </div>
-      <% else %>
-        <div class="auth-google-only-notice">
-          Sign in with your Google account to continue.
-        </div>
-      <% end %>
-    </article>
-  </section>
+      </article>
 
-  <%= render "shared/public_footer" %>
-</div>
+      <%= render "web/auth/info_panel",
+        eyebrow: "Phone-first workflow",
+        title: "Capture pages on your phone and review them anywhere.",
+        body: "Inkcreate keeps notebook pages, quick notepad entries, OCR text, and Drive export history together so you can pick up work from the same place on every device.",
+        items: [
+          { eyebrow: "Capture", title: "Fast mobile upload", body: "Upload notebook pages directly from your camera without waiting for OCR to finish first." },
+          { eyebrow: "Organize", title: "Notebook structure that stays tidy", body: "Keep pages grouped by notebook and chapter while still capturing fast during class, meetings, or field work." },
+          { eyebrow: "Retrieve", title: "Searchable context later", body: "Find extracted text, voice notes, scans, and photos together when you return to the workspace." }
+        ] %>
+    </section>
+
+    <%= render "shared/public_footer" %>
+  </div>
+<% end %>

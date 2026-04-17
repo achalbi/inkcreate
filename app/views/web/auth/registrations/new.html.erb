@@ -1,15 +1,7 @@
 <div class="page-shell">
-  <header class="topbar">
-    <a class="brand" href="<%= root_path %>">
-      <img class="brand-mark" src="/icons/app-icon.svg" alt="Inkcreate icon">
-      <span class="brand-copy">
-        <strong>Inkcreate</strong>
-        <span>Notebook OCR Companion</span>
-      </span>
-    </a>
-  </header>
+  <%= render "shared/public_topbar" %>
 
-  <section class="auth-shell auth-shell-single">
+  <section class="auth-shell">
     <article class="auth-panel">
       <div class="eyebrow">Create account</div>
       <h1>Start with a notebook-friendly workspace.</h1>
@@ -18,9 +10,18 @@
         organise notes, and sync everything to Google Drive.
       </p>
 
-      <%= render "web/auth/google_auth_button", label: "Sign up with Google" %>
+      <div class="auth-mode-strip">
+        <span class="auth-mode-chip">Google sign-in</span>
+        <% if password_auth_available? %>
+          <span class="auth-mode-chip">Email and password</span>
+        <% else %>
+          <span class="auth-mode-chip auth-mode-chip--accent">Google-only mode</span>
+        <% end %>
+      </div>
 
-      <% if GlobalSetting.password_auth_enabled? %>
+      <%= render "web/auth/google_auth_button", label: "Continue with Google", show_divider: password_auth_available? %>
+
+      <% if password_auth_available? %>
         <%= form_with model: @user, url: browser_sign_up_path, scope: :user, class: "auth-form" do |form| %>
           <div class="field">
             <%= form.label :email %>
@@ -47,10 +48,20 @@
         </div>
       <% else %>
         <div class="auth-google-only-notice">
-          Create your account using Google sign-in above.
+          Create your account with Google above. Inkcreate will provision the workspace automatically on first sign-in.
         </div>
       <% end %>
     </article>
+
+    <%= render "web/auth/info_panel",
+      eyebrow: "What you get",
+      title: "A workspace that stays organized from the first capture.",
+      body: "Inkcreate is built for people who capture handwritten notes on the go and need the digital version to stay structured, searchable, and easy to revisit on mobile.",
+      items: [
+        { eyebrow: "Notebook rhythm", title: "Notebooks, chapters, and pages", body: "Mirror the way you already divide real notebooks instead of forcing everything into a flat list." },
+        { eyebrow: "Daily capture", title: "A fast notepad for loose pages", body: "Use the notepad flow when you want date-based capture without deciding notebook structure first." },
+        { eyebrow: "Backup ready", title: "Google Drive export when you need it", body: "Connect Drive once and keep processed captures in a folder you control." }
+      ] %>
   </section>
 
   <%= render "shared/public_footer" %>

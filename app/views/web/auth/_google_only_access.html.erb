@@ -1,0 +1,32 @@
+<div class="page-shell">
+  <%= render "shared/public_topbar" %>
+
+  <section class="auth-shell">
+    <article class="auth-panel">
+      <div class="eyebrow">Access workspace</div>
+      <h1 class="auth-panel-title-spaced">Sign in or create your Inkcreate workspace.</h1>
+      <p>
+        Use Google to continue into the same capture workspace, whether you are coming back
+        to existing notebooks or opening Inkcreate for the first time.
+      </p>
+
+      <%= render "web/auth/google_auth_button", label: "Continue with Google", show_divider: false %>
+
+      <div class="auth-google-only-notice">
+        Continue with Google to sign in or create your workspace automatically.
+      </div>
+    </article>
+
+    <%= render "web/auth/info_panel",
+      eyebrow: "One flow",
+      title: "The same page handles returning access and first-time setup.",
+      body: "Inkcreate keeps notebooks, daily notepad captures, OCR text, and uploads in one place, so Google-only access can stay simple without splitting the entry flow.",
+      items: [
+        { eyebrow: "Open", title: "Return to the same workspace", body: "Existing Google-linked accounts go straight back to the browser workspace and continue where they left off." },
+        { eyebrow: "Create", title: "Provision on first access", body: "If this is your first visit, Inkcreate creates the workspace during the same Google flow without a separate sign-up page." },
+        { eyebrow: "Use anywhere", title: "Phone-first, desktop-safe", body: "The access screen stays light on mobile while keeping privacy and terms links available from the same header." }
+      ] %>
+  </section>
+
+  <%= render "shared/public_footer" %>
+</div>

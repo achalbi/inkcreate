@@ -5,60 +5,52 @@
 %>
 
 <section
-  class="ibox float-e-margins"
+  id="<%= dom_id(page, :todo_form_list_section) %>"
+  class="notepad-doc__block notepad-doc__block--todos notepad-doc-edit__section detail-section-anchor"
   data-controller="todo-list"
   data-todo-list-mode-value="draft"
   data-todo-list-draft-field-name-value="page[todo_item_contents][]"
 >
-  <div class="ibox-title">
-    <div class="detail-photo-gallery-heading">
-      <h5 class="detail-photo-gallery-title">To-do list</h5>
-      <span class="label label-info detail-photo-gallery-count"><%= current_items.size %></span>
-    </div>
-    <div class="ibox-tools d-flex align-items-center gap-2">
-      <% if current_items.any? %>
-        <span class="label label-default"><%= current_todo_list.progress_label %></span>
-      <% end %>
-      <%= render "shared/ibox_toggle_button", target_id: dom_id(page, :todo_form_list_content) %>
+  <div class="notepad-doc__block-header">
+    <div class="notepad-doc__block-label">
+      <i class="ti ti-checkbox" aria-hidden="true"></i>
+      To-do<% if current_items.any? %> · <%= current_items.size %><% end %>
     </div>
   </div>
 
-  <div id="<%= dom_id(page, :todo_form_list_content) %>" class="ibox-content collapse show">
-    <%= form.hidden_field :todo_list_enabled, value: current_todo_list&.enabled? ? "true" : "false", data: { todo_list_target: "enabledField" } %>
-    <%= form.hidden_field :todo_list_hide_completed, value: hide_completed ? "true" : "false", data: { todo_list_target: "hideCompletedField" } %>
-    <div data-todo-list-target="draftFields"></div>
+  <%= form.hidden_field :todo_list_enabled, value: current_todo_list&.enabled? ? "true" : "false", data: { todo_list_target: "enabledField" } %>
+  <%= form.hidden_field :todo_list_hide_completed, value: hide_completed ? "true" : "false", data: { todo_list_target: "hideCompletedField" } %>
+  <div data-todo-list-target="draftFields"></div>
 
-    <div class="todo-list-draft">
-      <p class="todo-list-draft__intro">Add checklist items before saving.</p>
+  <div class="todo-list-draft">
+    <p class="todo-list-draft__intro">Add checklist items before saving.</p>
 
-      <div class="todo-list-composer todo-list-composer--draft todo-list-composer--prompt">
-        <div class="todo-list-composer__field">
-          <span class="todo-list-composer__badge" aria-hidden="true">
-            <i class="ti ti-checkbox" aria-hidden="true"></i>
-          </span>
-          <div class="todo-list-composer__content">
-            <textarea class="form-control todo-list-composer__input" placeholder="Capture your thoughts or action plan..." rows="1" data-todo-list-target="draftInput" data-action="input->todo-list#resizeTextarea"></textarea>
-          </div>
+    <div class="todo-list-composer todo-list-composer--draft todo-list-composer--prompt">
+      <div class="todo-list-composer__field">
+        <span class="todo-list-composer__badge" aria-hidden="true">
+          <i class="ti ti-checkbox" aria-hidden="true"></i>
+        </span>
+        <div class="todo-list-composer__content">
+          <textarea class="form-control todo-list-composer__input" placeholder="Capture your thoughts or action plan..." rows="1" data-todo-list-target="draftInput" data-action="input->todo-list#resizeTextarea"></textarea>
         </div>
-        <button type="button" class="btn btn-primary todo-list-composer__submit todo-list-composer__submit--icon" data-action="todo-list#addDraftItem" aria-label="Add draft to-do item">
-          <i class="ti ti-plus" aria-hidden="true"></i>
-          <span class="todo-list-composer__submit-label">Add</span>
-        </button>
       </div>
-
-      <div class="vstack gap-2 mb-3" data-todo-list-target="draftItems"></div>
-
-      <% if current_items.any? %>
-        <div class="todo-list-draft__saved">
-          <div class="fw-semibold mb-2">Saved items on this page</div>
-          <ul class="small m-b-none ps-3">
-            <% current_items.each do |item| %>
-              <li><%= item.content %><%= " (completed)" if item.completed? %></li>
-            <% end %>
-          </ul>
-          <div class="text-secondary small mt-2">You can manage saved checklist items from the page detail view after saving.</div>
-        </div>
-      <% end %>
+      <button type="button" class="btn btn-primary btn-icon todo-list-composer__submit todo-list-composer__submit--icon" data-action="todo-list#addDraftItem" aria-label="Add draft to-do item">
+        <i class="ti ti-plus" aria-hidden="true"></i>
+      </button>
     </div>
+
+    <div class="vstack gap-2 mb-3" data-todo-list-target="draftItems"></div>
+
+    <% if current_items.any? %>
+      <div class="todo-list-draft__saved">
+        <div class="fw-semibold mb-2">Saved items on this page</div>
+        <ul class="small m-b-none ps-3">
+          <% current_items.each do |item| %>
+            <li><%= item.content %><%= " (completed)" if item.completed? %></li>
+          <% end %>
+        </ul>
+        <div class="text-secondary small mt-2">You can manage saved checklist items from the page detail view after saving.</div>
+      </div>
+    <% end %>
   </div>
 </section>

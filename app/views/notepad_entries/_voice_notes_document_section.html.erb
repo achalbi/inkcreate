@@ -1,4 +1,5 @@
 <%
+  pdf_export_mode = local_assigns[:pdf_export_mode] == true
   voice_notes = if VoiceNote.notepad_entries_supported?
     notepad_entry.voice_notes.recent_first.includes(audio_attachment: :blob)
   else
@@ -10,61 +11,99 @@
 <section
   id="<%= dom_id(notepad_entry, :voice_notes_section) %>"
   class="notepad-doc__block notepad-doc__block--voice detail-section-anchor"
+  <% unless pdf_export_mode %>
   data-controller="voice-recorder voice-note-list"
   data-voice-recorder-auto-submit-on-save-value="false"
   data-voice-recorder-mode-value="persisted"
   data-voice-recorder-max-duration-seconds-value="<%= VoiceNote::MAX_DURATION_SECONDS %>"
   data-voice-recorder-param-key-value="notepad_entry"
   data-voice-recorder-create-url-value="<%= notepad_entry_voice_notes_path(notepad_entry) %>"
+  <% end %>
 >
   <div class="notepad-doc__block-header">
     <div class="notepad-doc__block-label">
       <i class="ti ti-microphone" aria-hidden="true"></i>
       Voice notes<% if voice_note_count > 0 %> · <%= voice_note_count %><% end %>
     </div>
-    <div class="notepad-doc__block-actions">
-      <% if voice_notes.any? %>
+    <% unless pdf_export_mode %>
+      <div class="notepad-doc__block-actions">
+        <% if voice_notes.any? %>
+          <button
+            type="button"
+            class="btn btn-white btn-sm voice-note-list__toggle"
+            data-voice-note-list-target="toggle"
+            data-action="voice-note-list#toggle"
+            aria-expanded="false"
+            aria-label="Expand voice note details"
+            title="Expand voice note details"
+          >
+            <i class="ti ti-chevron-right" aria-hidden="true"></i><span> Details</span>
+          </button>
+        <% end %>
         <button
           type="button"
-          class="btn btn-white btn-sm voice-note-list__toggle"
-          data-voice-note-list-target="toggle"
-          data-action="voice-note-list#toggle"
-          aria-expanded="false"
-          aria-label="Expand voice note details"
-          title="Expand voice note details"
+          class="btn btn-white btn-sm"
+          data-voice-recorder-target="startButton"
+          data-action="voice-recorder#start"
         >
-          <i class="ti ti-chevron-right" aria-hidden="true"></i><span> Details</span>
+          <i class="ti ti-microphone" aria-hidden="true"></i> Record
         </button>
-      <% end %>
-      <button
-        type="button"
-        class="btn btn-white btn-sm"
-        data-voice-recorder-target="startButton"
-        data-action="voice-recorder#start"
-      >
-        <i class="ti ti-microphone" aria-hidden="true"></i> Record
-      </button>
-    </div>
+      </div>
+    <% end %>
   </div>
 
-  <div data-voice-recorder-target="panel">
-    <div class="voice-note-recorder">
-      <%= render "pages/voice_note_recorder_content",
-        recorder_form: nil,
-        recorder_mode: :persisted,
-        show_start_button: false %>
-    </div>
-
+  <% if pdf_export_mode %>
     <% if voice_notes.any? %>
-      <div class="notepad-doc__voice-strip" data-notepad-document-target="voiceBlock">
-        <% voice_notes.each do |voice_note| %>
-          <%= render "shared/voice_note_list_item",
-            voice_note: voice_note,
-            delete_path: notepad_entry_voice_note_path(notepad_entry, voice_note) %>
+      <div class="notepad-doc__voice-strip notepad-doc__voice-strip--export">
+        <% voice_notes.each_with_index do |voice_note, index| %>
+          <article class="notebook-list-card voice-note-list-card voice-note-list-card--export">
+            <div class="notebook-list-card__body">
+              <div class="voice-note-export-card">
+                <div class="voice-note-export-card__header">
+                  <h6 class="notebook-list-card__title">Voice note <%= index + 1 %></h6>
+                  <span class="voice-note-export-card__duration"><%= voice_note_duration_label(voice_note.duration_seconds) %></span>
+                </div>
+                <div class="voice-note-export-card__meta">
+                  <span>Recorded <%= voice_note.recorded_at.in_time_zone.strftime("%b %-d, %Y at %-I:%M %p") %></span>
+                  <span><%= number_to_human_size(voice_note.byte_size) %></span>
+                  <%= link_to voice_note.audio.filename.to_s,
+                    rails_blob_path(voice_note.audio, disposition: "attachment", only_path: true),
+                    data: { turbo: false } %>
+                </div>
+                <% if voice_note.respond_to?(:transcript) && voice_note.transcript.present? %>
+                  <div class="voice-note-export-card__transcript">
+                    <strong>Transcript</strong>
+                    <p><%= voice_note.transcript %></p>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          </article>
         <% end %>
       </div>
     <% else %>
-      <p class="text-muted m-b-none" style="font-size: 0.875rem;">No voice notes yet — press Record to start.</p>
+      <p class="text-muted m-b-none" style="font-size: 0.875rem;">No voice notes yet.</p>
     <% end %>
-  </div>
+  <% else %>
+    <div data-voice-recorder-target="panel">
+      <div class="voice-note-recorder">
+        <%= render "pages/voice_note_recorder_content",
+          recorder_form: nil,
+          recorder_mode: :persisted,
+          show_start_button: false %>
+      </div>
+
+      <% if voice_notes.any? %>
+        <div class="notepad-doc__voice-strip">
+          <% voice_notes.each do |voice_note| %>
+            <%= render "shared/voice_note_list_item",
+              voice_note: voice_note,
+              delete_path: notepad_entry_voice_note_path(notepad_entry, voice_note) %>
+          <% end %>
+        </div>
+      <% else %>
+        <p class="text-muted m-b-none" style="font-size: 0.875rem;">No voice notes yet — press Record to start.</p>
+      <% end %>
+    </div>
+  <% end %>
 </section>

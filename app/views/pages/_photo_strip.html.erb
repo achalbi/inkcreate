@@ -1,11 +1,11 @@
 <%
   export_mode = local_assigns[:export_mode] == true
-  photo_attachments = notepad_entry.photos.attachments.sort_by(&:created_at).reverse
+  photo_attachments = page.photos.attachments.sort_by(&:created_at).reverse
   overflow_count = [photo_attachments.size - 4, 0].max
   visible_photo_attachments = photo_attachments.first(overflow_count.positive? ? 4 : photo_attachments.size)
   hidden_photo_attachments = photo_attachments.drop(4)
   photo_layout_count = [visible_photo_attachments.size, 4].min
-  lightbox_group = local_assigns[:group].presence || dom_id(notepad_entry, :gallery)
+  lightbox_group = local_assigns[:group].presence || dom_id(page, :gallery)
 %>
 
 <div
@@ -20,13 +20,13 @@
     >
       <% lightbox_options = {
         photo: attachment,
-        alt: notepad_entry.display_title,
+        alt: page.display_title,
         group: lightbox_group,
         image_style: "width: 100%; height: 100%; object-fit: cover;"
       } %>
       <% unless export_mode %>
-        <% lightbox_options[:removal_path] = photo_notepad_entry_path(notepad_entry, attachment) %>
-        <% lightbox_options[:removal_message] = "This photo will be removed from the daily page." %>
+        <% lightbox_options[:removal_path] = photo_notebook_chapter_page_path(notebook, chapter, page, attachment) %>
+        <% lightbox_options[:removal_message] = "This photo will be removed from the page." %>
       <% end %>
       <%= render "shared/photo_lightbox", **lightbox_options %>
     </div>
@@ -36,13 +36,13 @@
     <div class="notepad-doc__photo-item notepad-doc__photo-item--hidden" aria-hidden="true">
       <% lightbox_options = {
         photo: attachment,
-        alt: notepad_entry.display_title,
+        alt: page.display_title,
         group: lightbox_group,
         image_style: "width: 100%; height: 100%; object-fit: cover;"
       } %>
       <% unless export_mode %>
-        <% lightbox_options[:removal_path] = photo_notepad_entry_path(notepad_entry, attachment) %>
-        <% lightbox_options[:removal_message] = "This photo will be removed from the daily page." %>
+        <% lightbox_options[:removal_path] = photo_notebook_chapter_page_path(notebook, chapter, page, attachment) %>
+        <% lightbox_options[:removal_message] = "This photo will be removed from the page." %>
       <% end %>
       <%= render "shared/photo_lightbox", **lightbox_options %>
     </div>

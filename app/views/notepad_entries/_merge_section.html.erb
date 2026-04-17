@@ -1,0 +1,84 @@
+<%
+  merge_candidates = local_assigns[:merge_candidates] || @merge_candidates || []
+  editing = local_assigns[:editing] == true
+  merge_section_id = dom_id(notepad_entry, :merge_section)
+%>
+
+<div class="row m-t-md">
+  <div class="col-12">
+    <div id="<%= merge_section_id %>" class="ibox notepad-entry-merge-shell detail-section-anchor">
+      <div class="ibox-title">
+        <h5>Merge pages</h5>
+        <div class="ibox-tools">
+          <span class="label label-default">Notepad merge</span>
+        </div>
+      </div>
+      <div class="ibox-content">
+        <section class="notepad-entry-move-panel">
+          <div class="notepad-entry-move-panel__header">
+            <div>
+              <h6 class="notepad-entry-move-panel__title">Merge this page with another notepad page</h6>
+              <p class="notepad-entry-move-panel__description">Choose the other page, then decide which one stays primary. The primary page keeps its title and date, while notes, photos, voice notes, to-dos, and scans from the secondary page are appended into it.</p>
+            </div>
+          </div>
+
+          <% if editing %>
+            <%= render "shared/inline_alert",
+              type: :info,
+              title: "Merge uses saved content",
+              body: "Save any edits on this page first if you want them included in the merge." %>
+          <% end %>
+
+          <% if merge_candidates.any? %>
+            <%= form_with url: merge_notepad_entry_path(notepad_entry), method: :post do %>
+              <div class="form-group">
+                <%= label_tag :merge_notepad_entry_id, "Other page", class: "control-label" %>
+                <%= select_tag :merge_notepad_entry_id,
+                  options_for_select(
+                    merge_candidates.map { |entry|
+                      ["#{entry.display_title} · #{entry.entry_date.strftime("%b %-d, %Y")}", entry.id]
+                    }
+                  ),
+                  prompt: "Choose another notepad page",
+                  class: "form-control" %>
+              </div>
+
+              <div class="form-group">
+                <label class="control-label d-block">Primary page</label>
+                <div class="radio">
+                  <label>
+                    <%= radio_button_tag :merge_primary, "current", true %>
+                    Keep this page as primary
+                  </label>
+                </div>
+                <div class="radio m-b-none">
+                  <label>
+                    <%= radio_button_tag :merge_primary, "selected", false %>
+                    Keep the selected page as primary
+                  </label>
+                </div>
+              </div>
+
+              <p class="help-block notepad-entry-move-panel__help">The secondary page is removed after its content is merged into the primary page.</p>
+
+              <div class="workspace-form-actions notepad-entry-move-panel__actions">
+                <%= button_tag "Merge pages",
+                  type: "submit",
+                  class: "btn btn-primary btn-sm",
+                  data: {
+                    turbo_confirm: "Merge these two notepad pages? The secondary page will be removed after its content is appended into the primary page.",
+                    disable_with: "Merging..."
+                  } %>
+              </div>
+            <% end %>
+          <% else %>
+            <%= render "shared/inline_alert",
+              type: :info,
+              title: "Create another page first",
+              body: "You need at least one more notepad page before you can merge pages together." %>
+          <% end %>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>

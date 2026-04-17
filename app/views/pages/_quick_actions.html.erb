@@ -1,0 +1,98 @@
+<%
+  camera_input_id = local_assigns[:camera_input_id]
+  camera_button_id = local_assigns[:camera_button_id]
+%>
+
+<div
+  class="notepad-quick-actions"
+  data-controller="notepad-quick-actions"
+  data-action="click@window->notepad-quick-actions#closeOnWindow keydown.esc@window->notepad-quick-actions#close"
+  data-notepad-quick-actions-photos-section-id-value="<%= photos_section_id %>"
+  <% if camera_input_id.present? %>
+  data-notepad-quick-actions-camera-input-id-value="<%= camera_input_id %>"
+  <% end %>
+  <% if camera_button_id.present? %>
+  data-notepad-quick-actions-camera-button-id-value="<%= camera_button_id %>"
+  <% end %>
+  <% if local_assigns[:voice_notes_enabled] %>
+  data-notepad-quick-actions-voice-section-id-value="<%= voice_notes_section_id %>"
+  <% end %>
+  <% if local_assigns[:todo_lists_enabled] %>
+  data-notepad-quick-actions-todo-section-id-value="<%= todo_list_section_id %>"
+  <% end %>
+  data-notepad-quick-actions-scan-section-id-value="<%= scanned_documents_section_id %>"
+>
+  <div class="notepad-quick-actions__menu" data-notepad-quick-actions-target="menu" aria-hidden="true">
+    <button
+      type="button"
+      class="notepad-quick-actions__item"
+      data-notepad-quick-actions-target="item"
+      data-action="click->notepad-quick-actions#openCamera"
+      aria-label="Capture photo"
+      title="Capture photo"
+    >
+      <i class="ti ti-camera" aria-hidden="true"></i>
+    </button>
+
+    <button
+      type="button"
+      class="notepad-quick-actions__item"
+      data-notepad-quick-actions-target="item"
+      data-action="click->notepad-quick-actions#openGallery"
+      aria-label="Upload from gallery"
+      title="Upload from gallery"
+    >
+      <i class="ti ti-photo-plus" aria-hidden="true"></i>
+    </button>
+
+    <% if local_assigns[:voice_notes_enabled] %>
+      <button
+        type="button"
+        class="notepad-quick-actions__item"
+        data-notepad-quick-actions-target="item"
+        data-action="click->notepad-quick-actions#openVoiceNote"
+        aria-label="Record voice note"
+        title="Record voice note"
+      >
+        <i class="ti ti-microphone" aria-hidden="true"></i>
+      </button>
+    <% end %>
+
+    <% if local_assigns[:todo_lists_enabled] %>
+      <button
+        type="button"
+        class="notepad-quick-actions__item"
+        data-notepad-quick-actions-target="item"
+        data-action="click->notepad-quick-actions#openTodo"
+        aria-label="Open to-do list"
+        title="Open to-do list"
+      >
+        <i class="ti ti-list-check" aria-hidden="true"></i>
+      </button>
+    <% end %>
+
+    <button
+      type="button"
+      class="notepad-quick-actions__item"
+      data-notepad-quick-actions-target="item"
+      data-action="click->notepad-quick-actions#openScan"
+      aria-label="Scan document"
+      title="Scan document"
+    >
+      <i class="ti ti-scan" aria-hidden="true"></i>
+    </button>
+  </div>
+
+  <button
+    type="button"
+    class="notepad-quick-actions__toggle"
+    data-notepad-quick-actions-target="toggle"
+    data-action="click->notepad-quick-actions#toggle"
+    aria-expanded="false"
+    aria-pressed="false"
+    aria-label="Open quick actions"
+    title="Open quick actions"
+  >
+    <i class="ti ti-plus" aria-hidden="true"></i>
+  </button>
+</div>

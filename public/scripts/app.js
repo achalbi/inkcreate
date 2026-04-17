@@ -29,7 +29,6 @@ import SectionShortcutsController from "/scripts/controllers/section_shortcuts_c
 import StickyDockController from "/scripts/controllers/sticky_dock_controller.js";
 import OnboardingWizardController from "/scripts/controllers/onboarding_wizard_controller.js";
 import IdleShortcutsController from "/scripts/controllers/idle_shortcuts_controller.js";
-import NotepadDocumentController from "/scripts/controllers/notepad_document_controller.js";
 import { enableNotificationsForInstall } from "/scripts/notification_preferences.js";
 
 const AUTO_DISMISS_DELAY_MS = 5000;
@@ -104,8 +103,6 @@ application.register("section-shortcuts", SectionShortcutsController);
 application.register("sticky-dock", StickyDockController);
 application.register("onboarding-wizard", OnboardingWizardController);
 application.register("idle-shortcuts", IdleShortcutsController);
-application.register("notepad-document", NotepadDocumentController);
-
 document.addEventListener("DOMContentLoaded", () => scheduleTimedMessages());
 document.addEventListener("turbo:load", () => scheduleTimedMessages());
 window.addEventListener("appinstalled", () => {

@@ -1,188 +1,194 @@
 <%
   todo_list = page.todo_list
-  todo_items = todo_list&.display_todo_items&.to_a || []
+  todo_items = todo_list ? todo_list.display_todo_items.to_a : []
   reminders_available = Reminder.schema_ready?
   completed_count = todo_items.count(&:completed?)
   progress_percent = todo_items.any? ? ((completed_count.to_f / todo_items.size) * 100).round : 0
 %>
 
-<section
+<div
   id="<%= dom_id(page, :todo_list_section) %>"
-  class="ibox float-e-margins detail-section-anchor"
+  class="notepad-doc__block notepad-doc__block--todos detail-section-anchor"
   data-controller="todo-list"
   data-todo-list-mode-value="persisted"
 >
-  <div class="ibox-title">
-    <div class="detail-photo-gallery-heading">
-      <h5 class="detail-photo-gallery-title">To-do list</h5>
-      <span class="label label-info detail-photo-gallery-count"><%= todo_items.size %></span>
-    </div>
-    <div class="ibox-tools d-flex align-items-center gap-2">
-      <% if todo_items.any? %>
-        <span class="label label-default"><%= todo_list.progress_label %></span>
-      <% end %>
-      <%= render "shared/ibox_toggle_button", target_id: dom_id(page, :todo_list_content) %>
+  <div class="notepad-doc__block-header">
+    <div class="notepad-doc__block-label">
+      <i class="ti ti-checkbox" aria-hidden="true"></i>
+      To-do<% if todo_items.any? %> · <%= completed_count %>/<%= todo_items.size %><% end %>
     </div>
   </div>
 
-  <div id="<%= dom_id(page, :todo_list_content) %>" class="ibox-content collapse show">
-    <form action="<%= notebook_chapter_page_todo_items_path(notebook, chapter, page) %>" method="post" data-action="submit->todo-list#submit" class="todo-list-composer todo-list-composer--prompt">
-      <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
-      <div class="todo-list-composer__field">
-        <span class="todo-list-composer__badge" aria-hidden="true">
-          <i class="ti ti-checkbox" aria-hidden="true"></i>
-        </span>
-        <div class="todo-list-composer__content">
-          <textarea name="todo_item[content]" class="form-control todo-list-composer__input" placeholder="Capture your thoughts or action plan..." aria-label="Add a to-do item" rows="1" data-action="input->todo-list#resizeTextarea"></textarea>
-        </div>
+  <% if todo_items.any? %>
+    <div class="todo-list-progress m-b-md" aria-label="Checklist progress">
+      <div class="todo-list-progress__track">
+        <span class="todo-list-progress__value" style="width: <%= progress_percent %>%"></span>
       </div>
-      <button type="submit" class="btn btn-primary todo-list-composer__submit todo-list-composer__submit--icon" aria-label="Add to-do item">
-        <i class="ti ti-plus" aria-hidden="true"></i>
-        <span class="todo-list-composer__submit-label">Add</span>
-      </button>
-    </form>
+      <span class="todo-list-progress__summary"><%= completed_count %> of <%= todo_items.size %> completed</span>
+    </div>
+  <% end %>
 
-    <% if todo_items.any? %>
-      <div class="todo-list-section__utilities">
-        <div class="todo-list-section__hint">Drag to reorder. Tap the circle to complete.</div>
+  <form
+    action="<%= notebook_chapter_page_todo_items_path(notebook, chapter, page) %>"
+    method="post"
+    data-action="submit->todo-list#submit"
+    class="todo-list-composer todo-list-composer--prompt"
+  >
+    <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+    <div class="todo-list-composer__field">
+      <span class="todo-list-composer__badge" aria-hidden="true">
+        <i class="ti ti-checkbox" aria-hidden="true"></i>
+      </span>
+      <div class="todo-list-composer__content">
+        <textarea
+          name="todo_item[content]"
+          class="form-control todo-list-composer__input"
+          placeholder="Add an action item or capture a thought…"
+          aria-label="Add a to-do item"
+          rows="1"
+          data-action="input->todo-list#resizeTextarea"
+        ></textarea>
       </div>
+    </div>
+    <button
+      type="submit"
+      class="btn btn-primary btn-sm btn-icon todo-list-composer__submit todo-list-composer__submit--icon"
+      aria-label="Add to-do item"
+    >
+      <i class="ti ti-plus" aria-hidden="true"></i>
+    </button>
+  </form>
 
-      <div class="todo-list-progress" aria-label="Checklist progress">
-        <div class="todo-list-progress__track">
-          <span class="todo-list-progress__value" style="width: <%= progress_percent %>%"></span>
-        </div>
-        <span class="todo-list-progress__summary"><%= completed_count %> of <%= todo_items.size %></span>
-      </div>
-    <% end %>
+  <div class="todo-list-items" data-todo-list-target="items">
+    <% todo_items.each_with_index do |todo_item, index| %>
+      <% reminder_modal_id = dom_id(todo_item, :reminder_modal) %>
+      <% promote_modal_id = dom_id(todo_item, :promote_confirm_modal) %>
+      <% promote_form_id = dom_id(todo_item, :promote_form) %>
+      <article
+        class="todo-list-item <%= "is-completed" if todo_item.completed? %> <%= "has-reminder" if todo_item.reminder.present? %>"
+        draggable="true"
+        data-item-id="<%= todo_item.id %>"
+        data-position="<%= index + 1 %>"
+        data-reorder-url="<%= reorder_notebook_chapter_page_todo_item_path(notebook, chapter, page, todo_item) %>"
+        data-action="dragstart->todo-list#dragStart dragover->todo-list#dragOver drop->todo-list#drop dragend->todo-list#dragEnd"
+      >
+        <div class="todo-list-item__header">
+          <div class="todo-list-item__lead">
+            <form
+              action="<%= toggle_notebook_chapter_page_todo_item_path(notebook, chapter, page, todo_item) %>"
+              method="post"
+              data-action="submit->todo-list#submit"
+              class="todo-list-item__toggle-form"
+            >
+              <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+              <input type="hidden" name="_method" value="patch">
+              <button
+                type="submit"
+                class="btn btn-white btn-sm todo-list-item__check <%= "is-completed" if todo_item.completed? %>"
+                aria-label="<%= todo_item.completed? ? "Mark incomplete" : "Mark complete" %>"
+              >
+                <span class="todo-list-item__check-indicator" aria-hidden="true"></span>
+              </button>
+            </form>
 
-    <div class="todo-list-items" data-todo-list-target="items">
-      <% todo_items.each_with_index do |todo_item, index| %>
-        <% reminder_modal_id = dom_id(todo_item, :reminder_modal) %>
-        <% promote_modal_id = dom_id(todo_item, :promote_confirm_modal) %>
-        <% promote_form_id = dom_id(todo_item, :promote_form) %>
-        <article
-          class="todo-list-item <%= "is-completed" if todo_item.completed? %> <%= "has-reminder" if todo_item.reminder.present? %>"
-          draggable="true"
-          data-item-id="<%= todo_item.id %>"
-          data-position="<%= index + 1 %>"
-          data-reorder-url="<%= reorder_notebook_chapter_page_todo_item_path(notebook, chapter, page, todo_item) %>"
-          data-action="dragstart->todo-list#dragStart dragover->todo-list#dragOver drop->todo-list#drop dragend->todo-list#dragEnd"
-        >
-          <div class="todo-list-item__header">
-            <div class="todo-list-item__lead">
-              <form action="<%= toggle_notebook_chapter_page_todo_item_path(notebook, chapter, page, todo_item) %>" method="post" data-action="submit->todo-list#submit" class="todo-list-item__toggle-form">
-                <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
-                <input type="hidden" name="_method" value="patch">
-                <button type="submit" class="btn btn-white btn-sm todo-list-item__check <%= "is-completed" if todo_item.completed? %>" aria-label="<%= todo_item.completed? ? "Mark incomplete" : "Mark complete" %>">
-                  <span class="todo-list-item__check-indicator" aria-hidden="true"></span>
-                </button>
-              </form>
-
-              <form action="<%= notebook_chapter_page_todo_item_path(notebook, chapter, page, todo_item) %>" method="post" data-action="submit->todo-list#submit" class="todo-list-item__edit">
-                <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
-                <input type="hidden" name="_method" value="patch">
-                <textarea
-                  name="todo_item[content]"
-                  class="form-control todo-list-item__input"
-                  aria-label="To-do item text"
-                  title="<%= todo_item.content %>"
-                  rows="1"
-                  data-initial-value="<%= todo_item.content %>"
-                  data-action="input->todo-list#resizeTextarea keydown->todo-list#handleEditKeydown blur->todo-list#autosave"
-                ><%= todo_item.content %></textarea>
-              </form>
-            </div>
-
+            <form
+              action="<%= notebook_chapter_page_todo_item_path(notebook, chapter, page, todo_item) %>"
+              method="post"
+              data-action="submit->todo-list#submit"
+              class="todo-list-item__edit"
+            >
+              <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+              <input type="hidden" name="_method" value="patch">
+              <textarea
+                name="todo_item[content]"
+                class="form-control todo-list-item__input"
+                aria-label="To-do item text"
+                title="<%= todo_item.content %>"
+                rows="1"
+                data-initial-value="<%= todo_item.content %>"
+                data-action="input->todo-list#resizeTextarea keydown->todo-list#handleEditKeydown blur->todo-list#autosave"
+              ><%= todo_item.content %></textarea>
+            </form>
           </div>
+        </div>
 
-          <div class="todo-list-item__meta">
+        <div class="todo-list-item__meta">
+          <% if reminders_available && todo_item.reminder.present? %>
+            <div class="todo-list-item__reminder todo-list-item__reminder--scheduled">
+              <i class="ti ti-bell" aria-hidden="true"></i>
+              <span class="todo-list-item__reminder-summary"><%= todo_item.reminder.fire_at.in_time_zone.strftime("%b %-d · %-I:%M %p") %></span>
+            </div>
+          <% end %>
+
+          <div class="todo-list-item__actions">
             <% if reminders_available %>
-              <% if todo_item.reminder.present? %>
-                <div class="todo-list-item__reminder todo-list-item__reminder--scheduled">
-                  <i class="ti ti-bell" aria-hidden="true"></i>
-                  <span class="todo-list-item__reminder-summary"><%= todo_item.reminder.fire_at.in_time_zone.strftime("%b %-d · %-I:%M %p") %></span>
-                </div>
-              <% else %>
-                <div class="todo-list-item__reminder todo-list-item__reminder--empty">
-                  <i class="ti ti-bell-off" aria-hidden="true"></i>
-                  <span>No reminder</span>
-                </div>
-              <% end %>
-            <% else %>
-              <div class="todo-list-item__meta-spacer" aria-hidden="true"></div>
+              <button
+                type="button"
+                class="btn btn-white btn-sm btn-icon todo-list-item__action-button todo-list-item__reminder-toggle"
+                data-bs-toggle="modal"
+                data-bs-target="#<%= reminder_modal_id %>"
+                aria-label="<%= todo_item.reminder.present? ? "Edit reminder" : "Add reminder" %>"
+                title="<%= todo_item.reminder.present? ? "Edit reminder" : "Add reminder" %>"
+              >
+                <i class="ti <%= todo_item.reminder.present? ? "ti-bell-ringing" : "ti-bell" %>" aria-hidden="true"></i>
+              </button>
             <% end %>
 
-            <div class="todo-list-item__actions">
-              <% if reminders_available %>
-                <button
-                  type="button"
-                  class="btn btn-white btn-sm btn-icon todo-list-item__action-button todo-list-item__reminder-toggle"
-                  data-bs-toggle="modal"
-                  data-bs-target="#<%= reminder_modal_id %>"
-                  aria-controls="<%= reminder_modal_id %>"
-                  aria-haspopup="dialog"
-                  aria-label="<%= todo_item.reminder.present? ? "Edit reminder" : "Add reminder" %>"
-                  title="<%= todo_item.reminder.present? ? "Edit reminder" : "Add reminder" %>"
-                >
-                  <i class="ti <%= todo_item.reminder.present? ? "ti-bell-ringing" : "ti-bell" %>" aria-hidden="true"></i>
-                </button>
-              <% end %>
-
-              <%# Promote to Task %>
-              <form action="<%= promote_from_todo_tasks_path %>" method="post" class="todo-list-item__promote-form" id="<%= promote_form_id %>">
-                <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
-                <input type="hidden" name="todo_item_id" value="<%= todo_item.id %>" />
-                <button
-                  type="button"
-                  class="btn btn-white btn-sm btn-icon todo-list-item__action-button todo-list-item__promote-button"
-                  aria-label="Promote to task"
-                  title="Promote to Task"
-                  data-bs-toggle="modal"
-                  data-bs-target="#<%= promote_modal_id %>"
-                >
-                  <i class="ti ti-checkbox" aria-hidden="true"></i>
-                </button>
-              </form>
-
-              <form action="<%= notebook_chapter_page_todo_item_path(notebook, chapter, page, todo_item) %>" method="post" class="todo-list-item__delete-form">
-                <button
-                  type="button"
-                  class="btn btn-white btn-sm btn-icon todo-list-item__action-button todo-list-item__delete-button"
-                  aria-label="Delete to-do item"
-                  data-action="click->todo-list#confirmDelete"
-                  data-todo-list-delete-url="<%= notebook_chapter_page_todo_item_path(notebook, chapter, page, todo_item) %>"
-                  data-todo-list-item-content="<%= todo_item.content %>"
-                >
-                  <i class="ti ti-trash" aria-hidden="true"></i>
-                </button>
-              </form>
-
-              <button type="button" class="btn btn-white btn-sm btn-icon todo-list-item__action-button todo-list-item__handle" aria-label="Reorder item">
-                <i class="ti ti-grip-vertical" aria-hidden="true"></i>
+            <form action="<%= promote_from_todo_tasks_path %>" method="post" class="todo-list-item__promote-form" id="<%= promote_form_id %>">
+              <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+              <input type="hidden" name="todo_item_id" value="<%= todo_item.id %>">
+              <button
+                type="button"
+                class="btn btn-white btn-sm btn-icon todo-list-item__action-button todo-list-item__promote-button"
+                aria-label="Promote to task"
+                title="Promote to Task"
+                data-bs-toggle="modal"
+                data-bs-target="#<%= promote_modal_id %>"
+              >
+                <i class="ti ti-checkbox" aria-hidden="true"></i>
               </button>
-            </div>
+            </form>
+
+            <button
+              type="button"
+              class="btn btn-white btn-sm btn-icon todo-list-item__action-button todo-list-item__delete-button"
+              aria-label="Delete to-do item"
+              data-action="click->todo-list#confirmDelete"
+              data-todo-list-delete-url="<%= notebook_chapter_page_todo_item_path(notebook, chapter, page, todo_item) %>"
+              data-todo-list-item-content="<%= todo_item.content %>"
+            >
+              <i class="ti ti-trash" aria-hidden="true"></i>
+            </button>
+
+            <button
+              type="button"
+              class="btn btn-white btn-sm btn-icon todo-list-item__action-button todo-list-item__handle"
+              aria-label="Reorder item"
+            >
+              <i class="ti ti-grip-vertical" aria-hidden="true"></i>
+            </button>
           </div>
+        </div>
 
-          <% if reminders_available %>
-            <%= render "shared/todo_item_reminder_modal",
-              modal_id: reminder_modal_id,
-              todo_item: todo_item,
-              reminder: todo_item.reminder || current_user.reminders.new(title: todo_item.content) %>
-          <% end %>
-          <%= render "shared/todo_item_promote_confirm_modal",
-            modal_id: promote_modal_id,
-            form_id: promote_form_id,
-            content: todo_item.content %>
-        </article>
-      <% end %>
-    </div>
-
-    <div class="todo-list-empty" data-todo-list-target="filterEmpty" <%= "hidden" if todo_items.any? %>>
-      Add your first item to get started.
-    </div>
-
-    <%= render "shared/todo_item_delete_confirm_modal",
-      modal_id: dom_id(page, :todo_item_delete_confirm_modal),
-      form_id: dom_id(page, :todo_item_delete_confirm_form) %>
+        <% if reminders_available %>
+          <%= render "shared/todo_item_reminder_modal",
+            modal_id: reminder_modal_id,
+            todo_item: todo_item,
+            reminder: todo_item.reminder || current_user.reminders.new(title: todo_item.content) %>
+        <% end %>
+        <%= render "shared/todo_item_promote_confirm_modal",
+          modal_id: promote_modal_id,
+          form_id: promote_form_id,
+          content: todo_item.content %>
+      </article>
+    <% end %>
   </div>
-</section>
+
+  <div class="todo-list-empty" data-todo-list-target="filterEmpty" <%= "hidden" if todo_items.any? %>>
+    Add your first item to get started.
+  </div>
+
+  <%= render "shared/todo_item_delete_confirm_modal",
+    modal_id: dom_id(page, :todo_item_delete_confirm_modal),
+    form_id: dom_id(page, :todo_item_delete_confirm_form) %>
+</div>

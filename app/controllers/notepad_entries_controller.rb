@@ -4,8 +4,9 @@ class NotepadEntriesController < BrowserController
   include DriveRecordExportScheduling
 
   before_action :require_authenticated_user!
-  before_action :set_notepad_entry, only: %i[show edit update destroy destroy_photo pdf]
+  before_action :set_notepad_entry, only: %i[show edit update destroy destroy_photo pdf merge]
   before_action :load_move_destination_groups, only: %i[show edit update]
+  before_action :load_merge_candidates, only: %i[show edit update]
 
   def index
     @view_mode = index_view_mode
@@ -99,6 +100,27 @@ class NotepadEntriesController < BrowserController
     redirect_back fallback_location: notepad_entry_path(@notepad_entry), notice: "Photo removed."
   end
 
+  def merge
+    merge_entry_id = params[:merge_notepad_entry_id].presence
+    return redirect_back fallback_location: notepad_entry_path(@notepad_entry), alert: "Choose another notepad page to merge." if merge_entry_id.blank?
+
+    selected_entry = current_user.notepad_entries.find(merge_entry_id)
+    primary_entry, secondary_entry = merge_entry_pair(selected_entry)
+
+    with_deferred_drive_record_export(primary_entry, sections: Drive::RecordExportSections::ALL) do
+      NotepadEntries::Merge.new(
+        primary_entry: primary_entry,
+        secondary_entry: secondary_entry
+      ).call
+    end
+
+    redirect_to notepad_entry_path(primary_entry), notice: "Pages merged into #{primary_entry.display_title}."
+  rescue ActiveRecord::RecordNotFound, ArgumentError => error
+    redirect_back fallback_location: notepad_entry_path(@notepad_entry), alert: error.message
+  rescue ActiveRecord::RecordInvalid => error
+    redirect_back fallback_location: notepad_entry_path(@notepad_entry), alert: error.record.errors.full_messages.to_sentence
+  end
+
   private
 
   def set_notepad_entry
@@ -114,6 +136,14 @@ class NotepadEntriesController < BrowserController
     end
     @selected_move_destination_chapter_id = move_destination_chapter_id
     @selected_move_destination_label = move_destination_label(move_destination_chapter)
+  end
+
+  def load_merge_candidates
+    return unless @notepad_entry&.persisted?
+
+    @merge_candidates = current_user.notepad_entries
+      .where.not(id: @notepad_entry.id)
+      .recent_first
   end
 
   def notepad_entry_params
@@ -445,6 +475,12 @@ class NotepadEntriesController < BrowserController
     return if chapter.blank?
 
     "#{chapter.notebook.title} > #{chapter.title}"
+  end
+
+  def merge_entry_pair(selected_entry)
+    return [selected_entry, @notepad_entry] if params[:merge_primary].to_s == "selected"
+
+    [@notepad_entry, selected_entry]
   end
 
   def allow_blank_content_for_update?(notes_value:)

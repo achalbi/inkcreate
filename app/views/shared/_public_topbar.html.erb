@@ -1,0 +1,37 @@
+<%
+  nav_links = Array(local_assigns.fetch(:nav_links, []))
+  action_links = Array(local_assigns.fetch(:action_links, []))
+  nav_label = local_assigns.fetch(:nav_label, "Public navigation")
+  action_container_class = ["nav-actions", local_assigns[:action_container_class]].compact.join(" ")
+%>
+
+<header class="topbar">
+  <a class="brand" href="<%= root_path %>">
+    <img class="brand-mark" src="/icons/app-icon.svg" alt="Inkcreate icon">
+    <span class="brand-copy">
+      <strong>Inkcreate</strong>
+      <span>Notebook OCR Companion</span>
+    </span>
+  </a>
+
+  <% if nav_links.any? || action_links.any? %>
+    <div class="topbar-right">
+      <% if nav_links.any? %>
+        <nav aria-label="<%= nav_label %>">
+          <% nav_links.each do |link| %>
+            <% active = link.key?(:active) ? link[:active] : current_page?(link.fetch(:path)) %>
+            <%= link_to link.fetch(:label), link.fetch(:path), class: ("is-active" if active) %>
+          <% end %>
+        </nav>
+      <% end %>
+
+      <% if action_links.any? %>
+        <div class="<%= action_container_class %>">
+          <% action_links.each do |link| %>
+            <%= link_to link.fetch(:label), link.fetch(:path), class: link.fetch(:class_name) %>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</header>

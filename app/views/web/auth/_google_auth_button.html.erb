@@ -4,7 +4,9 @@
     <span><%= local_assigns.fetch(:label, "Continue with Google") %></span>
   <% end %>
 
-  <div class="auth-divider" aria-hidden="true">
-    <span>or</span>
-  </div>
+  <% if local_assigns.fetch(:show_divider, false) %>
+    <div class="auth-divider" aria-hidden="true">
+      <span>or</span>
+    </div>
+  <% end %>
 <% end %>

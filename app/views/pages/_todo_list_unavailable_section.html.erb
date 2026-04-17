@@ -1,15 +1,13 @@
-<section class="ibox float-e-margins">
-  <div class="ibox-title">
-    <div class="detail-photo-gallery-heading">
-      <h5 class="detail-photo-gallery-title">To-do list</h5>
-      <span class="label label-default">Unavailable</span>
+<section class="notepad-doc__block notepad-doc__block--todos">
+  <div class="notepad-doc__block-header">
+    <div class="notepad-doc__block-label">
+      <i class="ti ti-checkbox" aria-hidden="true"></i>
+      To-do list
     </div>
   </div>
 
-  <div class="ibox-content">
-    <%= render "shared/inline_alert",
-      type: :warning,
-      title: "To-do list is not ready yet",
-      message: "Run the latest database migrations to enable checklist items on pages." %>
-  </div>
+  <%= render "shared/inline_alert",
+    type: :warning,
+    title: "To-do list is not ready yet",
+    message: "Run the latest database migrations to enable checklist items on pages." %>
 </section>

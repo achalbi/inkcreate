@@ -1,131 +1,140 @@
 <%
   docs = page.scanned_documents.with_attached_enhanced_image.with_attached_document_pdf.recent_first
-  post_url = notebook_chapter_page_scanned_documents_path(notebook, chapter, page)
+  scan_capture_tips_id = dom_id(page, :scan_capture_tips)
 %>
 
 <section
   id="<%= dom_id(page, :scanned_documents_section) %>"
-  class="ibox float-e-margins detail-section-anchor"
+  class="notepad-doc__block notepad-doc__block--scans detail-section-anchor"
   data-controller="document-capture"
-  data-document-capture-post-url-value="<%= post_url %>"
+  data-document-capture-post-url-value="<%= notebook_chapter_page_scanned_documents_path(notebook, chapter, page) %>"
   data-document-capture-csrf-value="<%= form_authenticity_token %>"
 >
-  <div class="ibox-title">
-    <div class="detail-photo-gallery-heading">
-      <h5 class="detail-photo-gallery-title">Scanned documents</h5>
-      <span class="label label-info detail-photo-gallery-count"><%= docs.size %></span>
+  <div class="notepad-doc__block-header">
+    <div class="notepad-doc__block-label">
+      <i class="ti ti-scan" aria-hidden="true"></i>
+      Scanned documents<% if docs.any? %> · <%= docs.size %><% end %>
     </div>
-    <div class="ibox-tools d-flex align-items-center gap-2">
+    <div class="notepad-doc__block-actions">
       <button
         type="button"
-        class="btn btn-primary btn-sm"
-        data-action="click->document-capture#open"
-        aria-label="Scan a document"
+        class="btn btn-white btn-sm btn-icon photo-section-info-button"
+        data-bs-toggle="collapse"
+        data-bs-target="#<%= scan_capture_tips_id %>"
+        aria-expanded="false"
+        aria-controls="<%= scan_capture_tips_id %>"
+        title="Capture tips"
+        aria-label="Capture tips"
       >
-        <i class="ti ti-scan" aria-hidden="true"></i> Scan
+        <i class="ti ti-info-circle" aria-hidden="true"></i>
       </button>
-      <%= render "shared/ibox_toggle_button", target_id: dom_id(page, :scanned_documents_content) %>
+      <button
+        type="button"
+        class="btn btn-white btn-sm"
+        data-action="click->document-capture#open"
+      >
+        <i class="ti ti-scan" aria-hidden="true"></i><span> Scan</span>
+      </button>
     </div>
   </div>
 
-  <div id="<%= dom_id(page, :scanned_documents_content) %>" class="ibox-content collapse show">
-	    <% if docs.any? %>
-	      <div class="sdoc-list">
-	        <% docs.each do |doc| %>
-	          <% pdf_view_url = doc.document_pdf.attached? ? rails_blob_path(doc.document_pdf, only_path: true, disposition: "inline") : nil %>
-	          <% pdf_download_url = doc.document_pdf.attached? ? rails_blob_path(doc.document_pdf, only_path: true, disposition: "attachment") : nil %>
-	          <div class="sdoc-card" id="<%= dom_id(doc) %>">
-            <div class="sdoc-accent-bar"></div>
-            <div class="sdoc-inner">
-              <div class="sdoc-header">
-                <% if pdf_view_url.present? %>
-                  <button
-                    type="button"
-                    class="sdoc-title sdoc-title-button"
-                    data-action="click->document-capture#openPdf"
-                    data-pdf-url="<%= pdf_view_url %>"
-                    title="View PDF"
-                  ><%= doc.title.presence || "Untitled scan" %></button>
-                <% else %>
-                  <div class="sdoc-title"><%= doc.title.presence || "Untitled scan" %></div>
-                <% end %>
-	                <div class="sdoc-meta">
-	                  <span class="sdoc-engine-label">PDF ready · <%= doc.created_at.strftime("%-d %b") %></span>
-	                </div>
+  <%= render "shared/document_capture_tips_panel",
+    target_id: scan_capture_tips_id,
+    extra_classes: "m-b-md" %>
+
+  <% if docs.any? %>
+    <div class="sdoc-list">
+      <% docs.each do |doc| %>
+        <% pdf_view_url = doc.document_pdf.attached? ? rails_blob_path(doc.document_pdf, only_path: true, disposition: "inline") : nil %>
+        <% pdf_download_url = doc.document_pdf.attached? ? rails_blob_path(doc.document_pdf, only_path: true, disposition: "attachment") : nil %>
+        <div class="sdoc-card" id="<%= dom_id(doc) %>">
+          <div class="sdoc-accent-bar"></div>
+          <div class="sdoc-inner">
+            <div class="sdoc-header">
+              <% if pdf_view_url.present? %>
+                <button
+                  type="button"
+                  class="sdoc-title sdoc-title-button"
+                  data-action="click->document-capture#openPdf"
+                  data-pdf-url="<%= pdf_view_url %>"
+                  title="View PDF"
+                ><%= doc.title.presence || "Untitled scan" %></button>
+              <% else %>
+                <div class="sdoc-title"><%= doc.title.presence || "Untitled scan" %></div>
+              <% end %>
+              <div class="sdoc-meta">
+                <span class="sdoc-engine-label">PDF ready · <%= doc.created_at.strftime("%-d %b") %></span>
               </div>
+            </div>
 
-		              <div class="sdoc-body">
-		                <% if pdf_view_url.present? %>
-		                  <button
-	                    type="button"
-	                    class="sdoc-preview-button"
-	                    data-action="click->document-capture#openPdf"
-	                    data-pdf-url="<%= pdf_view_url %>"
-	                    title="View PDF"
-	                  >
-	                    <% if doc.enhanced_image.attached? %>
-	                      <%= image_tag doc.enhanced_image, class: "sdoc-thumb", alt: doc.title %>
-	                    <% else %>
-	                      <div class="sdoc-thumb sdoc-thumb--placeholder">
-	                        <i class="ti ti-file-text" aria-hidden="true"></i>
-	                      </div>
-	                    <% end %>
-	                  </button>
-	                <% else %>
-	                  <div class="sdoc-preview-static">
-	                    <% if doc.enhanced_image.attached? %>
-	                      <%= image_tag doc.enhanced_image, class: "sdoc-thumb", alt: doc.title %>
-	                    <% else %>
-	                      <div class="sdoc-thumb sdoc-thumb--placeholder">
-	                        <i class="ti ti-file-text" aria-hidden="true"></i>
-	                      </div>
-	                    <% end %>
-		                  </div>
-		                <% end %>
-			                <div class="sdoc-actions">
-					              <% if pdf_download_url.present? %>
-						                  <%= link_to(
-						                      pdf_download_url,
-					                      class: "btn btn-white btn-sm sdoc-action-btn sdoc-action-btn--icon",
-				                      aria: { label: "Download" },
-				                      data: { turbo: false },
-				                      download: doc.document_pdf.filename.to_s
-				                    ) do %>
-			                    <i class="ti ti-download" aria-hidden="true"></i>
-		                  <% end %>
-		                <% end %>
+            <div class="sdoc-body">
+              <% if pdf_view_url.present? %>
+                <button
+                  type="button"
+                  class="sdoc-preview-button"
+                  data-action="click->document-capture#openPdf"
+                  data-pdf-url="<%= pdf_view_url %>"
+                  title="View PDF"
+                >
+                  <% if doc.enhanced_image.attached? %>
+                    <%= image_tag doc.enhanced_image, class: "sdoc-thumb", alt: doc.title %>
+                  <% else %>
+                    <div class="sdoc-thumb sdoc-thumb--placeholder">
+                      <i class="ti ti-file-text" aria-hidden="true"></i>
+                    </div>
+                  <% end %>
+                </button>
+              <% else %>
+                <div class="sdoc-preview-static">
+                  <% if doc.enhanced_image.attached? %>
+                    <%= image_tag doc.enhanced_image, class: "sdoc-thumb", alt: doc.title %>
+                  <% else %>
+                    <div class="sdoc-thumb sdoc-thumb--placeholder">
+                      <i class="ti ti-file-text" aria-hidden="true"></i>
+                    </div>
+                  <% end %>
+                </div>
+              <% end %>
+              <div class="sdoc-actions">
+                <% if pdf_download_url.present? %>
+                  <%= link_to(
+                    pdf_download_url,
+                    class: "btn btn-white btn-sm sdoc-action-btn sdoc-action-btn--icon",
+                    aria: { label: "Download" },
+                    data: { turbo: false },
+                    download: doc.document_pdf.filename.to_s
+                  ) do %>
+                    <i class="ti ti-download" aria-hidden="true"></i>
+                  <% end %>
+                <% end %>
 
-				                <%= button_to(
-				                    notebook_chapter_page_scanned_document_path(notebook, chapter, page, doc),
-				                    method: :delete,
-				                    form: { class: "sdoc-action-form sdoc-delete-form", data: { turbo_confirm: "Delete this scan?" } },
-				                    class: "btn btn-white btn-sm sdoc-action-btn sdoc-action-btn--icon sdoc-delete-btn",
-				                    aria: { label: "Delete" }
-				                  ) do %>
-		                  <i class="ti ti-trash" aria-hidden="true"></i>
-		                <% end %>
-		                </div>
-		              </div>
+                <%= button_to(
+                  notebook_chapter_page_scanned_document_path(notebook, chapter, page, doc),
+                  method: :delete,
+                  form: { class: "sdoc-action-form sdoc-delete-form", data: { turbo_confirm: "Delete this scan?" } },
+                  class: "btn btn-white btn-sm sdoc-action-btn sdoc-action-btn--icon sdoc-delete-btn",
+                  aria: { label: "Delete" }
+                ) do %>
+                  <i class="ti ti-trash" aria-hidden="true"></i>
+                <% end %>
+              </div>
             </div>
           </div>
-        <% end %>
-      </div>
-	    <% else %>
-	      <div class="sdoc-empty-state">
-        <div class="sdoc-empty-icon">
-          <i class="ti ti-file-text" aria-hidden="true"></i>
-	        </div>
-	        <div class="sdoc-empty-title">No scanned documents yet</div>
-	        <div class="sdoc-empty-sub">Capture a document as a PDF to keep receipts, notes, and pages together.</div>
-	      <button
-	        type="button"
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="sdoc-empty-state">
+      <div class="sdoc-empty-icon"><i class="ti ti-file-text" aria-hidden="true"></i></div>
+      <div class="sdoc-empty-title">No scanned documents yet</div>
+      <div class="sdoc-empty-sub">Capture a document as a PDF to keep receipts, notes, and pages together.</div>
+      <button
+        type="button"
         class="btn btn-white btn-sm"
         data-action="click->document-capture#open"
       ><i class="ti ti-scan" aria-hidden="true"></i> Scan your first document</button>
-      </div>
-    <% end %>
-  </div>
+    </div>
+  <% end %>
 
   <%= render "shared/scanned_document_capture_overlay" %>
-
 </section>

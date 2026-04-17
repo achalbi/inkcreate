@@ -1,3 +1,6 @@
 <div class="wrapper wrapper-content animated fadeInRight">
+  <%= render "shared/workspace_breadcrumbs",
+    items: [["Home", dashboard_path], ["Notebook", notebooks_path], [@notebook.title, notebook_path(@notebook)], [@chapter.title, notebook_chapter_path(@notebook, @chapter)], [@page.display_title, notebook_chapter_page_path(@notebook, @chapter, @page)], "Edit page"] %>
+
   <%= render "form", notebook: @notebook, chapter: @chapter, page: @page %>
 </div>

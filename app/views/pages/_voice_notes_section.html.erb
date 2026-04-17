@@ -1,52 +1,59 @@
 <%
   form = local_assigns[:form]
-  voice_notes = page.voice_notes.recent_first.includes(audio_attachment: :blob)
-  recorder_mode = page.persisted? ? :persisted : :form
-  recorder_url = page.persisted? ? notebook_chapter_page_voice_notes_path(notebook, chapter, page) : nil
-  content_id = dom_id(page, :voice_notes_content)
-  param_key = form&.object_name.to_s.presence || "page"
+  voice_notes = form.present? ? [] : page.voice_notes.recent_first.includes(audio_attachment: :blob)
+  recorder_mode = form.present? ? :form : :persisted
+  recorder_url = form.present? ? nil : notebook_chapter_page_voice_notes_path(notebook, chapter, page)
+  section_classes = [
+    "notepad-doc__block",
+    "notepad-doc__block--voice",
+    ("notepad-doc-edit__section" if form.present?),
+    "detail-section-anchor"
+  ].compact.join(" ")
 %>
 
 <section
   id="<%= dom_id(page, :voice_notes_section) %>"
-  class="ibox float-e-margins detail-section-anchor"
-  data-controller="voice-recorder voice-note-list"
+  class="<%= section_classes %>"
+  data-controller="<%= form.present? ? "voice-recorder" : "voice-recorder voice-note-list" %>"
   data-voice-recorder-auto-submit-on-save-value="false"
   data-voice-recorder-mode-value="<%= recorder_mode %>"
   data-voice-recorder-max-duration-seconds-value="<%= VoiceNote::MAX_DURATION_SECONDS %>"
-  data-voice-recorder-param-key-value="<%= param_key %>"
+  data-voice-recorder-param-key-value="<%= form&.object_name.to_s.presence || "page" %>"
   <% if recorder_url.present? %>
-    data-voice-recorder-create-url-value="<%= recorder_url %>"
+  data-voice-recorder-create-url-value="<%= recorder_url %>"
   <% end %>
 >
-  <div class="ibox-title">
-    <div class="detail-photo-gallery-heading">
-      <h5 class="detail-photo-gallery-title">Voice notes</h5>
-      <span class="label label-info detail-photo-gallery-count"><%= voice_notes.size %></span>
+  <div class="notepad-doc__block-header">
+    <div class="notepad-doc__block-label">
+      <i class="ti ti-microphone" aria-hidden="true"></i>
+      Voice notes<% if voice_notes.any? %> · <%= voice_notes.size %><% end %>
     </div>
-    <div class="ibox-tools d-flex align-items-center gap-2">
+    <div class="notepad-doc__block-actions">
       <% if voice_notes.any? %>
         <button
           type="button"
-          class="btn btn-white btn-sm btn-icon voice-note-list__toggle"
+          class="btn btn-white btn-sm voice-note-list__toggle"
           data-voice-note-list-target="toggle"
           data-action="voice-note-list#toggle"
           aria-expanded="false"
           aria-label="Expand voice note details"
           title="Expand voice note details"
         >
-          <i class="ti ti-chevron-right" aria-hidden="true"></i>
+          <i class="ti ti-chevron-right" aria-hidden="true"></i><span> Details</span>
         </button>
       <% end %>
-      <button type="button" class="btn btn-primary btn-sm" data-voice-recorder-target="startButton" data-action="voice-recorder#start">
-        <i class="ti ti-microphone" aria-hidden="true"></i>
-        <span>Record</span>
+      <button
+        type="button"
+        class="btn btn-white btn-sm"
+        data-voice-recorder-target="startButton"
+        data-action="voice-recorder#start"
+      >
+        <i class="ti ti-microphone" aria-hidden="true"></i><span> Record</span>
       </button>
-      <%= render "shared/ibox_toggle_button", target_id: content_id %>
     </div>
   </div>
 
-  <div id="<%= content_id %>" class="ibox-content collapse show" data-voice-recorder-target="panel">
+  <div data-voice-recorder-target="panel">
     <div class="voice-note-recorder">
       <%= render "pages/voice_note_recorder_content",
         recorder_form: form,
@@ -54,20 +61,18 @@
         show_start_button: false %>
     </div>
 
-    <% if voice_notes.any? %>
-      <div class="m-t-md voice-note-list-content">
-        <div class="notebook-list-stack notebook-list-stack--separated">
+    <% unless form.present? %>
+      <% if voice_notes.any? %>
+        <div class="notepad-doc__voice-strip">
           <% voice_notes.each do |voice_note| %>
             <%= render "shared/voice_note_list_item",
               voice_note: voice_note,
               delete_path: notebook_chapter_page_voice_note_path(notebook, chapter, page, voice_note) %>
           <% end %>
         </div>
-      </div>
-    <% elsif !form.present? %>
-      <div class="m-t-md">
-        <%= render "shared/empty_state", title: "No voice notes yet", description: "Record an audio note to capture spoken context for this page." %>
-      </div>
+      <% else %>
+        <p class="text-muted m-b-none" style="font-size: 0.875rem;">No voice notes yet — press Record to start.</p>
+      <% end %>
     <% end %>
   </div>
 </section>

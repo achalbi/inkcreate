@@ -1,4 +1,22 @@
 <div class="page-shell">
+  <%= render "shared/public_topbar",
+    menu_id: "onboarding-menu",
+    nav_label: "Onboarding navigation",
+    nav_links: [
+      { label: "Home", path: root_path, active: false },
+      { label: "Privacy", path: privacy_policy_path },
+      { label: "Terms", path: terms_of_service_path }
+    ],
+    action_container_class: ("nav-actions-auth" unless @signed_in),
+    action_links: if @signed_in
+      [{ label: "Open workspace", path: dashboard_path, class_name: "mini-button mini-button-primary" }]
+    else
+      [
+        { label: "Sign in", path: browser_sign_in_path, class_name: "mini-button" },
+        { label: google_only_auth_mode? ? "Start with Google" : "Create account", path: public_auth_entry_path, class_name: "mini-button mini-button-primary" }
+      ]
+    end %>
+
   <section class="section-card">
     <div class="section-header">
       <div class="eyebrow">Onboarding</div>
@@ -33,9 +51,11 @@
       <% if @signed_in %>
         <%= link_to "Open workspace", dashboard_path, class: "button button-primary" %>
       <% else %>
-        <%= link_to "Create account", browser_sign_up_path, class: "button button-primary" %>
+        <%= link_to(google_only_auth_mode? ? "Start with Google" : "Create account", public_auth_entry_path, class: "button button-primary") %>
       <% end %>
       <%= link_to "Install guidance", install_path, class: "button button-secondary" %>
     </div>
   </section>
+
+  <%= render "shared/public_footer" %>
 </div>

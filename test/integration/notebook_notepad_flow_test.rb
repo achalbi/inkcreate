@@ -205,6 +205,91 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
     assert_redirected_to notepad_entry_path(entry)
   end
 
+  test "user can merge notepad pages and keep the selected page as primary" do
+    user = build_user(email: "notepad-merge@example.com")
+    current_entry = user.notepad_entries.create!(
+      title: "Morning notes",
+      notes: "<div>Agenda review</div>",
+      entry_date: Date.new(2026, 4, 16)
+    )
+    selected_entry = user.notepad_entries.create!(
+      title: "Afternoon notes",
+      notes: "<div>Follow-up tasks</div>",
+      entry_date: Date.new(2026, 4, 17)
+    )
+
+    sign_in_browser_user(user)
+
+    get notepad_entry_path(current_entry)
+
+    assert_difference -> { user.notepad_entries.count }, -1 do
+      post merge_notepad_entry_path(current_entry), params: {
+        authenticity_token: authenticity_token_for(merge_notepad_entry_path(current_entry)),
+        merge_notepad_entry_id: selected_entry.id,
+        merge_primary: "selected"
+      }
+    end
+
+    assert_redirected_to notepad_entry_path(selected_entry)
+    assert_nil user.notepad_entries.find_by(id: current_entry.id)
+
+    selected_entry.reload
+    assert_equal "Afternoon notes", selected_entry.title
+    assert_match "Follow-up tasks", selected_entry.plain_notes
+    assert_match "Agenda review", selected_entry.plain_notes
+  end
+
+  test "notebook page quick create from chapter creates the page before edit loads" do
+    user = User.create!(
+      email: "notebook-page-quick-create@example.com",
+      password: "Password123!",
+      password_confirmation: "Password123!",
+      time_zone: "UTC",
+      locale: "en",
+      role: :user
+    )
+
+    notebook = user.notebooks.create!(
+      title: "Research notebook",
+      description: "Discovery notes",
+      status: :active
+    )
+    chapter = notebook.chapters.create!(title: "Interviews")
+
+    sign_in_browser_user(user)
+
+    get notebook_chapter_path(notebook, chapter)
+
+    assert_response :success
+    assert_select "form.button_to[action='#{quick_create_notebook_chapter_pages_path(notebook, chapter)}'] button.workspace-fab", count: 1
+
+    assert_difference -> { chapter.pages.count }, +1 do
+      post quick_create_notebook_chapter_pages_path(notebook, chapter), params: {
+        authenticity_token: authenticity_token_for(quick_create_notebook_chapter_pages_path(notebook, chapter))
+      }
+    end
+
+    page = chapter.pages.order(:created_at).last
+
+    assert_redirected_to edit_notebook_chapter_page_path(notebook, chapter, page)
+    assert_equal Date.current, page.captured_on
+    assert_equal "#{Date.current.strftime("%b %-d, %Y")} - Page 1", page.title
+    assert_equal "", page.notes.to_s
+    follow_redirect!
+    assert_response :success
+
+    patch notebook_chapter_page_path(notebook, chapter, page), params: {
+      authenticity_token: authenticity_token_for(notebook_chapter_page_path(notebook, chapter, page)),
+      page: {
+        title: page.title,
+        notes: "",
+        captured_on: Date.current
+      }
+    }
+
+    assert_redirected_to notebook_chapter_page_path(notebook, chapter, page)
+  end
+
   test "user can create a notepad entry with only a to-do list item" do
     user = User.create!(
       email: "notepad-todo@example.com",

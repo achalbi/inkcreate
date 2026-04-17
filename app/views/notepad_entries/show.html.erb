@@ -10,13 +10,13 @@
   photo_count = @notepad_entry.photos.count
   scanned_document_count = docs.size
   quick_edit_modal_id = dom_id(@notepad_entry, :quick_edit_modal)
-  format_modal_id = dom_id(@notepad_entry, :format_export_modal)
   scan_capture_tips_id = dom_id(@notepad_entry, :scan_capture_tips)
   overview_section_id = dom_id(@notepad_entry, :overview_section)
   photos_section_id = dom_id(@notepad_entry, :photos_section)
   voice_notes_section_id = dom_id(@notepad_entry, :voice_notes_section)
   todo_list_section_id = dom_id(@notepad_entry, :todo_list_section)
   scanned_documents_section_id = dom_id(@notepad_entry, :scanned_documents_section)
+  merge_section_id = dom_id(@notepad_entry, :merge_section)
   move_form_id = dom_id(@notepad_entry, :move_form)
   move_to_notebook_section_id = dom_id(@notepad_entry, :move_to_notebook_section)
   section_shortcuts = [
@@ -26,6 +26,7 @@
   section_shortcuts << { label: "Voice notes", short_label: "Voice", icon: "ti-microphone", target: voice_notes_section_id } if voice_notes_available
   section_shortcuts << { label: "To-do list", short_label: "To-do", icon: "ti-checkbox", target: todo_list_section_id } if todo_lists_available
   section_shortcuts << { label: "Scanned documents", short_label: "Scans", icon: "ti-scan", target: scanned_documents_section_id }
+  section_shortcuts << { label: "Merge pages", short_label: "Merge", icon: "ti-link", target: merge_section_id }
   section_shortcuts << { label: "Move to notebook", short_label: "Move", icon: "ti-arrows-transfer-up-down", target: move_to_notebook_section_id }
   has_content = @notepad_entry.plain_notes.present? || @notepad_entry.photos.attached? ||
                 voice_note_count > 0 || todo_items.any? || docs.any?
@@ -52,13 +53,7 @@
     </div>
   </nav>
 
-  <div
-    class="notepad-doc"
-    data-controller="notepad-document"
-    data-notepad-document-format-modal-id-value="<%= format_modal_id %>"
-    data-notepad-document-title-value="<%= @notepad_entry.display_title %>"
-    data-notepad-document-date-value="<%= @notepad_entry.entry_date.strftime("%A, %B %-d, %Y") %>"
-  >
+  <div class="notepad-doc">
     <%# ── Document canvas ─────────────────────────── %>
     <div class="notepad-doc__canvas">
 
@@ -102,38 +97,16 @@
             </span>
           <% end %>
 
-          <div class="dropdown">
-            <button
-              type="button"
-              class="notepad-doc__meta-chip notepad-doc__meta-action dropdown-toggle"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
-            >
-              <i class="ti ti-file-export" aria-hidden="true"></i>
-              Export
-            </button>
-            <ul class="dropdown-menu">
-              <li>
-                <%= link_to pdf_notepad_entry_path(@notepad_entry, autoprint: 1),
-                  class: "dropdown-item",
-                  target: "_blank",
-                  rel: "noopener",
-                  data: { turbo: false } do %>
-                  <i class="ti ti-file-type-pdf me-2" aria-hidden="true"></i>PDF document
-                <% end %>
-              </li>
-              <li>
-                <button class="dropdown-item" type="button" data-action="click->notepad-document#exportMarkdown">
-                  <i class="ti ti-brand-markdown me-2" aria-hidden="true"></i>Markdown
-                </button>
-              </li>
-              <li>
-                <button class="dropdown-item" type="button" data-action="click->notepad-document#exportAscii">
-                  <i class="ti ti-file-text me-2" aria-hidden="true"></i>Plain text / ASCII doc
-                </button>
-              </li>
-            </ul>
-          </div>
+          <%= link_to pdf_notepad_entry_path(@notepad_entry, autoprint: 1),
+            class: "notepad-doc__meta-chip notepad-doc__meta-action",
+            target: "_blank",
+            rel: "noopener",
+            data: { turbo: false },
+            title: "Export as PDF",
+            aria: { label: "Export as PDF" } do %>
+            <i class="ti ti-file-type-pdf" aria-hidden="true"></i>
+            PDF
+          <% end %>
 
           <%= link_to edit_notepad_entry_path(@notepad_entry),
             class: "notepad-doc__meta-chip notepad-doc__meta-action",
@@ -146,11 +119,11 @@
       </header>
 
       <%# ── Document body ───────────────────────────── %>
-      <div class="notepad-doc__body" data-notepad-document-target="body">
+      <div class="notepad-doc__body">
 
         <%# ── Notes / rich text block ─────────────────── %>
         <% if @notepad_entry.plain_notes.present? %>
-          <div class="notepad-doc__block notepad-doc__block--text" data-notepad-document-target="notesBlock">
+          <div class="notepad-doc__block notepad-doc__block--text">
             <div class="detail-notes-copy trix-content workspace-trix-content">
               <%= render "shared/rich_notes", notes: @notepad_entry.notes %>
             </div>
@@ -209,7 +182,7 @@
             </div>
 
             <% if @notepad_entry.photos.attached? %>
-              <div data-notepad-document-target="photosBlock">
+              <div>
                 <%= render "notepad_entries/photo_strip", notepad_entry: @notepad_entry %>
               </div>
             <% else %>
@@ -241,6 +214,10 @@
 
       </div><%# /notepad-doc__body %>
     </div><%# /notepad-doc__canvas %>
+
+    <%= render "notepad_entries/merge_section",
+      notepad_entry: @notepad_entry,
+      merge_candidates: @merge_candidates %>
 
     <%# ── Move to notebook ─────────────────────────── %>
     <div id="<%= move_to_notebook_section_id %>" class="detail-section-anchor m-t-lg">
@@ -342,46 +319,6 @@
     >
       <i class="ti ti-plus" aria-hidden="true"></i>
     </button>
-  </div>
-
-  <%# ── Format export modal ────────────────────── %>
-  <div
-    class="modal fade notepad-format-modal"
-    id="<%= format_modal_id %>"
-    tabindex="-1"
-    aria-labelledby="<%= format_modal_id %>_label"
-    aria-hidden="true"
-  >
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="<%= format_modal_id %>_label">
-            <i class="ti ti-file-export me-2" aria-hidden="true"></i>
-            <span data-notepad-document-target="formatModalTitle">Export</span>
-          </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body p-0">
-          <textarea
-            class="notepad-format-output"
-            readonly
-            data-notepad-document-target="formatOutput"
-            aria-label="Formatted document output"
-            style="border-radius: 0; border-left: none; border-right: none; border-top: none;"
-          ></textarea>
-          <div class="notepad-format-toolbar">
-            <span class="notepad-format-toolbar__label" data-notepad-document-target="formatHint">Click to select · Cmd+A to select all</span>
-            <button
-              type="button"
-              class="btn btn-primary btn-sm"
-              data-action="click->notepad-document#copyFormat"
-            >
-              <i class="ti ti-copy me-1" aria-hidden="true"></i> Copy to clipboard
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 
 </div><%# /wrapper %>

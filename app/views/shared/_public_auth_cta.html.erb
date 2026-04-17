@@ -1,0 +1,41 @@
+<% unless user_signed_in? %>
+  <%
+    primary_label = local_assigns.fetch(:primary_label, google_only_auth_mode? ? "Continue with Google" : "Create free account")
+    primary_path = local_assigns.fetch(:primary_path, public_auth_entry_path)
+    secondary_label = local_assigns.fetch(:secondary_label, google_only_auth_mode? ? nil : "Sign in")
+    secondary_path = local_assigns.fetch(:secondary_path, browser_sign_in_path)
+    show_install_prompt = local_assigns.fetch(:show_install_prompt, false)
+    body = local_assigns.fetch(
+      :body,
+      google_only_auth_mode? ?
+        "Use one Google access page to sign in or create your Inkcreate workspace and keep capture, OCR, and notebook history in one place." :
+        "Create a free account and capture your first notebook page in minutes."
+    )
+  %>
+
+  <section class="cta-section public-cta-section">
+    <div class="cta-section-copy">
+      <div class="eyebrow"><%= local_assigns.fetch(:eyebrow, "Get started") %></div>
+      <h2><%= local_assigns.fetch(:title, "Ready to make your notebooks searchable?") %></h2>
+      <p><%= body %></p>
+    </div>
+    <div class="cta-section-actions">
+      <%= link_to primary_label, primary_path, class: "button button-primary" %>
+      <% if show_install_prompt %>
+        <div class="cta-install-action" data-controller="install-prompt">
+          <button
+            class="button button-secondary"
+            type="button"
+            data-install-prompt-target="promptButton"
+            data-action="install-prompt#prompt"
+          >
+            Install app on mobile
+          </button>
+        </div>
+      <% end %>
+      <% if secondary_label.present? %>
+        <%= link_to secondary_label, secondary_path, class: "button button-secondary" %>
+      <% end %>
+    </div>
+  </section>
+<% end %>

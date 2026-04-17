@@ -3,7 +3,7 @@
     <div class="card border-0 shadow-sm">
       <div class="card-body p-4">
         <h5 class="fw-bold mb-1">Authentication settings</h5>
-        <p class="text-muted small mb-4">Control which sign-in methods are available on the sign-in and sign-up pages.</p>
+        <p class="text-muted small mb-4">Control which sign-in methods are available on the public sign-in and sign-up pages. Password auth is disabled by default and meant to be an optional fallback.</p>
 
         <%= form_with model: @global_setting, url: admin_settings_path, method: :patch do |f| %>
           <div class="mb-4">
@@ -20,8 +20,21 @@
             <p class="text-muted small mt-1 mb-0 ps-4">
               When disabled, only Google sign-in is shown on the login and sign-up pages.
               Existing password-based accounts can still be managed, but users cannot authenticate with them from the UI.
+              In development, or when Google sign-in is not configured yet, password auth stays available as a safe fallback.
             </p>
           </div>
+
+          <% if GlobalSetting.password_auth_forced_on? %>
+            <div class="alert alert-warning small py-2 px-3 mb-4">
+              <% if GlobalSetting.development_env? && GlobalSetting.google_auth_configured? %>
+                Development mode keeps email and password available regardless of the toggle above.
+              <% elsif GlobalSetting.development_env? %>
+                Development mode keeps email and password available, and Google sign-in is not configured yet.
+              <% else %>
+                Google sign-in is not configured yet, so email and password remains available regardless of the toggle above.
+              <% end %>
+            </div>
+          <% end %>
 
           <div class="d-flex gap-2">
             <%= f.submit "Save settings", class: "btn btn-primary" %>
@@ -41,7 +54,13 @@
             <span class="badge <%= @global_setting.password_auth_enabled? ? "bg-success" : "bg-secondary" %>">
               <%= @global_setting.password_auth_enabled? ? "Enabled" : "Disabled" %>
             </span>
-            <span class="small">Email &amp; password sign-in</span>
+            <span class="small">Admin toggle for email &amp; password sign-in</span>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge <%= GlobalSetting.password_auth_enabled? ? "bg-success" : "bg-secondary" %>">
+              <%= GlobalSetting.password_auth_enabled? ? "Available" : "Hidden" %>
+            </span>
+            <span class="small">What public users see for email &amp; password auth</span>
           </div>
           <% if defined?(Auth::GoogleOauthClient) && Auth::GoogleOauthClient.configured? %>
             <div class="d-flex align-items-center gap-2">

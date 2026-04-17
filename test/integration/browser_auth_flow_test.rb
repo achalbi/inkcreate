@@ -80,24 +80,106 @@ class BrowserAuthFlowTest < ActionDispatch::IntegrationTest
     get browser_sign_up_path
 
     assert_response :success
+    assert_select ".mobile-menu-toggle", count: 0
+    assert_select ".topbar-right", count: 0
     assert_select "input[name='user[time_zone]']", count: 0
     assert_select "input[name='user[locale]']", count: 0
   end
 
-  test "sign in and sign up pages show google auth buttons when configured" do
+  test "sign in page hides the mobile menu toggle and auth mode strip" do
+    get browser_sign_in_path
+
+    assert_response :success
+    assert_select ".mobile-menu-toggle", count: 0
+    assert_select ".topbar-right", count: 0
+    assert_select ".auth-mode-strip", count: 0
+  end
+
+  test "sign in and sign up pages switch to google-only mode when password auth is disabled" do
     with_singleton_override(Auth::GoogleOauthClient, :configured?, -> { true }) do
+      GlobalSetting.instance.update!(password_auth_enabled: false)
+
       get browser_sign_in_path
 
       assert_response :success
+      assert_select ".eyebrow", text: "Access workspace"
+      assert_select "h1", text: "Sign in or create your Inkcreate workspace."
       assert_select "form[action='#{browser_google_auth_path}']"
       assert_select "button", text: /Continue with Google/
+      assert_select "[data-controller='install-prompt']", count: 0
+      assert_no_match "Install app on mobile", response.body
+      assert_select ".mobile-menu-toggle", count: 0
+      assert_select ".topbar-right", count: 0
+      assert_select ".auth-mode-strip", count: 0
+      assert_select "input[name='user[email]']", count: 0
+      assert_select "input[name='user[password]']", count: 0
 
       get browser_sign_up_path
 
+      assert_redirected_to browser_sign_in_path
+      follow_redirect!
+
       assert_response :success
+      assert_select ".eyebrow", text: "Access workspace"
       assert_select "form[action='#{browser_google_auth_path}']"
       assert_select "button", text: /Continue with Google/
+      assert_select "[data-controller='install-prompt']", count: 0
+      assert_no_match "Install app on mobile", response.body
+      assert_select ".mobile-menu-toggle", count: 0
+      assert_select ".topbar-right", count: 0
+      assert_select ".auth-mode-strip", count: 0
+      assert_select "input[name='user[email]']", count: 0
+      assert_select "input[name='user[password]']", count: 0
     end
+  end
+
+  test "password sign in is rejected when google auth is configured and password auth is disabled" do
+    user = User.create!(
+      email: "password-disabled@example.com",
+      password: "Password123!",
+      password_confirmation: "Password123!",
+      time_zone: "UTC",
+      locale: "en",
+      role: :user
+    )
+
+    with_singleton_override(Auth::GoogleOauthClient, :configured?, -> { true }) do
+      GlobalSetting.instance.update!(password_auth_enabled: false)
+
+      get browser_sign_in_path
+
+      post browser_sign_in_path, params: {
+        authenticity_token: authenticity_token_for(browser_sign_in_path),
+        user: { email: user.email, password: "Password123!" }
+      }
+    end
+
+    assert_response :unprocessable_entity
+    assert_select ".alert", text: /Email and password sign-in is disabled/
+  end
+
+  test "password sign up is rejected when google auth is configured and password auth is disabled" do
+    with_singleton_override(Auth::GoogleOauthClient, :configured?, -> { true }) do
+      GlobalSetting.instance.update!(password_auth_enabled: false)
+
+      get browser_sign_up_path
+
+      assert_no_difference -> { User.count } do
+        post browser_sign_up_path, params: {
+          authenticity_token: authenticity_token_for(browser_sign_up_path),
+          user: {
+            email: "blocked-signup@example.com",
+            password: "Password123!",
+            password_confirmation: "Password123!"
+          }
+        }
+      end
+    end
+
+    assert_response :unprocessable_entity
+    assert_select ".alert", text: /Email and password sign-up is disabled/
+    assert_select ".eyebrow", text: "Access workspace"
+    assert_select "form[action='#{browser_google_auth_path}']"
   end
 
   test "google auth signs in an existing user" do

@@ -1,0 +1,15 @@
+<article class="auth-panel auth-panel-secondary">
+  <div class="eyebrow"><%= local_assigns.fetch(:eyebrow) %></div>
+  <h2><%= local_assigns.fetch(:title) %></h2>
+  <p><%= local_assigns.fetch(:body) %></p>
+
+  <div class="auth-feature-list">
+    <% local_assigns.fetch(:items).each do |item| %>
+      <article class="auth-feature-item">
+        <div class="auth-feature-item__eyebrow"><%= item.fetch(:eyebrow) %></div>
+        <strong><%= item.fetch(:title) %></strong>
+        <p><%= item.fetch(:body) %></p>
+      </article>
+    <% end %>
+  </div>
+</article>

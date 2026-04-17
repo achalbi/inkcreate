@@ -1,38 +1,11 @@
 <div class="page-shell">
-  <header class="topbar">
-    <a class="brand" href="/">
-      <img class="brand-mark" src="/icons/app-icon.svg" alt="Inkcreate icon">
-      <span class="brand-copy">
-        <strong>Inkcreate</strong>
-        <span>Notebook OCR Companion</span>
-      </span>
-    </a>
+  <%= render "shared/public_topbar" %>
 
-    <button class="mobile-menu-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu" id="mobile-menu-toggle">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-        <line x1="3" y1="6" x2="21" y2="6"/>
-        <line x1="3" y1="12" x2="21" y2="12"/>
-        <line x1="3" y1="18" x2="21" y2="18"/>
-      </svg>
-    </button>
-
-    <div class="topbar-right" id="mobile-menu">
-      <nav aria-label="Landing sections">
-        <a href="#features">Features</a>
-        <a href="#how-it-works">How it works</a>
-        <a href="#capture">Capture</a>
-      </nav>
-
-      <div class="nav-actions <%= "nav-actions-auth" unless user_signed_in? %>">
-        <% if user_signed_in? %>
-          <a class="mini-button mini-button-primary" href="<%= dashboard_path %>">Open workspace</a>
-        <% else %>
-          <a class="mini-button" href="<%= browser_sign_in_path %>">Sign in</a>
-          <a class="mini-button mini-button-primary" href="<%= browser_sign_up_path %>">Get started free</a>
-        <% end %>
-      </div>
+  <% unless user_signed_in? %>
+    <div class="landing-top-cta">
+      <%= render "shared/public_auth_cta", show_install_prompt: google_only_auth_mode? %>
     </div>
-  </header>
+  <% end %>
 
   <%# ── HERO ── %>
   <section class="hero">
@@ -50,7 +23,7 @@
           <a class="button button-primary" href="<%= dashboard_path %>">Open workspace</a>
           <a class="button button-secondary" href="#how-it-works">See how it works</a>
         <% else %>
-          <a class="button button-primary" href="<%= browser_sign_up_path %>">Get started free</a>
+          <a class="button button-primary" href="<%= public_auth_entry_path %>"><%= google_only_auth_mode? ? "Start with Google" : "Get started free" %></a>
           <a class="button button-secondary" href="#how-it-works">See how it works</a>
         <% end %>
       </div>
@@ -286,43 +259,7 @@
       </div>
     </section>
 
-    <%# ── CTA (logged out only) ── %>
-    <% unless user_signed_in? %>
-      <section class="cta-section">
-        <div class="cta-section-copy">
-          <div class="eyebrow">Get started</div>
-          <h2>Ready to make your notebooks searchable?</h2>
-          <p>Create a free account and capture your first page in minutes.</p>
-        </div>
-        <div class="cta-section-actions">
-          <a class="button button-primary" href="<%= browser_sign_up_path %>">Create free account</a>
-          <a class="button button-secondary" href="<%= browser_sign_in_path %>">Sign in</a>
-        </div>
-      </section>
-    <% end %>
   </main>
 
   <%= render "shared/public_footer" %>
 </div>
-
-<script>
-  (function() {
-    var toggle = document.getElementById("mobile-menu-toggle");
-    var menu = document.getElementById("mobile-menu");
-    if (!toggle || !menu) return;
-
-    toggle.addEventListener("click", function() {
-      var expanded = toggle.getAttribute("aria-expanded") === "true";
-      toggle.setAttribute("aria-expanded", String(!expanded));
-      menu.classList.toggle("mobile-menu-open", !expanded);
-    });
-
-    // Close menu when a nav link is clicked
-    menu.querySelectorAll("a").forEach(function(link) {
-      link.addEventListener("click", function() {
-        toggle.setAttribute("aria-expanded", "false");
-        menu.classList.remove("mobile-menu-open");
-      });
-    });
-  })();
-</script>

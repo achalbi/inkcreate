@@ -34,6 +34,10 @@ class BrowserController < ActionController::Base
     :user_signed_in?,
     :workspace_header_page?,
     :workspace_layout_page?,
+    :google_auth_available?,
+    :password_auth_available?,
+    :google_only_auth_mode?,
+    :public_auth_entry_path,
     :versioned_public_asset_path,
     :current_device_record,
     :reminder_relative_time,
@@ -84,6 +88,22 @@ class BrowserController < ActionController::Base
     else
       format("%02d:%02d", minutes, seconds)
     end
+  end
+
+  def google_auth_available?
+    GlobalSetting.google_auth_configured?
+  end
+
+  def password_auth_available?
+    GlobalSetting.password_auth_enabled?
+  end
+
+  def google_only_auth_mode?
+    google_auth_available? && !password_auth_available?
+  end
+
+  def public_auth_entry_path
+    google_only_auth_mode? ? browser_sign_in_path : browser_sign_up_path
   end
 
   private

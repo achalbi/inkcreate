@@ -82,151 +82,6 @@
               </button>
               <p class="help-block notepad-entry-move-panel__help">Choose a notebook in the modal, then pick a chapter to continue.</p>
             </div>
-
-            <div
-              class="modal fade notebook-section-modal notepad-entry-move-modal"
-              id="<%= move_modal_id %>"
-              tabindex="-1"
-              aria-labelledby="<%= "#{move_modal_id}-label" %>"
-              aria-hidden="true"
-            >
-              <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-                <div
-                  class="modal-content"
-                  data-controller="move-destination"
-                  data-move-destination-placeholder-value="Choose a notebook and chapter"
-                  data-move-destination-notebooks-value="<%= json_escape(move_destination_data.to_json) %>"
-                  data-move-destination-input-id-value="<%= move_destination_input_id %>"
-                  data-move-destination-display-label-id-value="<%= move_destination_display_id %>"
-                >
-                  <div class="modal-header notebook-section-modal__header">
-                    <div>
-                      <div class="notebook-section-modal__eyebrow">Move destination</div>
-                      <h5 id="<%= "#{move_modal_id}-label" %>" class="modal-title notebook-section-modal__title">
-                        Choose a notebook and chapter
-                      </h5>
-                    </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                  </div>
-
-                  <div class="modal-body notebook-section-modal__body">
-                    <div class="notepad-entry-move-modal__selection">
-                      <span class="notepad-entry-move-modal__selection-label">Pending destination</span>
-                      <span class="notepad-entry-move-modal__selection-value" data-move-destination-target="pendingLabel"><%= selected_move_destination_label.presence || "Choose a notebook and chapter" %></span>
-                    </div>
-
-                    <div class="notepad-entry-move-modal__field-stack">
-                      <div class="form-group">
-                        <label class="control-label" for="<%= "#{move_modal_id}_notebook_dropdown" %>">Notebook</label>
-                        <div class="dropdown notepad-entry-move-modal__dropdown">
-                          <button
-                            id="<%= "#{move_modal_id}_notebook_dropdown" %>"
-                            type="button"
-                            class="btn btn-white notepad-entry-move-modal__dropdown-toggle dropdown-toggle"
-                            data-bs-toggle="dropdown"
-                            aria-expanded="false"
-                          >
-                            <span data-move-destination-target="notebookButtonLabel"><%= selected_move_destination_notebook&.title.presence || "Choose a notebook" %></span>
-                          </button>
-                          <div
-                            class="dropdown-menu w-100 notepad-entry-move-modal__dropdown-menu"
-                            data-move-destination-target="notebookMenu"
-                            aria-labelledby="<%= "#{move_modal_id}_notebook_dropdown" %>"
-                          >
-                            <% move_destination_notebooks.each do |notebook| %>
-                              <% notebook_selected = notebook.id.to_s == selected_move_destination_notebook&.id.to_s %>
-                              <button
-                                type="button"
-                                class="dropdown-item notepad-entry-move-modal__dropdown-item<%= " active" if notebook_selected %>"
-                                data-action="click->move-destination#chooseNotebook"
-                                data-notebook-id="<%= notebook.id %>"
-                              >
-                                <span class="notepad-entry-move-modal__dropdown-item-title"><%= notebook.title %></span>
-                                <span class="notepad-entry-move-modal__dropdown-item-meta"><%= pluralize(notebook.chapters.size, "chapter") %></span>
-                              </button>
-                            <% end %>
-                          </div>
-                        </div>
-                        <p class="help-block notepad-entry-move-modal__help">Select a notebook first to load its chapters.</p>
-                      </div>
-
-                      <div class="form-group m-b-none">
-                        <label class="control-label" for="<%= "#{move_modal_id}_chapter_dropdown" %>">Chapter</label>
-                        <div class="dropdown notepad-entry-move-modal__dropdown">
-                          <button
-                            id="<%= "#{move_modal_id}_chapter_dropdown" %>"
-                            type="button"
-                            class="btn btn-white notepad-entry-move-modal__dropdown-toggle dropdown-toggle"
-                            data-bs-toggle="dropdown"
-                            data-move-destination-target="chapterButton"
-                            aria-expanded="false"
-                            <%= "disabled" unless selected_move_destination_notebook.present? && selected_move_destination_notebook.chapters.any? %>
-                          >
-                            <span data-move-destination-target="chapterButtonLabel">
-                              <%= if selected_move_destination_chapter.present?
-                                    selected_move_destination_chapter.title
-                                  elsif selected_move_destination_notebook.present?
-                                    "Choose a chapter"
-                                  else
-                                    "Choose a notebook first"
-                                  end %>
-                            </span>
-                          </button>
-                          <div
-                            class="dropdown-menu w-100 notepad-entry-move-modal__dropdown-menu"
-                            data-move-destination-target="chapterMenu"
-                            aria-labelledby="<%= "#{move_modal_id}_chapter_dropdown" %>"
-                          >
-                            <% if selected_move_destination_notebook.present? && selected_move_destination_notebook.chapters.any? %>
-                              <% selected_move_destination_notebook.chapters.each do |chapter| %>
-                                <% chapter_selected = chapter.id.to_s == selected_move_destination_chapter_id.to_s %>
-                                <button
-                                  type="button"
-                                  class="dropdown-item notepad-entry-move-modal__dropdown-item<%= " active" if chapter_selected %>"
-                                  data-action="click->move-destination#selectChapter"
-                                  data-notebook-id="<%= selected_move_destination_notebook.id %>"
-                                  data-chapter-id="<%= chapter.id %>"
-                                >
-                                  <span class="notepad-entry-move-modal__dropdown-item-title"><%= chapter.title %></span>
-                                  <span class="notepad-entry-move-modal__dropdown-item-meta"><%= selected_move_destination_notebook.title %></span>
-                                </button>
-                              <% end %>
-                            <% else %>
-                              <button
-                                type="button"
-                                class="dropdown-item notepad-entry-move-modal__dropdown-item disabled"
-                                disabled
-                              >
-                                <span class="notepad-entry-move-modal__dropdown-item-title">Choose a notebook first</span>
-                                <span class="notepad-entry-move-modal__dropdown-item-meta">Chapter options appear after notebook selection.</span>
-                              </button>
-                            <% end %>
-                          </div>
-                        </div>
-                        <p class="help-block notepad-entry-move-modal__help">Choose the chapter inside that notebook, then move the page.</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="modal-footer notebook-section-modal__footer">
-                    <div class="notebook-section-modal__page-info">Choose the destination here, then move the page directly.</div>
-                    <div class="notepad-entry-move-modal__footer-actions">
-                      <%= button_tag "Move to notebook chapter",
-                        type: "submit",
-                        class: "btn btn-primary btn-sm notepad-entry-move-modal__save-button",
-                        form: move_form_id,
-                        name: "intent",
-                        value: "move_to_notebook",
-                        data: {
-                          move_destination_target: "saveButton",
-                          action: "click->move-destination#commitSelection",
-                          disable_with: "Moving..."
-                        } %>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
           <% else %>
             <%= render "shared/inline_alert",
               type: :info,
@@ -268,5 +123,152 @@
           disable_with: "Moving..." %>
       </div>
     </div>
+
+    <% if move_destination_notebooks.present? %>
+      <div
+        class="modal fade notebook-section-modal notepad-entry-move-modal"
+        id="<%= move_modal_id %>"
+        tabindex="-1"
+        aria-labelledby="<%= "#{move_modal_id}-label" %>"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+          <div
+            class="modal-content"
+            data-controller="move-destination"
+            data-move-destination-placeholder-value="Choose a notebook and chapter"
+            data-move-destination-notebooks-value="<%= json_escape(move_destination_data.to_json) %>"
+            data-move-destination-input-id-value="<%= move_destination_input_id %>"
+            data-move-destination-display-label-id-value="<%= move_destination_display_id %>"
+          >
+            <div class="modal-header notebook-section-modal__header">
+              <div>
+                <div class="notebook-section-modal__eyebrow">Move destination</div>
+                <h5 id="<%= "#{move_modal_id}-label" %>" class="modal-title notebook-section-modal__title">
+                  Choose a notebook and chapter
+                </h5>
+              </div>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body notebook-section-modal__body">
+              <div class="notepad-entry-move-modal__selection">
+                <span class="notepad-entry-move-modal__selection-label">Pending destination</span>
+                <span class="notepad-entry-move-modal__selection-value" data-move-destination-target="pendingLabel"><%= selected_move_destination_label.presence || "Choose a notebook and chapter" %></span>
+              </div>
+
+              <div class="notepad-entry-move-modal__field-stack">
+                <div class="form-group">
+                  <label class="control-label" for="<%= "#{move_modal_id}_notebook_dropdown" %>">Notebook</label>
+                  <div class="dropdown notepad-entry-move-modal__dropdown">
+                    <button
+                      id="<%= "#{move_modal_id}_notebook_dropdown" %>"
+                      type="button"
+                      class="btn btn-white notepad-entry-move-modal__dropdown-toggle dropdown-toggle"
+                      data-bs-toggle="dropdown"
+                      aria-expanded="false"
+                    >
+                      <span data-move-destination-target="notebookButtonLabel"><%= selected_move_destination_notebook&.title.presence || "Choose a notebook" %></span>
+                    </button>
+                    <div
+                      class="dropdown-menu w-100 notepad-entry-move-modal__dropdown-menu"
+                      data-move-destination-target="notebookMenu"
+                      aria-labelledby="<%= "#{move_modal_id}_notebook_dropdown" %>"
+                    >
+                      <% move_destination_notebooks.each do |notebook| %>
+                        <% notebook_selected = notebook.id.to_s == selected_move_destination_notebook&.id.to_s %>
+                        <button
+                          type="button"
+                          class="dropdown-item notepad-entry-move-modal__dropdown-item<%= " active" if notebook_selected %>"
+                          data-action="click->move-destination#chooseNotebook"
+                          data-notebook-id="<%= notebook.id %>"
+                        >
+                          <span class="notepad-entry-move-modal__dropdown-item-title"><%= notebook.title %></span>
+                          <span class="notepad-entry-move-modal__dropdown-item-meta"><%= pluralize(notebook.chapters.size, "chapter") %></span>
+                        </button>
+                      <% end %>
+                    </div>
+                  </div>
+                  <p class="help-block notepad-entry-move-modal__help">Select a notebook first to load its chapters.</p>
+                </div>
+
+                <div class="form-group m-b-none">
+                  <label class="control-label" for="<%= "#{move_modal_id}_chapter_dropdown" %>">Chapter</label>
+                  <div class="dropdown notepad-entry-move-modal__dropdown">
+                    <button
+                      id="<%= "#{move_modal_id}_chapter_dropdown" %>"
+                      type="button"
+                      class="btn btn-white notepad-entry-move-modal__dropdown-toggle dropdown-toggle"
+                      data-bs-toggle="dropdown"
+                      data-move-destination-target="chapterButton"
+                      aria-expanded="false"
+                      <%= "disabled" unless selected_move_destination_notebook.present? && selected_move_destination_notebook.chapters.any? %>
+                    >
+                      <span data-move-destination-target="chapterButtonLabel">
+                        <%= if selected_move_destination_chapter.present?
+                              selected_move_destination_chapter.title
+                            elsif selected_move_destination_notebook.present?
+                              "Choose a chapter"
+                            else
+                              "Choose a notebook first"
+                            end %>
+                      </span>
+                    </button>
+                    <div
+                      class="dropdown-menu w-100 notepad-entry-move-modal__dropdown-menu"
+                      data-move-destination-target="chapterMenu"
+                      aria-labelledby="<%= "#{move_modal_id}_chapter_dropdown" %>"
+                    >
+                      <% if selected_move_destination_notebook.present? && selected_move_destination_notebook.chapters.any? %>
+                        <% selected_move_destination_notebook.chapters.each do |chapter| %>
+                          <% chapter_selected = chapter.id.to_s == selected_move_destination_chapter_id.to_s %>
+                          <button
+                            type="button"
+                            class="dropdown-item notepad-entry-move-modal__dropdown-item<%= " active" if chapter_selected %>"
+                            data-action="click->move-destination#selectChapter"
+                            data-notebook-id="<%= selected_move_destination_notebook.id %>"
+                            data-chapter-id="<%= chapter.id %>"
+                          >
+                            <span class="notepad-entry-move-modal__dropdown-item-title"><%= chapter.title %></span>
+                            <span class="notepad-entry-move-modal__dropdown-item-meta"><%= selected_move_destination_notebook.title %></span>
+                          </button>
+                        <% end %>
+                      <% else %>
+                        <button
+                          type="button"
+                          class="dropdown-item notepad-entry-move-modal__dropdown-item disabled"
+                          disabled
+                        >
+                          <span class="notepad-entry-move-modal__dropdown-item-title">Choose a notebook first</span>
+                          <span class="notepad-entry-move-modal__dropdown-item-meta">Chapter options appear after notebook selection.</span>
+                        </button>
+                      <% end %>
+                    </div>
+                  </div>
+                  <p class="help-block notepad-entry-move-modal__help">Choose the chapter inside that notebook, then move the page.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-footer notebook-section-modal__footer">
+              <div class="notebook-section-modal__page-info">Choose the destination here, then move the page directly.</div>
+              <div class="notepad-entry-move-modal__footer-actions">
+                <%= button_tag "Move to notebook chapter",
+                  type: "submit",
+                  class: "btn btn-primary btn-sm notepad-entry-move-modal__save-button",
+                  form: move_form_id,
+                  name: "intent",
+                  value: "move_to_notebook",
+                  data: {
+                    move_destination_target: "saveButton",
+                    action: "click->move-destination#commitSelection",
+                    disable_with: "Moving..."
+                  } %>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
   </div>
 </div>
