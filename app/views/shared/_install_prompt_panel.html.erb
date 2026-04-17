@@ -40,10 +40,23 @@
               type="button"
               data-install-prompt-target="promptButton"
               data-action="install-prompt#prompt"
+              hidden
             >
-              Install app on mobile
+              Install on this device
             </button>
             <%= link_to "Install guide", install_path, class: "btn btn-white btn-sm" %>
+          </div>
+
+          <p class="text-muted m-t-sm m-b-none" data-install-prompt-target="availabilityNote" hidden></p>
+
+          <div class="alert alert-warning m-t-md m-b-none" data-install-prompt-target="manualInstructions" hidden>
+            <strong class="d-block m-b-xs">Add Inkcreate to Home Screen on iPhone or iPad</strong>
+            <ol class="m-b-sm p-l-lg">
+              <li>Tap the Share button in Safari.</li>
+              <li>Choose Add to Home Screen.</li>
+              <li>Tap Add to pin Inkcreate on this device.</li>
+            </ol>
+            <p class="m-b-none">If the Add action is hidden, scroll the lower action row until it appears.</p>
           </div>
 
           <div class="alert alert-info m-t-md m-b-none" data-install-prompt-target="notificationSetup" hidden>
@@ -116,11 +129,25 @@
             type="button"
             data-install-prompt-target="promptButton"
             data-action="install-prompt#prompt"
+            hidden
           >
-            Try install prompt
+            Install Inkcreate
           </button>
           <%= link_to "Open onboarding", onboarding_path, class: "button button-secondary" %>
         </div>
+
+        <p class="install-prompt-note" data-install-prompt-target="availabilityNote" hidden></p>
+
+        <article class="feature-card mt-4" data-install-prompt-target="manualInstructions" hidden>
+          <div class="pill">iPhone Safari</div>
+          <h3>Add Inkcreate to Home Screen</h3>
+          <ol class="install-step-list">
+            <li>Tap Share in Safari.</li>
+            <li>Choose Add to Home Screen.</li>
+            <li>Tap Add to pin Inkcreate.</li>
+          </ol>
+          <p>If the Add action is hidden, scroll the lower action row until it appears.</p>
+        </article>
 
         <article class="feature-card mt-4" data-install-prompt-target="notificationSetup" hidden>
           <div class="pill">Notifications</div>
@@ -193,11 +220,25 @@
           type="button"
           data-install-prompt-target="promptButton"
           data-action="install-prompt#prompt"
+          hidden
         >
-          Install app on mobile
+          Install on this device
         </button>
         <%= link_to "See install steps", install_path, class: "button button-secondary" %>
       </div>
+
+      <p class="install-prompt-note" data-install-prompt-target="availabilityNote" hidden></p>
+
+      <article class="feature-card mt-4" data-install-prompt-target="manualInstructions" hidden>
+        <div class="pill">iPhone Safari</div>
+        <h3>Add Inkcreate to Home Screen</h3>
+        <ol class="install-step-list">
+          <li>Tap Share in Safari.</li>
+          <li>Choose Add to Home Screen.</li>
+          <li>Tap Add to pin Inkcreate.</li>
+        </ol>
+        <p>If the Add action is hidden, scroll the lower action row until it appears.</p>
+      </article>
 
       <article class="feature-card mt-4" data-install-prompt-target="notificationSetup" hidden>
         <div class="pill">Notifications</div>

@@ -14,9 +14,10 @@ class RootRouteTest < ActionDispatch::IntegrationTest
     assert_select ".mobile-menu-toggle", count: 0
     assert_select ".topbar-right", count: 0
     assert_no_match "mobile-menu-open", response.body
-    assert_select "[data-controller='install-prompt']", count: 1
+    assert_select "[data-controller='install-prompt']", count: 2
+    assert_select ".landing-top-cta .public-cta-section button[data-action='install-prompt#prompt'][hidden]", text: "Install on this device"
     assert_select "button.ibox-toggle-button[data-action='install-prompt#toggleCollapse'][aria-expanded='true']"
-    assert_select "button[data-action='install-prompt#prompt']", text: "Install app on mobile"
+    assert_select "main button[data-action='install-prompt#prompt'][hidden]", text: "Install on this device"
     assert_select "#page-loader"
     assert_select "link[href*='/inapp/page_loader.css?v=']"
     assert_select "script[src*='/scripts/page_loader.js?v=']"
@@ -36,7 +37,7 @@ class RootRouteTest < ActionDispatch::IntegrationTest
     assert_select "[data-controller='install-prompt']", count: 2
     assert_select "a[href='#{browser_sign_in_path}']", text: /Start with Google|Continue with Google/, minimum: 1
     assert_select ".public-cta-section .cta-section-actions a[href='#{browser_sign_in_path}']", text: "Continue with Google"
-    assert_select ".public-cta-section .cta-section-actions .cta-install-action button[data-action='install-prompt#prompt']", text: "Install app on mobile"
+    assert_select ".landing-top-cta .public-cta-section button[data-action='install-prompt#prompt'][hidden]", text: "Install on this device"
     assert_no_match browser_sign_up_path, response.body
   end
 end

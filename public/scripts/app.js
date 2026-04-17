@@ -34,6 +34,8 @@ import { enableNotificationsForInstall } from "/scripts/notification_preferences
 const AUTO_DISMISS_DELAY_MS = 5000;
 const AUTO_DISMISS_EXIT_MS = 280;
 
+window.__inkcreateDeferredInstallPrompt = window.__inkcreateDeferredInstallPrompt || null;
+
 const dismissTimedMessage = (element) => {
   if (!element || !element.isConnected || element.dataset.autoDismissState === "dismissing") {
     return;
@@ -105,7 +107,13 @@ application.register("onboarding-wizard", OnboardingWizardController);
 application.register("idle-shortcuts", IdleShortcutsController);
 document.addEventListener("DOMContentLoaded", () => scheduleTimedMessages());
 document.addEventListener("turbo:load", () => scheduleTimedMessages());
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  window.__inkcreateDeferredInstallPrompt = event;
+  window.dispatchEvent(new CustomEvent("inkcreate:install-available"));
+});
 window.addEventListener("appinstalled", () => {
+  window.__inkcreateDeferredInstallPrompt = null;
   enableNotificationsForInstall({ requestPermission: false }).catch(() => {
     // Ignore install notification opt-in failures and keep the app usable.
   });

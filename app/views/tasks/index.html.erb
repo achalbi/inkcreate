@@ -59,100 +59,6 @@
   <div class="workspace-index-actions task-index-actions"
        data-controller="task-dock"
        data-task-dock-collapse-threshold-value="56">
-    <div class="workspace-index-actions__left">
-      <div class="workspace-index-controls">
-        <div class="task-filter-tabs" role="tablist" aria-label="Task filters">
-          <% [
-            ["all", "All", @counts[:all]],
-            ["active", "Active", @counts[:active]],
-            ["done", "Done", @counts[:done]],
-            ["overdue", "Overdue", @counts[:overdue]],
-            ["today", "Today", @counts[:today]]
-          ].each do |filter, label, count| %>
-            <%= link_to tasks_path(filter: filter, sort: @tasks_sort, group: @tasks_group, tag: @tag_filter),
-              class: ["task-filter-tab", ("active" if @tasks_filter == filter)].compact.join(" "),
-              role: "tab",
-              aria: { selected: (@tasks_filter == filter) } do %>
-              <span class="task-filter-tab-label"><%= label %></span>
-              <span class="task-filter-tab-count"><%= count %></span>
-            <% end %>
-          <% end %>
-        </div>
-
-        <% if @tag_filter.present? %>
-          <span class="task-tag-filter-pill">
-            #<%= @tag_filter %>
-            <%= link_to tasks_path(filter: @tasks_filter, sort: @tasks_sort, group: @tasks_group), class: "task-tag-filter-clear", aria: { label: "Clear tag filter" } do %>
-              <i class="ti ti-x" aria-hidden="true"></i>
-            <% end %>
-          </span>
-        <% end %>
-
-        <div class="task-index-actions__right">
-          <button
-            type="button"
-            class="btn btn-primary btn-sm d-none d-md-inline-flex"
-            data-action="task-manager#openQuickAdd"
-            aria-label="New task"
-          >
-            <i class="ti ti-plus" aria-hidden="true"></i>
-            New task
-          </button>
-
-          <div class="task-index-selectors">
-            <div class="dropdown notepad-entry-move-modal__dropdown task-toolbar-dropdown">
-              <button
-                id="tasks_sort_dropdown"
-                type="button"
-                class="btn btn-white dropdown-toggle notepad-entry-move-modal__dropdown-toggle task-toolbar-dropdown__toggle"
-                data-bs-toggle="dropdown"
-                aria-expanded="false"
-              >
-                <span class="task-toolbar-dropdown__label">Sort</span>
-                <span class="task-toolbar-dropdown__value"><%= current_sort_label %></span>
-              </button>
-              <div
-                class="dropdown-menu w-100 notepad-entry-move-modal__dropdown-menu task-toolbar-dropdown__menu"
-                aria-labelledby="tasks_sort_dropdown"
-              >
-                <% sort_options.each do |value, label, meta| %>
-                  <%= link_to tasks_path(filter: @tasks_filter, sort: value, group: @tasks_group, tag: @tag_filter),
-                    class: ["dropdown-item", "notepad-entry-move-modal__dropdown-item", ("active" if @tasks_sort == value)].compact.join(" ") do %>
-                    <span class="notepad-entry-move-modal__dropdown-item-title"><%= label %></span>
-                    <span class="notepad-entry-move-modal__dropdown-item-meta"><%= meta %></span>
-                  <% end %>
-                <% end %>
-              </div>
-            </div>
-
-            <div class="dropdown notepad-entry-move-modal__dropdown task-toolbar-dropdown">
-              <button
-                id="tasks_group_dropdown"
-                type="button"
-                class="btn btn-white dropdown-toggle notepad-entry-move-modal__dropdown-toggle task-toolbar-dropdown__toggle"
-                data-bs-toggle="dropdown"
-                aria-expanded="false"
-              >
-                <span class="task-toolbar-dropdown__label">Group</span>
-                <span class="task-toolbar-dropdown__value"><%= current_group_label %></span>
-              </button>
-              <div
-                class="dropdown-menu w-100 notepad-entry-move-modal__dropdown-menu task-toolbar-dropdown__menu"
-                aria-labelledby="tasks_group_dropdown"
-              >
-                <% group_options.each do |value, label, meta| %>
-                  <%= link_to tasks_path(filter: @tasks_filter, sort: @tasks_sort, group: value, tag: @tag_filter),
-                    class: ["dropdown-item", "notepad-entry-move-modal__dropdown-item", ("active" if @tasks_group == value)].compact.join(" ") do %>
-                    <span class="notepad-entry-move-modal__dropdown-item-title"><%= label %></span>
-                    <span class="notepad-entry-move-modal__dropdown-item-meta"><%= meta %></span>
-                  <% end %>
-                <% end %>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
     <div class="task-completion-overview"
          aria-label="Task completion"
          data-task-dock-target="collapseOnDock">
@@ -164,6 +70,103 @@
           <div class="task-progress-fill" style="width: <%= pct %>%"></div>
         </div>
         <span class="task-progress-label"><%= pct %>%</span>
+      </div>
+    </div>
+
+    <div class="task-index-toolbar">
+      <div class="workspace-index-actions__left task-index-toolbar__filters">
+        <div class="workspace-index-controls">
+          <div class="task-filter-tabs" role="tablist" aria-label="Task filters">
+            <% [
+              ["all", "All", @counts[:all]],
+              ["active", "Active", @counts[:active]],
+              ["done", "Done", @counts[:done]],
+              ["overdue", "Overdue", @counts[:overdue]],
+              ["today", "Today", @counts[:today]]
+            ].each do |filter, label, count| %>
+              <%= link_to tasks_path(filter: filter, sort: @tasks_sort, group: @tasks_group, tag: @tag_filter),
+                class: ["task-filter-tab", ("active" if @tasks_filter == filter)].compact.join(" "),
+                role: "tab",
+                aria: { selected: (@tasks_filter == filter) } do %>
+                <span class="task-filter-tab-label"><%= label %></span>
+                <span class="task-filter-tab-count"><%= count %></span>
+              <% end %>
+            <% end %>
+          </div>
+
+          <% if @tag_filter.present? %>
+            <span class="task-tag-filter-pill">
+              #<%= @tag_filter %>
+              <%= link_to tasks_path(filter: @tasks_filter, sort: @tasks_sort, group: @tasks_group), class: "task-tag-filter-clear", aria: { label: "Clear tag filter" } do %>
+                <i class="ti ti-x" aria-hidden="true"></i>
+              <% end %>
+            </span>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="task-index-actions__right">
+        <button
+          type="button"
+          class="btn btn-primary btn-sm d-none d-md-inline-flex"
+          data-action="task-manager#openQuickAdd"
+          aria-label="New task"
+        >
+          <i class="ti ti-plus" aria-hidden="true"></i>
+          New task
+        </button>
+
+        <div class="task-index-selectors">
+          <div class="dropdown notepad-entry-move-modal__dropdown task-toolbar-dropdown">
+            <button
+              id="tasks_sort_dropdown"
+              type="button"
+              class="btn btn-white dropdown-toggle notepad-entry-move-modal__dropdown-toggle task-toolbar-dropdown__toggle"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              <span class="task-toolbar-dropdown__label">Sort</span>
+              <span class="task-toolbar-dropdown__value"><%= current_sort_label %></span>
+            </button>
+            <div
+              class="dropdown-menu w-100 notepad-entry-move-modal__dropdown-menu task-toolbar-dropdown__menu"
+              aria-labelledby="tasks_sort_dropdown"
+            >
+              <% sort_options.each do |value, label, meta| %>
+                <%= link_to tasks_path(filter: @tasks_filter, sort: value, group: @tasks_group, tag: @tag_filter),
+                  class: ["dropdown-item", "notepad-entry-move-modal__dropdown-item", ("active" if @tasks_sort == value)].compact.join(" ") do %>
+                  <span class="notepad-entry-move-modal__dropdown-item-title"><%= label %></span>
+                  <span class="notepad-entry-move-modal__dropdown-item-meta"><%= meta %></span>
+                <% end %>
+              <% end %>
+            </div>
+          </div>
+
+          <div class="dropdown notepad-entry-move-modal__dropdown task-toolbar-dropdown">
+            <button
+              id="tasks_group_dropdown"
+              type="button"
+              class="btn btn-white dropdown-toggle notepad-entry-move-modal__dropdown-toggle task-toolbar-dropdown__toggle"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              <span class="task-toolbar-dropdown__label">Group</span>
+              <span class="task-toolbar-dropdown__value"><%= current_group_label %></span>
+            </button>
+            <div
+              class="dropdown-menu w-100 notepad-entry-move-modal__dropdown-menu task-toolbar-dropdown__menu"
+              aria-labelledby="tasks_group_dropdown"
+            >
+              <% group_options.each do |value, label, meta| %>
+                <%= link_to tasks_path(filter: @tasks_filter, sort: @tasks_sort, group: value, tag: @tag_filter),
+                  class: ["dropdown-item", "notepad-entry-move-modal__dropdown-item", ("active" if @tasks_group == value)].compact.join(" ") do %>
+                  <span class="notepad-entry-move-modal__dropdown-item-title"><%= label %></span>
+                  <span class="notepad-entry-move-modal__dropdown-item-meta"><%= meta %></span>
+                <% end %>
+              <% end %>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

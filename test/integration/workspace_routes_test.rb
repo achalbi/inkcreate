@@ -1218,7 +1218,7 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "[data-controller='install-prompt']", count: 1
     assert_select "button.ibox-toggle-button[data-action='install-prompt#toggleCollapse'][aria-expanded='true']"
-    assert_select "button[data-action='install-prompt#prompt']", text: "Install app on mobile"
+    assert_select "button[data-action='install-prompt#prompt'][hidden]", text: "Install on this device"
     assert_select "a[href='#{install_path}']", text: "Install guide"
   end
 

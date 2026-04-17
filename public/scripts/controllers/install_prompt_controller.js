@@ -5,31 +5,45 @@ import {
 } from "/scripts/notification_preferences.js";
 
 const INSTALL_PROMPT_COLLAPSED_STORAGE_KEY = "inkcreate.installPrompt.collapsed";
+const INSTALL_PROMPT_DISMISSED_STORAGE_KEY = "inkcreate.installPrompt.dismissed";
+const INSTALL_PROMPT_INSTALLED_STORAGE_KEY = "inkcreate.installPrompt.installed";
 
 export default class extends Controller {
-  static targets = ["notificationSetup", "notificationStatus", "notificationButton", "promptButton", "panelBody", "collapseButton"];
+  static targets = [
+    "availabilityNote",
+    "collapseButton",
+    "manualInstructions",
+    "notificationButton",
+    "notificationSetup",
+    "notificationStatus",
+    "panelBody",
+    "promptButton"
+  ];
 
   connect() {
-    this.deferredPrompt = null;
+    this.deferredPrompt = window.__inkcreateDeferredInstallPrompt || null;
     this.installState = null;
-    this.handleBeforeInstallPrompt = (event) => {
-      event.preventDefault();
-      this.deferredPrompt = event;
+    this.manualInstructionsVisible = false;
+    this.promptAccepted = false;
+    this.defaultPromptLabel = this.hasPromptButtonTarget ? this.promptButtonTarget.textContent.trim() : "Install Inkcreate";
+    this.handleInstallAvailable = () => {
+      this.deferredPrompt = window.__inkcreateDeferredInstallPrompt || null;
+      this.syncInstallState().catch(() => {
+        // Ignore install state lookup failures and keep the app usable.
+      });
     };
     this.handleInstalled = async () => {
-      this.setPromptButtonHidden(true);
-      this.installState = await notificationPreferenceState().catch(() => ({
-        supported: true,
-        installed: true,
-        permission: "default"
-      }));
-      this.showNotificationSetup(this.installState).catch(() => {
+      this.promptAccepted = true;
+      this.deferredPrompt = null;
+      window.__inkcreateDeferredInstallPrompt = null;
+      this.clearDismissedPreference();
+      this.writeInstalledPreference(true);
+      this.syncInstallState({ revealNotificationSetup: true }).catch(() => {
         // Keep install flow usable even if notification setup cannot be rendered.
       });
-      this.setCollapsed(true, { persist: true });
     };
 
-    window.addEventListener("beforeinstallprompt", this.handleBeforeInstallPrompt);
+    window.addEventListener("inkcreate:install-available", this.handleInstallAvailable);
     window.addEventListener("inkcreate:app-installed", this.handleInstalled);
 
     this.syncInstallState().catch(() => {
@@ -38,7 +52,7 @@ export default class extends Controller {
   }
 
   disconnect() {
-    window.removeEventListener("beforeinstallprompt", this.handleBeforeInstallPrompt);
+    window.removeEventListener("inkcreate:install-available", this.handleInstallAvailable);
     window.removeEventListener("inkcreate:app-installed", this.handleInstalled);
   }
 
@@ -47,26 +61,45 @@ export default class extends Controller {
   }
 
   async prompt() {
-    if (this.deferredPrompt) {
-      this.deferredPrompt.prompt();
-      const installChoice = await this.deferredPrompt.userChoice;
-      this.deferredPrompt = null;
+    const availability = this.installAvailability(this.installState);
 
-      if (installChoice?.outcome === "accepted") {
-        this.setPromptButtonHidden(true);
-        await enableNotificationsForInstall({
-          requestPermission: false,
-          showConfirmation: false
-        });
+    if (availability.kind === "manual") {
+      this.manualInstructionsVisible = true;
+      this.setCollapsed(false, { persist: true });
+      this.renderInstallState(availability);
 
-        await this.showNotificationSetup();
-        this.setCollapsed(true, { persist: true });
+      if (this.hasManualInstructionsTarget && this.manualInstructionsTarget.scrollIntoView) {
+        this.manualInstructionsTarget.scrollIntoView({ block: "nearest", behavior: "smooth" });
       }
 
       return;
     }
 
-    window.alert("Use your browser menu to install Inkcreate. On iPhone Safari, tap Share and then Add to Home Screen.");
+    if (availability.kind === "prompt" && this.deferredPrompt) {
+      this.deferredPrompt.prompt();
+      const installChoice = await this.deferredPrompt.userChoice;
+      this.deferredPrompt = null;
+      window.__inkcreateDeferredInstallPrompt = null;
+
+      if (installChoice?.outcome === "accepted") {
+        this.promptAccepted = true;
+        this.clearDismissedPreference();
+        this.writeInstalledPreference(true);
+        await enableNotificationsForInstall({
+          requestPermission: false,
+          showConfirmation: false
+        });
+
+        await this.syncInstallState({ revealNotificationSetup: true });
+        return;
+      }
+
+      this.writeDismissedPreference(true);
+      await this.syncInstallState();
+      return;
+    }
+
+    this.renderInstallState(availability);
   }
 
   async requestNotifications() {
@@ -96,26 +129,68 @@ export default class extends Controller {
     this.renderNotificationSetup(state || await notificationPreferenceState());
   }
 
-  async syncInstallState() {
+  hideNotificationSetup() {
+    if (this.hasNotificationSetupTarget) {
+      this.notificationSetupTarget.hidden = true;
+    }
+  }
+
+  async syncInstallState({ revealNotificationSetup = false } = {}) {
     const state = await notificationPreferenceState();
     this.installState = state;
-    this.setPromptButtonHidden(Boolean(state?.installed));
-    const storedCollapsed = this.readCollapsedPreference();
-    const collapsed = storedCollapsed === null ? Boolean(state?.installed) : storedCollapsed;
 
     if (state?.installed) {
-      await this.showNotificationSetup(state);
+      this.writeInstalledPreference(true);
     }
 
-    this.setCollapsed(collapsed, {
-      persist: storedCollapsed === null && collapsed
-    });
+    const availability = this.installAvailability(state);
+
+    if (availability.kind !== "manual") {
+      this.manualInstructionsVisible = false;
+    }
+
+    if (availability.kind === "installed" && (revealNotificationSetup || state?.installed || this.promptAccepted)) {
+      await this.showNotificationSetup(state);
+    } else {
+      this.hideNotificationSetup();
+    }
+
+    this.renderInstallState(availability);
+
+    const storedCollapsed = this.readCollapsedPreference();
+    this.setCollapsed(storedCollapsed === null ? false : storedCollapsed);
   }
 
   setPromptButtonHidden(hidden) {
     if (this.hasPromptButtonTarget) {
       this.promptButtonTarget.hidden = hidden;
     }
+  }
+
+  setPromptButtonLabel(label) {
+    if (this.hasPromptButtonTarget) {
+      this.promptButtonTarget.textContent = label;
+    }
+  }
+
+  renderInstallState(availability) {
+    this.element.dataset.installPromptState = availability.kind;
+    this.setPromptButtonLabel(availability.promptLabel);
+    this.setPromptButtonHidden(!availability.showPrompt);
+    this.renderAvailabilityNote(availability.note);
+
+    if (this.hasManualInstructionsTarget) {
+      this.manualInstructionsTarget.hidden = !(availability.kind === "manual" && this.manualInstructionsVisible);
+    }
+  }
+
+  renderAvailabilityNote(note = "") {
+    if (!this.hasAvailabilityNoteTarget) {
+      return;
+    }
+
+    this.availabilityNoteTarget.textContent = note;
+    this.availabilityNoteTarget.hidden = note.length === 0;
   }
 
   setCollapsed(collapsed, { persist = false } = {}) {
@@ -160,6 +235,116 @@ export default class extends Controller {
     } catch (_error) {
       // Ignore storage failures and keep the app usable.
     }
+  }
+
+  installAvailability(state = null) {
+    const installed = Boolean(state?.installed) || this.promptAccepted || this.readInstalledPreference();
+
+    if (installed) {
+      return {
+        kind: "installed",
+        note: "Inkcreate is already installed on this device. Open it from your home screen or app shelf when you want the app shell.",
+        promptLabel: this.defaultPromptLabel,
+        showPrompt: false
+      };
+    }
+
+    if (this.readDismissedPreference()) {
+      return {
+        kind: "dismissed",
+        note: "Install dismissed for now. Use the install guide when you want to add Inkcreate later.",
+        promptLabel: this.defaultPromptLabel,
+        showPrompt: false
+      };
+    }
+
+    if (this.deferredPrompt) {
+      return {
+        kind: "prompt",
+        note: "This browser can install Inkcreate right now.",
+        promptLabel: this.defaultPromptLabel,
+        showPrompt: true
+      };
+    }
+
+    if (this.manualInstallEligible()) {
+      return {
+        kind: "manual",
+        note: "Safari on iPhone or iPad can add Inkcreate from the Share menu.",
+        promptLabel: "Show Add to Home Screen steps",
+        showPrompt: true
+      };
+    }
+
+    return {
+      kind: "unavailable",
+      note: "This browser cannot install Inkcreate directly. Use Safari on iPhone/iPad or Chrome on Android when you want the app shell.",
+      promptLabel: this.defaultPromptLabel,
+      showPrompt: false
+    };
+  }
+
+  readDismissedPreference() {
+    try {
+      return window.localStorage?.getItem(INSTALL_PROMPT_DISMISSED_STORAGE_KEY) === "true";
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  writeDismissedPreference(dismissed) {
+    try {
+      if (dismissed) {
+        window.localStorage?.setItem(INSTALL_PROMPT_DISMISSED_STORAGE_KEY, "true");
+      } else {
+        window.localStorage?.removeItem(INSTALL_PROMPT_DISMISSED_STORAGE_KEY);
+      }
+    } catch (_error) {
+      // Ignore storage failures and keep the app usable.
+    }
+  }
+
+  clearDismissedPreference() {
+    this.writeDismissedPreference(false);
+  }
+
+  readInstalledPreference() {
+    try {
+      return window.localStorage?.getItem(INSTALL_PROMPT_INSTALLED_STORAGE_KEY) === "true";
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  writeInstalledPreference(installed) {
+    try {
+      if (installed) {
+        window.localStorage?.setItem(INSTALL_PROMPT_INSTALLED_STORAGE_KEY, "true");
+      } else {
+        window.localStorage?.removeItem(INSTALL_PROMPT_INSTALLED_STORAGE_KEY);
+      }
+    } catch (_error) {
+      // Ignore storage failures and keep the app usable.
+    }
+  }
+
+  manualInstallEligible() {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    if (window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true) {
+      return false;
+    }
+
+    const userAgent = window.navigator.userAgent || "";
+    const platform = window.navigator.platform || "";
+    const maxTouchPoints = window.navigator.maxTouchPoints || 0;
+    const appleMobileDevice = /iPad|iPhone|iPod/.test(userAgent) || (platform === "MacIntel" && maxTouchPoints > 1);
+    const safariWebKit = /AppleWebKit/i.test(userAgent);
+    const excludedBrowsers = /CriOS|FxiOS|EdgiOS|OPiOS|DuckDuckGo/i.test(userAgent);
+
+    return appleMobileDevice && safariWebKit && !excludedBrowsers;
   }
 
   renderNotificationSetup(state = null, feedback = "") {

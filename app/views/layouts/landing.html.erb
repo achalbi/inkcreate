@@ -523,6 +523,23 @@
         line-height: 1.7;
       }
 
+      .install-prompt-note {
+        margin: 18px 0 0;
+        max-width: 60ch;
+        color: var(--ink-soft);
+        line-height: 1.65;
+      }
+
+      .install-step-list {
+        margin: 14px 0 0;
+        padding-left: 1.25rem;
+        color: rgba(20, 38, 31, 0.82);
+      }
+
+      .install-step-list li + li {
+        margin-top: 8px;
+      }
+
       .install-prompt-header .ibox-toggle-button {
         width: 1.75rem;
         height: 1.75rem;
@@ -814,6 +831,18 @@
       .cta-section-actions {
         display: grid;
         gap: 12px;
+      }
+
+      .cta-install-action {
+        display: grid;
+        gap: 8px;
+      }
+
+      .cta-install-note {
+        margin: 0;
+        color: rgba(255, 250, 241, 0.78);
+        font-size: 0.92rem;
+        line-height: 1.55;
       }
 
       .cta-section .button-primary {

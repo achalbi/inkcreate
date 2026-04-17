@@ -28,9 +28,14 @@
             type="button"
             data-install-prompt-target="promptButton"
             data-action="install-prompt#prompt"
+            hidden
           >
-            Install app on mobile
+            Install on this device
           </button>
+          <p class="cta-install-note" data-install-prompt-target="availabilityNote" hidden></p>
+          <p class="cta-install-note" data-install-prompt-target="manualInstructions" hidden>
+            On iPhone or iPad Safari, tap Share, then Add to Home Screen.
+          </p>
         </div>
       <% end %>
       <% if secondary_label.present? %>
