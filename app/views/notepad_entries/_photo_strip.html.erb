@@ -1,0 +1,41 @@
+<%
+  photo_attachments = notepad_entry.photos.attachments.sort_by(&:created_at).reverse
+  overflow_count = [photo_attachments.size - 4, 0].max
+  visible_photo_attachments = photo_attachments.first(overflow_count.positive? ? 4 : photo_attachments.size)
+  hidden_photo_attachments = photo_attachments.drop(4)
+  photo_layout_count = [visible_photo_attachments.size, 4].min
+  lightbox_group = local_assigns[:group].presence || dom_id(notepad_entry, :gallery)
+%>
+
+<div
+  class="notepad-doc__photo-strip notepad-doc__photo-strip--count-<%= photo_layout_count %><%= " notepad-doc__photo-strip--overflow" if overflow_count.positive? %>"
+  data-photo-count="<%= photo_attachments.size %>"
+>
+  <% visible_photo_attachments.each_with_index do |attachment, index| %>
+    <% tile_overflow_count = index == 3 && overflow_count.positive? ? overflow_count : 0 %>
+    <div
+      class="notepad-doc__photo-item<%= " notepad-doc__photo-item--overflow" if tile_overflow_count.positive? %>"
+      <% if tile_overflow_count.positive? %>data-overflow-label="+<%= tile_overflow_count %>"<% end %>
+    >
+      <%= render "shared/photo_lightbox",
+        photo: attachment,
+        alt: notepad_entry.display_title,
+        group: lightbox_group,
+        image_style: "width: 100%; height: 100%; object-fit: cover;",
+        removal_path: photo_notepad_entry_path(notepad_entry, attachment),
+        removal_message: "This photo will be removed from the daily page." %>
+    </div>
+  <% end %>
+
+  <% hidden_photo_attachments.each do |attachment| %>
+    <div class="notepad-doc__photo-item notepad-doc__photo-item--hidden" aria-hidden="true">
+      <%= render "shared/photo_lightbox",
+        photo: attachment,
+        alt: notepad_entry.display_title,
+        group: lightbox_group,
+        image_style: "width: 100%; height: 100%; object-fit: cover;",
+        removal_path: photo_notepad_entry_path(notepad_entry, attachment),
+        removal_message: "This photo will be removed from the daily page." %>
+    </div>
+  <% end %>
+</div>

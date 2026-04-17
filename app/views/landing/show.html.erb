@@ -8,10 +8,19 @@
       </span>
     </a>
 
-    <div class="topbar-right">
+    <button class="mobile-menu-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu" id="mobile-menu-toggle">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+
+    <div class="topbar-right" id="mobile-menu">
       <nav aria-label="Landing sections">
-        <a href="#why">Why it works</a>
-        <a href="#flow">Workflow</a>
+        <a href="#features">Features</a>
+        <a href="#how-it-works">How it works</a>
+        <a href="#capture">Capture</a>
       </nav>
 
       <div class="nav-actions <%= "nav-actions-auth" unless user_signed_in? %>">
@@ -19,158 +28,301 @@
           <a class="mini-button mini-button-primary" href="<%= dashboard_path %>">Open workspace</a>
         <% else %>
           <a class="mini-button" href="<%= browser_sign_in_path %>">Sign in</a>
-          <a class="mini-button mini-button-primary" href="<%= browser_sign_up_path %>">Create account</a>
+          <a class="mini-button mini-button-primary" href="<%= browser_sign_up_path %>">Get started free</a>
         <% end %>
       </div>
     </div>
   </header>
 
+  <%# ── HERO ── %>
   <section class="hero">
     <article class="hero-copy">
-      <div class="eyebrow">Mobile-first capture for handwritten notes</div>
-      <h1>Turn notebook pages into structured, searchable records.</h1>
+      <div class="eyebrow">Your handwritten notes, finally searchable</div>
+      <h1>Turn notebook pages into digital records.</h1>
       <p>
-        Inkcreate is built for the messy reality of real notebooks: angled photos,
-        recurring page templates, OCR that needs background processing, and exports
-        that should land cleanly in Google Drive without manual cleanup.
+        Snap a photo of any notebook page. Inkcreate extracts the text in the background,
+        organises it by notebook and chapter, and syncs everything to Google Drive — without
+        interrupting your flow.
       </p>
 
-      <% if user_signed_in? %>
-        <div class="cta-row">
+      <div class="cta-row">
+        <% if user_signed_in? %>
           <a class="button button-primary" href="<%= dashboard_path %>">Open workspace</a>
-          <a class="button button-secondary" href="#flow">See the workflow</a>
-        </div>
-      <% end %>
+          <a class="button button-secondary" href="#how-it-works">See how it works</a>
+        <% else %>
+          <a class="button button-primary" href="<%= browser_sign_up_path %>">Get started free</a>
+          <a class="button button-secondary" href="#how-it-works">See how it works</a>
+        <% end %>
+      </div>
 
       <div class="stat-row">
         <div class="stat">
           <div class="mini-label">Capture</div>
-          <strong>Direct uploads to cloud storage</strong>
+          <strong>Phone-first, any angle</strong>
         </div>
         <div class="stat">
           <div class="mini-label">Extract</div>
-          <strong>Async OCR with template-aware processing</strong>
+          <strong>Background OCR, non-blocking</strong>
         </div>
         <div class="stat">
-          <div class="mini-label">Ship</div>
-          <strong>Searchable records and Drive-ready exports</strong>
+          <div class="mini-label">Find</div>
+          <strong>Full-text search across all pages</strong>
         </div>
       </div>
     </article>
 
-    <aside class="hero-stack" aria-label="Product workflow preview">
+    <aside class="hero-stack" aria-label="Product feature preview">
       <div class="paper-column">
         <article class="paper">
           <span class="paper-accent"></span>
-          <div class="mini-label">01 Scan</div>
-          <h3>Capture pages in motion</h3>
-          <p>Phone-first uploads keep the flow fast even when pages are skewed, shadowed, or mid-session.</p>
+          <div class="mini-label">Notebooks &amp; chapters</div>
+          <h3>Structured like a real notebook</h3>
+          <p>Create notebooks, divide them into chapters, and add pages — just the way you already think.</p>
         </article>
 
         <article class="paper">
           <span class="paper-accent"></span>
-          <div class="mini-label">02 Classify</div>
-          <h3>Recognize the template</h3>
-          <p>Page patterns and notebook metadata help the OCR pipeline understand what kind of page just arrived.</p>
+          <div class="mini-label">Background OCR</div>
+          <h3>Text extraction while you work</h3>
+          <p>Upload a page photo and keep going. OCR runs in the background and attaches results automatically.</p>
         </article>
 
         <article class="paper">
           <span class="paper-accent"></span>
-          <div class="mini-label">03 Extract</div>
-          <h3>Normalize the text</h3>
-          <p>Background jobs keep extraction out of the request path so the experience stays responsive.</p>
+          <div class="mini-label">Voice notes</div>
+          <h3>Record thoughts in the moment</h3>
+          <p>Attach voice memos to any page or notepad entry and play them back right in the workspace.</p>
         </article>
 
         <article class="paper">
           <span class="paper-accent"></span>
-          <div class="mini-label">04 Export</div>
-          <h3>Push the result where it belongs</h3>
-          <p>Search, tags, and Google Drive export turn a pile of page photos into something you can actually use.</p>
+          <div class="mini-label">Google Drive sync</div>
+          <h3>Your captures, in Drive automatically</h3>
+          <p>Connect Google Drive once and every processed capture lands in your chosen folder.</p>
         </article>
       </div>
     </aside>
   </section>
 
   <main>
-    <section class="section-card" id="why">
+    <%= render "shared/install_prompt_panel", variant: :landing %>
+
+    <%# ── FEATURES ── %>
+    <section class="section-card" id="features">
       <div class="section-header">
-        <div class="eyebrow">Why it works</div>
-        <h2>Built for notebook chaos, not lab-perfect OCR samples.</h2>
+        <div class="eyebrow">Features</div>
+        <h2>Everything your paper workflow needs to go digital.</h2>
         <p>
-          The product is shaped around real capture behavior: quick uploads from mobile,
-          structured storage, resilient async jobs, and enough metadata to recover meaning
-          after the image leaves the camera roll.
+          Inkcreate is built around how people actually use notebooks —
+          not how apps want you to use them.
         </p>
       </div>
 
       <div class="feature-grid">
         <article class="feature-card">
-          <div class="pill">Same-origin sessions</div>
-          <h3>Secure by default</h3>
+          <div class="pill">Capture Studio</div>
+          <h3>Mobile-first camera capture</h3>
           <p>
-            Cookie-based sessions and CSRF protection keep auth simple for a same-origin
-            web app without bolting on a second identity layer.
+            A dedicated capture interface optimised for phones. Uploads go straight to cloud
+            storage with three quality presets — optimised, high, and original — so you control
+            the trade-off between file size and readability.
           </p>
         </article>
 
         <article class="feature-card">
-          <div class="pill">Background OCR</div>
-          <h3>Responsive under load</h3>
+          <div class="pill">Notebooks + Notepad</div>
+          <h3>Two modes for two rhythms</h3>
           <p>
-            OCR and Drive sync work leaves the request cycle quickly, so uploads stay fast
-            while Sidekiq or Cloud Tasks handle the expensive work behind the scenes.
+            Use <strong>Notebooks</strong> for project work — structured by chapter and page.
+            Use the <strong>Notepad</strong> for daily capture — organised by date, fast to open,
+            no hierarchy required.
           </p>
         </article>
 
         <article class="feature-card">
-          <div class="pill">Structured records</div>
-          <h3>Searchable after capture</h3>
+          <div class="pill">Search</div>
+          <h3>Find anything you wrote</h3>
           <p>
-            Notebook, tag, and capture models give the extracted text a real home instead
-            of treating each image as an isolated blob.
+            Full-text search across every piece of extracted OCR text, title, and tag in your
+            workspace. Results link directly to the page or capture where the match lives.
+          </p>
+        </article>
+
+        <article class="feature-card">
+          <div class="pill">Todo Lists + Tasks</div>
+          <h3>Actions live alongside content</h3>
+          <p>
+            Add inline todo lists to any page or notepad entry. Promote items to the global
+            task tracker with one tap, add sub-tasks, and manage everything from the Tasks view.
+          </p>
+        </article>
+
+        <article class="feature-card">
+          <div class="pill">Voice Notes</div>
+          <h3>Capture what you can't write</h3>
+          <p>
+            Record voice memos directly from a page or notepad entry. Play back recordings
+            in-app without leaving your current context.
+          </p>
+        </article>
+
+        <article class="feature-card">
+          <div class="pill">Google Drive Backup</div>
+          <h3>Automatic export, no cleanup needed</h3>
+          <p>
+            Connect your Drive account once. Processed captures sync to a folder you choose.
+            Disconnect at any time and optionally clear all Drive metadata on your way out.
+          </p>
+        </article>
+
+        <article class="feature-card">
+          <div class="pill">Projects &amp; Daily Logs</div>
+          <h3>Cross-notebook organisation</h3>
+          <p>
+            Assign captures to <strong>Projects</strong> that span multiple notebooks.
+            Browse <strong>Daily Logs</strong> to see everything that happened on a given day,
+            regardless of which notebook it lives in.
+          </p>
+        </article>
+
+        <article class="feature-card">
+          <div class="pill">Reminders</div>
+          <h3>Don't lose track of follow-ups</h3>
+          <p>
+            Set time-based reminders on tasks or notepad entries. They surface in the Reminders
+            view and push notifications land on any registered device.
+          </p>
+        </article>
+
+        <article class="feature-card">
+          <div class="pill">Library + Tags</div>
+          <h3>Browse your entire archive</h3>
+          <p>
+            The Library shows every capture in a flat chronological view. Tag captures to create
+            horizontal groupings that cut across notebooks, and filter the library by tag.
           </p>
         </article>
       </div>
     </section>
 
-    <section class="section-card" id="flow">
+    <%# ── HOW IT WORKS ── %>
+    <section class="section-card" id="how-it-works">
       <div class="section-header">
-        <div class="eyebrow">Workflow</div>
-        <h2>From photo to usable note in four deliberate steps.</h2>
+        <div class="eyebrow">How it works</div>
+        <h2>From page photo to searchable note in four steps.</h2>
         <p>
-          The pipeline is intentionally simple to follow: ingest, queue, extract, and deliver.
-          That makes it easier to scale the heavy parts without turning the product into a black box.
+          The workflow is intentionally simple. Capture fast, let processing happen in the background,
+          then find and use what you captured.
         </p>
       </div>
 
       <div class="flow">
         <article class="flow-step">
-          <div class="mini-label">Step 1</div>
-          <strong>Upload the page</strong>
-          <p>The client requests a signed upload URL and sends the original image straight to storage.</p>
+          <div class="mini-label">Step 1 — Capture</div>
+          <strong>Photograph the page</strong>
+          <p>Open Capture Studio on your phone. The app requests a signed upload URL and sends the image straight to cloud storage so the UI stays fast.</p>
         </article>
 
         <article class="flow-step">
-          <div class="mini-label">Step 2</div>
-          <strong>Create the capture</strong>
-          <p>Inkcreate stores the notebook context, template hints, and OCR provider settings for the page.</p>
+          <div class="mini-label">Step 2 — Organise</div>
+          <strong>Assign context</strong>
+          <p>The capture is linked to a notebook page or notepad entry, carrying the OCR provider settings, template hints, and captured date with it.</p>
         </article>
 
         <article class="flow-step">
-          <div class="mini-label">Step 3</div>
-          <strong>Run OCR asynchronously</strong>
-          <p>Workers preprocess the image, run extraction, and attach structured results without blocking the user.</p>
+          <div class="mini-label">Step 3 — Extract</div>
+          <strong>OCR runs in the background</strong>
+          <p>Background workers preprocess the image, run text extraction, and attach structured results — all without blocking you or the upload response.</p>
         </article>
 
         <article class="flow-step">
-          <div class="mini-label">Step 4</div>
-          <strong>Search or export</strong>
-          <p>Clean text becomes available for search, reprocessing, tagging, and Drive export when needed.</p>
+          <div class="mini-label">Step 4 — Use</div>
+          <strong>Search, tag, or export</strong>
+          <p>Extracted text is searchable immediately. Tag captures, export to Google Drive, generate AI summaries, or review them in the Library.</p>
         </article>
       </div>
     </section>
 
+    <%# ── CAPTURE SECTION ── %>
+    <section class="section-card" id="capture">
+      <div class="section-header">
+        <div class="eyebrow">Capture</div>
+        <h2>Built for real notebooks, not lab-perfect samples.</h2>
+        <p>
+          Most OCR tools assume clean, flat, evenly-lit documents. Inkcreate is designed for
+          the way notebooks actually get photographed: on desks, in bags, under coffee-shop
+          lighting, mid-session.
+        </p>
+      </div>
+
+      <div class="feature-grid">
+        <article class="feature-card">
+          <div class="pill">Quality presets</div>
+          <h3>Optimised, High, or Original</h3>
+          <p>
+            <strong>Optimised</strong> keeps files small for fast uploads. <strong>High</strong>
+            preserves fine handwriting detail. <strong>Original</strong> sends the full
+            browser-provided resolution with minimal compression.
+          </p>
+        </article>
+
+        <article class="feature-card">
+          <div class="pill">Async processing</div>
+          <h3>Never wait for OCR</h3>
+          <p>
+            OCR and Drive sync happen entirely off the request path. Upload a page and immediately
+            move to the next one — results appear when the job finishes.
+          </p>
+        </article>
+
+        <article class="feature-card">
+          <div class="pill">Reprocessing</div>
+          <h3>Fix bad extractions</h3>
+          <p>
+            If a capture produces poor results, trigger re-extraction from the capture detail view.
+            Use the OCR source viewer to inspect exactly what image the engine received.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <%# ── CTA (logged out only) ── %>
+    <% unless user_signed_in? %>
+      <section class="cta-section">
+        <div class="cta-section-copy">
+          <div class="eyebrow">Get started</div>
+          <h2>Ready to make your notebooks searchable?</h2>
+          <p>Create a free account and capture your first page in minutes.</p>
+        </div>
+        <div class="cta-section-actions">
+          <a class="button button-primary" href="<%= browser_sign_up_path %>">Create free account</a>
+          <a class="button button-secondary" href="<%= browser_sign_in_path %>">Sign in</a>
+        </div>
+      </section>
+    <% end %>
   </main>
 
   <%= render "shared/public_footer" %>
 </div>
+
+<script>
+  (function() {
+    var toggle = document.getElementById("mobile-menu-toggle");
+    var menu = document.getElementById("mobile-menu");
+    if (!toggle || !menu) return;
+
+    toggle.addEventListener("click", function() {
+      var expanded = toggle.getAttribute("aria-expanded") === "true";
+      toggle.setAttribute("aria-expanded", String(!expanded));
+      menu.classList.toggle("mobile-menu-open", !expanded);
+    });
+
+    // Close menu when a nav link is clicked
+    menu.querySelectorAll("a").forEach(function(link) {
+      link.addEventListener("click", function() {
+        toggle.setAttribute("aria-expanded", "false");
+        menu.classList.remove("mobile-menu-open");
+      });
+    });
+  })();
+</script>

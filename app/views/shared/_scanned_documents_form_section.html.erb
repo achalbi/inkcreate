@@ -1,6 +1,7 @@
 <%
   draft_docs = record.pending_scanned_document_payloads
   content_id = "#{local_assigns[:dom_prefix].presence || dom_id(record)}_scanned_documents_form_content"
+  tips_target_id = "#{local_assigns[:dom_prefix].presence || dom_id(record)}_scan_capture_tips"
 %>
 
 <section
@@ -17,6 +18,18 @@
     <div class="ibox-tools d-flex align-items-center gap-2">
       <button
         type="button"
+        class="btn btn-white btn-sm btn-icon photo-section-info-button"
+        data-bs-toggle="collapse"
+        data-bs-target="#<%= tips_target_id %>"
+        aria-expanded="false"
+        aria-controls="<%= tips_target_id %>"
+        title="Capture tips"
+        aria-label="Capture tips"
+      >
+        <i class="ti ti-info-circle" aria-hidden="true"></i>
+      </button>
+      <button
+        type="button"
         class="btn btn-primary btn-sm"
         data-action="click->document-capture#open"
         aria-label="Scan a document"
@@ -28,6 +41,9 @@
   </div>
 
   <div id="<%= content_id %>" class="ibox-content collapse show">
+    <%= render "shared/document_capture_tips_panel",
+      target_id: tips_target_id,
+      extra_classes: "m-b-md" %>
     <input
       type="hidden"
       name="<%= "#{form.object_name}[pending_scanned_documents_json]" %>"
@@ -45,7 +61,7 @@
 	      <div class="sdoc-empty-sub">Capture a document as a PDF to keep receipts, notes, and pages together.</div>
 	      <button
 	        type="button"
-        class="btn btn-primary btn-sm"
+        class="btn btn-white btn-sm"
         data-action="click->document-capture#open"
       ><i class="ti ti-scan" aria-hidden="true"></i> Scan your first document</button>
     </div>

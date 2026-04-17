@@ -1,0 +1,137 @@
+<input
+  id="<%= photo_camera_input_id %>"
+  type="file"
+  accept="image/*"
+  capture="environment"
+  tabindex="-1"
+  aria-hidden="true"
+  class="photo-section-camera-input"
+  data-photo-capture-target="cameraInput"
+  data-action="change->photo-capture#acceptCameraCapture"
+>
+
+<header class="notepad-doc__header notepad-doc-edit__head detail-section-anchor" id="<%= details_section_id %>">
+  <div class="notepad-doc__header-row">
+    <div class="notepad-doc__header-content">
+      <div class="notepad-doc-edit__title-row">
+        <div class="form-group m-b-none">
+          <%= form.text_field :title,
+            class: "form-control notepad-doc-edit__title-input",
+            placeholder: "Daily review, meeting recap, ideas…" %>
+        </div>
+        <div class="form-group m-b-none">
+          <%= form.date_field :entry_date,
+            class: "form-control notepad-doc-edit__date-input" %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="notepad-doc__meta">
+    <% if notepad_entry.plain_notes.present? %>
+      <span class="notepad-doc__meta-chip">
+        <i class="ti ti-file-text" aria-hidden="true"></i> Notes
+      </span>
+    <% end %>
+    <% if photo_count > 0 %>
+      <span class="notepad-doc__meta-chip">
+        <i class="ti ti-photo" aria-hidden="true"></i>
+        <%= pluralize(photo_count, "photo") %>
+      </span>
+    <% end %>
+    <% if voice_note_count > 0 %>
+      <span class="notepad-doc__meta-chip">
+        <i class="ti ti-microphone" aria-hidden="true"></i>
+        <%= pluralize(voice_note_count, "voice note") %>
+      </span>
+    <% end %>
+    <% if todo_items.any? %>
+      <span class="notepad-doc__meta-chip">
+        <i class="ti ti-checkbox" aria-hidden="true"></i>
+        <%= completed_todo_count %>/<%= todo_items.size %>
+      </span>
+    <% end %>
+    <% if scanned_document_count > 0 %>
+      <span class="notepad-doc__meta-chip">
+        <i class="ti ti-scan" aria-hidden="true"></i>
+        <%= pluralize(scanned_document_count, "scan") %>
+      </span>
+    <% end %>
+    <% if persisted_entry %>
+      <%= link_to notepad_entry_path(notepad_entry),
+        class: "notepad-doc__meta-chip notepad-doc__meta-action",
+        title: "View page",
+        aria: { label: "View page" } do %>
+        <i class="ti ti-arrow-left" aria-hidden="true"></i>
+        View
+      <% end %>
+    <% end %>
+  </div>
+</header>
+
+<div class="<%= body_class %>">
+
+<div class="notepad-doc__block notepad-doc__block--text notepad-doc-edit__notes detail-section-anchor" id="<%= notes_section_id %>">
+  <% notes_input_id = dom_id(notepad_entry, :notes_input) %>
+  <div class="notepad-doc__block-header">
+    <div class="notepad-doc__block-label">
+      <i class="ti ti-file-text" aria-hidden="true"></i> Notes
+    </div>
+  </div>
+  <%= form.hidden_field :notes, id: notes_input_id %>
+  <div class="notepad-doc-edit__notes-shell">
+    <trix-editor
+      input="<%= notes_input_id %>"
+      class="workspace-rich-text-editor notepad-entry-notes-field"
+      placeholder="Write the day's notes, observations, reminders, or quick captures."
+      data-controller="rich-text"
+      data-action="trix-file-accept->rich-text#preventFileAccept"
+    ></trix-editor>
+  </div>
+</div>
+
+<div class="notepad-doc__block notepad-doc__block--media notepad-doc-edit__section detail-section-anchor" id="<%= photos_section_id %>">
+  <div class="notepad-doc__block-header">
+    <div class="notepad-doc__block-label">
+      <i class="ti ti-photo" aria-hidden="true"></i>
+      Photos<% if photo_count > 0 %> · <%= photo_count %><% end %>
+    </div>
+    <div class="notepad-doc__block-actions">
+      <button
+        type="button"
+        id="<%= photo_camera_button_id %>"
+        class="btn btn-white btn-sm"
+        data-action="photo-capture#openCameraApp"
+        data-photo-capture-target="cameraToggle"
+        aria-pressed="false"
+        title="Open camera"
+      >
+        <i class="ti ti-camera" aria-hidden="true"></i><span> Capture</span>
+      </button>
+      <button
+        type="button"
+        class="btn btn-white btn-sm"
+        data-action="photo-capture#chooseFromGallery"
+        title="Upload from gallery"
+      >
+        <i class="ti ti-photo-plus" aria-hidden="true"></i><span> Upload</span>
+      </button>
+    </div>
+  </div>
+
+  <%= render "shared/photo_capture_field",
+    form:,
+    field_name: :photos %>
+
+  <% if notepad_entry.photos.attached? %>
+    <div class="m-t-sm">
+      <%= render "notepad_entries/photo_strip",
+        notepad_entry:,
+        group: dom_id(notepad_entry, :edit_gallery) %>
+    </div>
+  <% else %>
+    <p class="text-muted m-b-none" style="font-size: 0.875rem;">No photos yet — use the buttons above to capture or upload.</p>
+  <% end %>
+</div>
+
+</div>

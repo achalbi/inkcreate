@@ -167,7 +167,7 @@ export default class extends Controller {
     this.elapsedLabelTarget.textContent = this.formatTime(currentTime);
     this.durationLabelTarget.textContent = this.formatTime(duration);
     this.playButtonTarget.setAttribute("aria-label", this.isPlaying() ? "Pause voice note" : "Play voice note");
-    this.playIconTarget.className = this.isPlaying() ? "ti ti-player-pause" : "ti ti-player-play";
+    this.playIconTarget.className = this.isPlaying() ? "ti ti-player-pause" : "ti ti-player-play-filled";
   }
 
   pauseOtherPlayers() {

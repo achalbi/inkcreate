@@ -15,7 +15,7 @@
 <section
   id="<%= dom_id(notepad_entry, :voice_notes_section) %>"
   class="ibox detail-section-anchor"
-  data-controller="voice-recorder"
+  data-controller="voice-recorder voice-note-list"
   data-voice-recorder-auto-submit-on-save-value="<%= auto_submit_on_save %>"
   data-voice-recorder-mode-value="<%= recorder_mode %>"
   data-voice-recorder-max-duration-seconds-value="<%= VoiceNote::MAX_DURATION_SECONDS %>"
@@ -30,6 +30,19 @@
       <span class="label label-info detail-photo-gallery-count"><%= voice_notes.size %></span>
     </div>
     <div class="ibox-tools d-flex align-items-center gap-2">
+      <% if voice_notes.any? %>
+        <button
+          type="button"
+          class="btn btn-white btn-sm btn-icon voice-note-list__toggle"
+          data-voice-note-list-target="toggle"
+          data-action="voice-note-list#toggle"
+          aria-expanded="false"
+          aria-label="Expand voice note details"
+          title="Expand voice note details"
+        >
+          <i class="ti ti-chevron-right" aria-hidden="true"></i>
+        </button>
+      <% end %>
       <button type="button" class="btn btn-primary btn-sm" data-voice-recorder-target="startButton" data-action="voice-recorder#start">
         <i class="ti ti-microphone" aria-hidden="true"></i>
         <span>Record</span>

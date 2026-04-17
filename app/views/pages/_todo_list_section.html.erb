@@ -58,6 +58,8 @@
     <div class="todo-list-items" data-todo-list-target="items">
       <% todo_items.each_with_index do |todo_item, index| %>
         <% reminder_modal_id = dom_id(todo_item, :reminder_modal) %>
+        <% promote_modal_id = dom_id(todo_item, :promote_confirm_modal) %>
+        <% promote_form_id = dom_id(todo_item, :promote_form) %>
         <article
           class="todo-list-item <%= "is-completed" if todo_item.completed? %> <%= "has-reminder" if todo_item.reminder.present? %>"
           draggable="true"
@@ -127,14 +129,16 @@
               <% end %>
 
               <%# Promote to Task %>
-              <form action="<%= promote_from_todo_tasks_path %>" method="post" class="todo-list-item__promote-form">
+              <form action="<%= promote_from_todo_tasks_path %>" method="post" class="todo-list-item__promote-form" id="<%= promote_form_id %>">
                 <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
                 <input type="hidden" name="todo_item_id" value="<%= todo_item.id %>" />
                 <button
-                  type="submit"
+                  type="button"
                   class="btn btn-white btn-sm btn-icon todo-list-item__action-button todo-list-item__promote-button"
                   aria-label="Promote to task"
                   title="Promote to Task"
+                  data-bs-toggle="modal"
+                  data-bs-target="#<%= promote_modal_id %>"
                 >
                   <i class="ti ti-checkbox" aria-hidden="true"></i>
                 </button>
@@ -165,6 +169,10 @@
               todo_item: todo_item,
               reminder: todo_item.reminder || current_user.reminders.new(title: todo_item.content) %>
           <% end %>
+          <%= render "shared/todo_item_promote_confirm_modal",
+            modal_id: promote_modal_id,
+            form_id: promote_form_id,
+            content: todo_item.content %>
         </article>
       <% end %>
     </div>

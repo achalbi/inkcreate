@@ -15,6 +15,7 @@ import QuickCaptureController from "/scripts/controllers/quick_capture_controlle
 import FooterActionMenuController from "/scripts/controllers/footer_action_menu_controller.js";
 import NotepadQuickActionsController from "/scripts/controllers/notepad_quick_actions_controller.js";
 import VoiceRecorderController from "/scripts/controllers/voice_recorder_controller.js";
+import VoiceNoteListController from "/scripts/controllers/voice_note_list_controller.js";
 import VoiceNotePlayerController from "/scripts/controllers/voice_note_player_controller.js";
 import TodoListController from "/scripts/controllers/todo_list_controller.js";
 import ReminderFormController from "/scripts/controllers/reminder_form_controller.js";
@@ -28,6 +29,7 @@ import SectionShortcutsController from "/scripts/controllers/section_shortcuts_c
 import StickyDockController from "/scripts/controllers/sticky_dock_controller.js";
 import OnboardingWizardController from "/scripts/controllers/onboarding_wizard_controller.js";
 import IdleShortcutsController from "/scripts/controllers/idle_shortcuts_controller.js";
+import NotepadDocumentController from "/scripts/controllers/notepad_document_controller.js";
 import { enableNotificationsForInstall } from "/scripts/notification_preferences.js";
 
 const AUTO_DISMISS_DELAY_MS = 5000;
@@ -88,6 +90,7 @@ application.register("quick-capture", QuickCaptureController);
 application.register("footer-action-menu", FooterActionMenuController);
 application.register("notepad-quick-actions", NotepadQuickActionsController);
 application.register("voice-recorder", VoiceRecorderController);
+application.register("voice-note-list", VoiceNoteListController);
 application.register("voice-note-player", VoiceNotePlayerController);
 application.register("todo-list", TodoListController);
 application.register("reminder-form", ReminderFormController);
@@ -101,6 +104,7 @@ application.register("section-shortcuts", SectionShortcutsController);
 application.register("sticky-dock", StickyDockController);
 application.register("onboarding-wizard", OnboardingWizardController);
 application.register("idle-shortcuts", IdleShortcutsController);
+application.register("notepad-document", NotepadDocumentController);
 
 document.addEventListener("DOMContentLoaded", () => scheduleTimedMessages());
 document.addEventListener("turbo:load", () => scheduleTimedMessages());

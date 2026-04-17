@@ -206,7 +206,7 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_response :success
     modal_id = ActionView::RecordIdentifier.dom_id(voice_note, :delete_confirm_modal)
     document = Nokogiri::HTML.parse(response.body)
-    start_button = document.at_xpath("//section[contains(@data-controller, 'voice-recorder')]//div[contains(@class, 'ibox-title')]//button[@data-action='voice-recorder#start']")
+    start_button = document.at_xpath("//section[contains(@data-controller, 'voice-recorder')]//*[contains(@class, 'ibox-title') or contains(@class, 'notepad-doc__block-header')]//button[@data-action='voice-recorder#start']")
     button = document.at_xpath("//button[@data-bs-toggle='modal' and @data-bs-target='##{modal_id}']")
     modal = document.at_xpath("//*[@id='#{modal_id}']")
     form = modal&.at_xpath(".//form[@method='post']")
@@ -241,7 +241,7 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_response :success
     modal_id = ActionView::RecordIdentifier.dom_id(voice_note, :delete_confirm_modal)
     document = Nokogiri::HTML.parse(response.body)
-    start_button = document.at_xpath("//section[contains(@data-controller, 'voice-recorder')]//div[contains(@class, 'ibox-title')]//button[@data-action='voice-recorder#start']")
+    start_button = document.at_xpath("//section[contains(@data-controller, 'voice-recorder')]//*[contains(@class, 'ibox-title') or contains(@class, 'notepad-doc__block-header')]//button[@data-action='voice-recorder#start']")
     button = document.at_xpath("//button[@data-bs-toggle='modal' and @data-bs-target='##{modal_id}']")
     modal = document.at_xpath("//*[@id='#{modal_id}']")
     form = modal&.at_xpath(".//form[@method='post']")
@@ -312,7 +312,7 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert launcher.present?, "Expected the notepad quick actions launcher"
     assert toggle.present?, "Expected the quick actions + toggle button"
     assert_equal "false", toggle["aria-expanded"]
-    assert_equal %w[ti-camera ti-microphone ti-list-check ti-scan], items
+    assert_equal %w[ti-camera ti-photo-plus ti-microphone ti-list-check ti-scan], items
   end
 
   test "notepad edit page renders floating section dock" do
@@ -408,12 +408,89 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
 
     assert card.present?, "Expected a rendered scanned document card"
     assert_equal "PDF ready · #{scanned_document.created_at.strftime("%-d %b")}", card.at_css(".sdoc-engine-label")&.text&.strip
-    assert_equal "Open the PDF to review this scanned document.", card.at_css(".sdoc-excerpt")&.text&.strip
+    assert_nil card.at_css(".sdoc-excerpt"), "Helper copy should not render"
     assert_nil card.at_xpath(".//form[contains(@action, '#{extract_text_notepad_entry_scanned_document_path(entry, scanned_document)}')]"), "OCR action should not render"
     assert_nil card.at_xpath(".//*[@data-action='click->document-capture#copyText']"), "Copy extracted text action should not render"
     assert_nil card.at_xpath(".//*[@data-action='click->document-capture#viewFull']"), "View extracted text action should not render"
     assert_nil card.at_css(".sdoc-conf-badge"), "OCR confidence badge should not render"
     refute_includes response.body, "Total due 42.00"
+  end
+
+  test "notepad show page exposes the pdf export link" do
+    sign_in!
+
+    entry = @user.notepad_entries.create!(
+      title: "Exportable entry",
+      notes: "Ready for export.",
+      entry_date: Date.current
+    )
+
+    get notepad_entry_path(entry)
+
+    assert_response :success
+    assert_select "a.dropdown-item[href='#{pdf_notepad_entry_path(entry, autoprint: 1)}'][target='_blank']", text: /PDF document/
+  end
+
+  test "notepad pdf export includes all visible content sections" do
+    sign_in!
+
+    entry = @user.notepad_entries.create!(
+      title: "Full export entry",
+      notes: "<p>Export the <strong>rich notes</strong>.</p>",
+      entry_date: Date.current
+    )
+    entry.photos.attach(
+      io: StringIO.new("photo-bytes"),
+      filename: "desk.jpg",
+      content_type: "image/jpeg"
+    )
+
+    voice_note = entry.voice_notes.new(
+      duration_seconds: 95,
+      recorded_at: Time.current.change(sec: 0),
+      byte_size: 1024,
+      mime_type: "audio/webm",
+      transcript: "Voice memo summary."
+    )
+    voice_note.audio.attach(
+      io: StringIO.new("voice"),
+      filename: "memo.webm",
+      content_type: "audio/webm"
+    )
+    voice_note.save!
+
+    todo_list = entry.create_todo_list!(enabled: true, hide_completed: false)
+    todo_list.todo_items.create!(content: "Capture follow-up actions", completed: true)
+    todo_list.todo_items.create!(content: "Share the PDF export", completed: false)
+
+    scanned_document = entry.scanned_documents.new(
+      user: @user,
+      title: "Meeting scan"
+    )
+    scanned_document.enhanced_image.attach(
+      io: StringIO.new("image"),
+      filename: "meeting.jpg",
+      content_type: "image/jpeg"
+    )
+    scanned_document.document_pdf.attach(
+      io: StringIO.new("%PDF-1.4 export"),
+      filename: "meeting.pdf",
+      content_type: "application/pdf"
+    )
+    scanned_document.save!
+
+    get pdf_notepad_entry_path(entry)
+
+    assert_response :success
+    assert_select "html[data-export-format='pdf']", count: 1
+    assert_select ".notepad-pdf-sheet__title", text: "Full export entry"
+    assert_select ".notepad-pdf-section--notes strong", text: "rich notes"
+    assert_select ".notepad-pdf-section--photos .notepad-pdf-photo-card", count: 1
+    assert_select ".notepad-pdf-section--voice .notepad-pdf-voice-note", count: 1
+    assert_select ".notepad-pdf-section--voice", text: /Voice memo summary/
+    assert_select ".notepad-pdf-section--todos .notepad-pdf-checklist__item", count: 2
+    assert_select ".notepad-pdf-section--scans .notepad-pdf-scan", count: 1
+    assert_select ".notepad-pdf-section--scans", text: /Meeting scan/
   end
 
   test "page show page keeps scanned document cards focused on pdf actions" do
@@ -447,7 +524,7 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
 
     assert card.present?, "Expected a rendered scanned document card"
     assert_equal "PDF ready · #{scanned_document.created_at.strftime("%-d %b")}", card.at_css(".sdoc-engine-label")&.text&.strip
-    assert_equal "Open the PDF to review this scanned document.", card.at_css(".sdoc-excerpt")&.text&.strip
+    assert_nil card.at_css(".sdoc-excerpt"), "Helper copy should not render"
     assert_nil card.at_xpath(".//form[contains(@action, '#{extract_text_notebook_chapter_page_scanned_document_path(@notebook, @chapter, @page, scanned_document)}')]"), "OCR action should not render"
     assert_nil card.at_xpath(".//*[@data-action='click->document-capture#copyText']"), "Copy extracted text action should not render"
     assert_nil card.at_xpath(".//*[@data-action='click->document-capture#viewFull']"), "View extracted text action should not render"
@@ -508,16 +585,42 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     get edit_notepad_entry_path(entry)
 
     assert_response :success
+    document = Nokogiri::HTML.parse(response.body)
+    edit_form_id = ActionView::RecordIdentifier.dom_id(entry, :edit_form)
+    edit_form = document.at_css("form##{edit_form_id}")
+    todo_section = document.at_css("##{ActionView::RecordIdentifier.dom_id(entry, :todo_list_section)}")
+    save_button = document.at_css(".notepad-doc-edit__footer .page-details-save-button[form='#{edit_form_id}']")
+
     assert_select "form[action='#{notepad_entry_todo_items_path(entry)}'] textarea[name='todo_item[content]']", count: 1
     assert_select "form[action='#{notepad_entry_todo_items_path(entry)}'] .todo-list-composer__badge .ti-checkbox", count: 1
-    assert_select "form[action='#{notepad_entry_todo_items_path(entry)}'] .todo-list-composer__submit", text: /Add/
-    assert_select ".todo-list-filters__button", count: 0
+    assert_select "form[action='#{notepad_entry_todo_items_path(entry)}'] .todo-list-composer__submit .ti-plus", count: 1
+    assert_select ".todo-list-progress__summary", text: /1 of 2 completed/
     assert_select ".todo-list-item__input[title='Pack charger']", count: 1
     assert_select ".todo-list-item__input[title='Review notes']", count: 1
-    assert_select ".todo-list-section__hint", text: /Drag to reorder/
+    assert edit_form.present?, "Expected the page update form to render on the edit page"
+    assert todo_section.present?, "Expected the live to-do section to render"
+    assert_nil edit_form.at_css("##{ActionView::RecordIdentifier.dom_id(entry, :todo_list_section)}"),
+      "Expected the live to-do section to stay outside the page update form"
+    assert save_button.present?, "Expected the save button to target the page update form explicitly"
     assert_no_match "Enable the checklist and queue items before saving this page.", response.body
     assert_no_match "Saved items on this page", response.body
     assert_operator response.body.index("To-do list"), :<, response.body.index("Move to notebook")
+  end
+
+  test "notepad edit page renders the upgraded notes editor shell" do
+    sign_in!
+
+    entry = @user.notepad_entries.create!(
+      title: "Notes shell page",
+      notes: "Editor styling should stay contained.",
+      entry_date: Date.current
+    )
+
+    get edit_notepad_entry_path(entry)
+
+    assert_response :success
+    assert_select ".notepad-doc-edit__notes .notepad-doc-edit__notes-shell", count: 1
+    assert_select ".notepad-doc-edit__notes .notepad-doc-edit__notes-shell trix-editor.notepad-entry-notes-field", count: 1
   end
 
   test "new notepad form shows the to-do composer without an enable toggle" do
@@ -526,9 +629,14 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     get new_notepad_entry_path
 
     assert_response :success
+    assert_select ".notepad-doc-edit__canvas", count: 1
+    assert_select ".notepad-doc__block--voice", count: 1
+    assert_select ".notepad-doc__block--scans", count: 1
+    assert_select ".notepad-doc__block--todos", count: 1
     assert_select "textarea[data-todo-list-target='draftInput']", count: 1
     assert_select ".todo-list-composer__badge .ti-checkbox", count: 1
-    assert_select ".todo-list-composer__submit", text: /Add/
+    assert_select ".todo-list-composer__submit", count: 1
+    assert_select ".todo-list-composer__submit .ti-plus", count: 1
     assert_select "input[name='notepad_entry[todo_list_enabled]'][value='false']", count: 1
     assert_no_match "Enable list", response.body
     assert_no_match "Enable to-do list", response.body
@@ -836,8 +944,8 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     get edit_notepad_entry_path(entry)
 
     assert_response :success
-    assert_select ".ibox-title .ibox-tools button.page-details-save-button", count: 1
-    assert_select ".ibox-title .ibox-tools a.notebook-overview-delete-button[href='#{notepad_entry_path(entry)}'][data-turbo-method='delete']", count: 1
+    assert_select ".notepad-doc-edit__footer .page-details-save-button", count: 1
+    assert_select ".notepad-doc-edit__footer a.notebook-overview-delete-button[href='#{notepad_entry_path(entry)}'][data-turbo-method='delete']", count: 1
     assert_select ".workspace-form-actions .notebook-overview-delete-button", count: 0
   end
 
@@ -1007,7 +1115,20 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "[data-controller='install-prompt']", count: 1
     assert_select "[data-install-prompt-target='notificationSetup']", count: 1
+    assert_select "button.ibox-toggle-button[data-action='install-prompt#toggleCollapse'][aria-expanded='true']"
     assert_select "button[data-action='install-prompt#requestNotifications']", text: "Enable notifications"
+  end
+
+  test "dashboard shows the install app prompt card" do
+    sign_in!
+
+    get dashboard_path
+
+    assert_response :success
+    assert_select "[data-controller='install-prompt']", count: 1
+    assert_select "button.ibox-toggle-button[data-action='install-prompt#toggleCollapse'][aria-expanded='true']"
+    assert_select "button[data-action='install-prompt#prompt']", text: "Install app on mobile"
+    assert_select "a[href='#{install_path}']", text: "Install guide"
   end
 
   private

@@ -6,6 +6,7 @@ export default class extends Controller {
   static targets = ["menu", "toggle", "item"];
 
   static values = {
+    photosSectionId: String,
     cameraInputId: String,
     cameraButtonId: String,
     voiceSectionId: String,
@@ -52,6 +53,16 @@ export default class extends Controller {
     event?.preventDefault();
     this.close();
     this.openCameraInput();
+  }
+
+  openGallery(event) {
+    event?.preventDefault();
+    this.close();
+
+    this.runSectionAction(this.photosSectionIdValue, {
+      selector: "[data-action*='photo-capture#chooseFromGallery']",
+      callback: (button) => button.click()
+    });
   }
 
   openVoiceNote(event) {
@@ -175,9 +186,19 @@ export default class extends Controller {
       }
     }
 
+    const sectionRoot = this.photoCaptureRoot();
+    if (sectionRoot) {
+      const sectionInput = sectionRoot.querySelector("[data-photo-capture-target='cameraInput']");
+      if (sectionInput instanceof HTMLInputElement) {
+        return sectionInput;
+      }
+    }
+
     const siblingRoot = this.element.previousElementSibling;
-    if (siblingRoot instanceof HTMLElement && siblingRoot.matches("[data-controller~='photo-capture']")) {
-      const siblingInput = siblingRoot.querySelector("[data-photo-capture-target='cameraInput']");
+    if (siblingRoot instanceof HTMLElement) {
+      const siblingInput = siblingRoot.matches("[data-controller~='photo-capture']")
+        ? siblingRoot.querySelector("[data-photo-capture-target='cameraInput']")
+        : siblingRoot.querySelector("[data-controller~='photo-capture'] [data-photo-capture-target='cameraInput']");
       if (siblingInput instanceof HTMLInputElement) {
         return siblingInput;
       }
@@ -195,12 +216,43 @@ export default class extends Controller {
       }
     }
 
+    const sectionRoot = this.photoCaptureRoot();
+    if (sectionRoot) {
+      const sectionButton = sectionRoot.querySelector(".photo-section-camera-button, [data-photo-capture-target='cameraToggle']");
+      if (sectionButton instanceof HTMLElement) {
+        return sectionButton;
+      }
+    }
+
     const siblingRoot = this.element.previousElementSibling;
-    if (siblingRoot instanceof HTMLElement && siblingRoot.matches("[data-controller~='photo-capture']")) {
-      return siblingRoot.querySelector(".photo-section-camera-button, [data-photo-capture-target='cameraToggle']");
+    if (siblingRoot instanceof HTMLElement) {
+      const siblingButton = siblingRoot.matches("[data-controller~='photo-capture']")
+        ? siblingRoot.querySelector(".photo-section-camera-button, [data-photo-capture-target='cameraToggle']")
+        : siblingRoot.querySelector("[data-controller~='photo-capture'] .photo-section-camera-button, [data-controller~='photo-capture'] [data-photo-capture-target='cameraToggle']");
+      if (siblingButton instanceof HTMLElement) {
+        return siblingButton;
+      }
     }
 
     return document.querySelector(".entry-photos-form-row[data-controller~='photo-capture'] .photo-section-camera-button, .entry-photos-form-row[data-controller~='photo-capture'] [data-photo-capture-target='cameraToggle']");
+  }
+
+  photoCaptureRoot() {
+    if (!this.hasPhotosSectionIdValue) {
+      return null;
+    }
+
+    const section = document.getElementById(this.photosSectionIdValue);
+    if (!(section instanceof HTMLElement)) {
+      return null;
+    }
+
+    if (section.matches("[data-controller~='photo-capture']")) {
+      return section;
+    }
+
+    const nestedRoot = section.querySelector("[data-controller~='photo-capture']");
+    return nestedRoot instanceof HTMLElement ? nestedRoot : section;
   }
 
   sync() {

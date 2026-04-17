@@ -4,7 +4,7 @@ class NotepadEntriesController < BrowserController
   include DriveRecordExportScheduling
 
   before_action :require_authenticated_user!
-  before_action :set_notepad_entry, only: %i[show edit update destroy destroy_photo]
+  before_action :set_notepad_entry, only: %i[show edit update destroy destroy_photo pdf]
   before_action :load_move_destination_groups, only: %i[show edit update]
 
   def index
@@ -18,6 +18,10 @@ class NotepadEntriesController < BrowserController
   end
 
   def show; end
+
+  def pdf
+    render layout: false
+  end
 
   def new
     @notepad_entry = current_user.notepad_entries.new(entry_date: Time.zone.today)

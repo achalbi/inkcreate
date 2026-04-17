@@ -1,0 +1,70 @@
+<%
+  voice_notes = if VoiceNote.notepad_entries_supported?
+    notepad_entry.voice_notes.recent_first.includes(audio_attachment: :blob)
+  else
+    []
+  end
+  voice_note_count = voice_notes.size
+%>
+
+<section
+  id="<%= dom_id(notepad_entry, :voice_notes_section) %>"
+  class="notepad-doc__block notepad-doc__block--voice detail-section-anchor"
+  data-controller="voice-recorder voice-note-list"
+  data-voice-recorder-auto-submit-on-save-value="false"
+  data-voice-recorder-mode-value="persisted"
+  data-voice-recorder-max-duration-seconds-value="<%= VoiceNote::MAX_DURATION_SECONDS %>"
+  data-voice-recorder-param-key-value="notepad_entry"
+  data-voice-recorder-create-url-value="<%= notepad_entry_voice_notes_path(notepad_entry) %>"
+>
+  <div class="notepad-doc__block-header">
+    <div class="notepad-doc__block-label">
+      <i class="ti ti-microphone" aria-hidden="true"></i>
+      Voice notes<% if voice_note_count > 0 %> · <%= voice_note_count %><% end %>
+    </div>
+    <div class="notepad-doc__block-actions">
+      <% if voice_notes.any? %>
+        <button
+          type="button"
+          class="btn btn-white btn-sm voice-note-list__toggle"
+          data-voice-note-list-target="toggle"
+          data-action="voice-note-list#toggle"
+          aria-expanded="false"
+          aria-label="Expand voice note details"
+          title="Expand voice note details"
+        >
+          <i class="ti ti-chevron-right" aria-hidden="true"></i><span> Details</span>
+        </button>
+      <% end %>
+      <button
+        type="button"
+        class="btn btn-white btn-sm"
+        data-voice-recorder-target="startButton"
+        data-action="voice-recorder#start"
+      >
+        <i class="ti ti-microphone" aria-hidden="true"></i> Record
+      </button>
+    </div>
+  </div>
+
+  <div data-voice-recorder-target="panel">
+    <div class="voice-note-recorder">
+      <%= render "pages/voice_note_recorder_content",
+        recorder_form: nil,
+        recorder_mode: :persisted,
+        show_start_button: false %>
+    </div>
+
+    <% if voice_notes.any? %>
+      <div class="notepad-doc__voice-strip" data-notepad-document-target="voiceBlock">
+        <% voice_notes.each do |voice_note| %>
+          <%= render "shared/voice_note_list_item",
+            voice_note: voice_note,
+            delete_path: notepad_entry_voice_note_path(notepad_entry, voice_note) %>
+        <% end %>
+      </div>
+    <% else %>
+      <p class="text-muted m-b-none" style="font-size: 0.875rem;">No voice notes yet — press Record to start.</p>
+    <% end %>
+  </div>
+</section>

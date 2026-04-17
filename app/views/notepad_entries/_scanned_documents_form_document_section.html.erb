@@ -1,0 +1,68 @@
+<%
+  draft_docs = notepad_entry.pending_scanned_document_payloads
+  tips_target_id = dom_id(notepad_entry, :scan_capture_tips)
+%>
+
+<section
+  id="<%= dom_id(notepad_entry, :scanned_documents_section) %>"
+  class="notepad-doc__block notepad-doc__block--scans notepad-doc-edit__section detail-section-anchor"
+  data-controller="document-capture"
+  data-document-capture-mode-value="draft"
+>
+  <div class="notepad-doc__block-header">
+    <div class="notepad-doc__block-label">
+      <i class="ti ti-scan" aria-hidden="true"></i>
+      Scanned documents<% if draft_docs.any? %> · <%= draft_docs.size %><% end %>
+    </div>
+    <div class="notepad-doc__block-actions">
+      <button
+        type="button"
+        class="btn btn-white btn-sm btn-icon photo-section-info-button"
+        data-bs-toggle="collapse"
+        data-bs-target="#<%= tips_target_id %>"
+        aria-expanded="false"
+        aria-controls="<%= tips_target_id %>"
+        title="Capture tips"
+        aria-label="Capture tips"
+      >
+        <i class="ti ti-info-circle" aria-hidden="true"></i>
+      </button>
+      <button
+        type="button"
+        class="btn btn-white btn-sm"
+        data-action="click->document-capture#open"
+        aria-label="Scan a document"
+      >
+        <i class="ti ti-scan" aria-hidden="true"></i><span> Scan</span>
+      </button>
+    </div>
+  </div>
+
+  <%= render "shared/document_capture_tips_panel",
+    target_id: tips_target_id,
+    extra_classes: "m-b-md" %>
+
+  <input
+    type="hidden"
+    name="<%= "#{form.object_name}[pending_scanned_documents_json]" %>"
+    value="<%= notepad_entry.pending_scanned_documents_json %>"
+    data-document-capture-target="draftPayloadField"
+  >
+
+  <div class="sdoc-list" data-document-capture-target="draftList" <%= "hidden" unless draft_docs.any? %>></div>
+
+  <div class="sdoc-empty-state" data-document-capture-target="draftEmptyState" <%= "hidden" if draft_docs.any? %>>
+    <div class="sdoc-empty-icon">
+      <i class="ti ti-file-text" aria-hidden="true"></i>
+    </div>
+    <div class="sdoc-empty-title">No scanned documents yet</div>
+    <div class="sdoc-empty-sub">Capture a document as a PDF to keep receipts, notes, and pages together.</div>
+    <button
+      type="button"
+      class="btn btn-white btn-sm"
+      data-action="click->document-capture#open"
+    ><i class="ti ti-scan" aria-hidden="true"></i> Scan your first document</button>
+  </div>
+
+  <%= render "shared/scanned_document_capture_overlay" %>
+</section>

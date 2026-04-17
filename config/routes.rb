@@ -59,6 +59,7 @@ Rails.application.routes.draw do
     end
 
     member do
+      get :pdf
       delete "photos/:attachment_id", action: :destroy_photo, as: :photo
     end
 
@@ -145,6 +146,7 @@ Rails.application.routes.draw do
     resource :operations, only: :show
     resources :users, only: %i[index update]
     post "/users/:id/role", to: "users#update", as: :user_role
+    resource :settings, only: %i[show update], controller: "settings"
   end
 
   namespace :internal do

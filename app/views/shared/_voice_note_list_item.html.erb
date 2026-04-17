@@ -14,27 +14,29 @@
 <article class="notebook-list-card voice-note-list-card">
   <div class="notebook-list-card__body">
     <div class="notebook-list-card__content notebook-list-card__content--chapter">
-      <div class="notebook-list-card__symbol" aria-hidden="true">
-        <i class="ti ti-microphone"></i>
-      </div>
-
-      <div class="notebook-list-card__main">
-        <div class="notebook-list-card__header">
-          <div class="notebook-list-card__header-copy">
-            <h6 class="notebook-list-card__title">Recorded <%= recorded_at_label %></h6>
-          </div>
+      <div class="voice-note-list-card__details" data-voice-note-list-target="main" aria-hidden="true" hidden>
+        <div class="notebook-list-card__symbol" aria-hidden="true">
+          <i class="ti ti-microphone"></i>
         </div>
 
-        <div class="notebook-list-card__meta">
-          <span class="notebook-list-card__meta-item">
-            <i class="ti ti-wave-sine" aria-hidden="true"></i>
-            <strong><%= duration_label %></strong>
-          </span>
-          <span class="notebook-list-card__meta-dot" aria-hidden="true">&middot;</span>
-          <span class="notebook-list-card__meta-item">
-            <i class="ti ti-database" aria-hidden="true"></i>
-            <strong><%= number_to_human_size(voice_note.byte_size) %></strong>
-          </span>
+        <div class="notebook-list-card__main">
+          <div class="notebook-list-card__header">
+            <div class="notebook-list-card__header-copy">
+              <h6 class="notebook-list-card__title">Recorded <%= recorded_at_label %></h6>
+            </div>
+          </div>
+
+          <div class="notebook-list-card__meta">
+            <span class="notebook-list-card__meta-item">
+              <i class="ti ti-wave-sine" aria-hidden="true"></i>
+              <strong><%= duration_label %></strong>
+            </span>
+            <span class="notebook-list-card__meta-dot" aria-hidden="true">&middot;</span>
+            <span class="notebook-list-card__meta-item">
+              <i class="ti ti-database" aria-hidden="true"></i>
+              <strong><%= number_to_human_size(voice_note.byte_size) %></strong>
+            </span>
+          </div>
         </div>
       </div>
 
@@ -52,7 +54,7 @@
             data-voice-note-player-target="playButton"
             aria-label="Play voice note recorded <%= recorded_at_label %>"
           >
-            <i class="ti ti-player-play" data-voice-note-player-target="playIcon" aria-hidden="true"></i>
+            <i class="ti ti-player-play-filled" data-voice-note-player-target="playIcon" aria-hidden="true"></i>
           </button>
 
           <div class="voice-note-player__content">

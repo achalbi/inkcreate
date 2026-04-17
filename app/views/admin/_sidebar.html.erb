@@ -35,6 +35,12 @@
         <span class="nav-text">User roles</span>
       <% end %>
     </li>
+    <li>
+      <%= link_to admin_settings_path, class: ["nav-link", ("active" if current_page?(admin_settings_path))].compact.join(" ") do %>
+        <i class="ti ti-settings"></i>
+        <span class="nav-text">Settings</span>
+      <% end %>
+    </li>
 
     <li class="nav-heading nav-heading-spacious"><small class="nav-section-label">Quick snapshot</small></li>
     <li class="px-3">

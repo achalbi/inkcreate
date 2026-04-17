@@ -252,7 +252,7 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
     get new_notepad_entry_path
 
     assert_response :success
-    assert_select "h5", text: "Scanned documents"
+    assert_select ".notepad-doc__block-label", text: /Scanned documents/
     assert_no_match "Web scan mode", response.body
     assert_no_match "Saved with this form", response.body
 
@@ -298,7 +298,7 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
     get notepad_entry_path(entry)
 
     assert_response :success
-    assert_select "h5", text: "Scanned documents"
+    assert_select ".notepad-doc__block-label", text: /Scanned documents/
     assert_no_match "Web scan mode", response.body
     assert_select "form.button_to[action='#{notepad_entry_scanned_document_path(entry, 'missing')}']", count: 0
 
@@ -350,7 +350,7 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select ".sdoc-title", text: "Receipt"
-    assert_select ".sdoc-excerpt", text: /Open the PDF to review this scanned document\./
+    assert_select ".sdoc-excerpt", count: 0
 
     assert_difference -> { entry.scanned_documents.count }, -1 do
       delete notepad_entry_scanned_document_path(entry, scanned_document), params: {

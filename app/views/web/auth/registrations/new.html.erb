@@ -14,36 +14,42 @@
       <div class="eyebrow">Create account</div>
       <h1>Start with a notebook-friendly workspace.</h1>
       <p>
-        The first account becomes the bootstrap admin. Every account after that
-        starts as a standard user, and admins can manage roles later.
+        Set up your personal workspace to capture notebook pages, extract text with OCR,
+        organise notes, and sync everything to Google Drive.
       </p>
 
-      <%= render "web/auth/google_auth_button", label: "Continue with Google" %>
+      <%= render "web/auth/google_auth_button", label: "Sign up with Google" %>
 
-      <%= form_with model: @user, url: browser_sign_up_path, scope: :user, class: "auth-form" do |form| %>
-        <div class="field">
-          <%= form.label :email %>
-          <%= form.email_field :email, autofocus: true, autocomplete: "email", required: true %>
-        </div>
-
-        <div class="auth-form-row">
+      <% if GlobalSetting.password_auth_enabled? %>
+        <%= form_with model: @user, url: browser_sign_up_path, scope: :user, class: "auth-form" do |form| %>
           <div class="field">
-            <%= form.label :password %>
-            <%= form.password_field :password, autocomplete: "new-password", required: true %>
+            <%= form.label :email %>
+            <%= form.email_field :email, autofocus: true, autocomplete: "email", required: true %>
           </div>
 
-          <div class="field">
-            <%= form.label :password_confirmation %>
-            <%= form.password_field :password_confirmation, autocomplete: "new-password", required: true %>
-          </div>
-        </div>
+          <div class="auth-form-row">
+            <div class="field">
+              <%= form.label :password %>
+              <%= form.password_field :password, autocomplete: "new-password", required: true %>
+            </div>
 
-        <%= form.submit "Create account", class: "button button-primary" %>
+            <div class="field">
+              <%= form.label :password_confirmation %>
+              <%= form.password_field :password_confirmation, autocomplete: "new-password", required: true %>
+            </div>
+          </div>
+
+          <%= form.submit "Create account", class: "button button-primary" %>
+        <% end %>
+
+        <div class="helper-links">
+          <a href="<%= browser_sign_in_path %>">Already registered? Sign in</a>
+        </div>
+      <% else %>
+        <div class="auth-google-only-notice">
+          Create your account using Google sign-in above.
+        </div>
       <% end %>
-
-      <div class="helper-links">
-        <a href="<%= browser_sign_in_path %>">Already registered? Sign in</a>
-      </div>
     </article>
   </section>
 

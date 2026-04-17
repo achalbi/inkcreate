@@ -6,11 +6,6 @@
       value: blob.signed_id,
       data: { photo_capture_target: "retainedInput" } %>
   <% end %>
-  <% photo_capture_hint_text = local_assigns[:hint_text].presence || "Use the header icons to capture a photo or upload one from the gallery." %>
-
-  <div class="photo-capture-meta m-b-sm">
-    <div class="text-muted small"><%= photo_capture_hint_text %></div>
-  </div>
 
   <% if local_assigns[:tips_target_id].present? %>
     <div id="<%= tips_target_id %>" class="collapse photo-capture-tips-panel m-b-md">

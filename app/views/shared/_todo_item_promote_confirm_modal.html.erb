@@ -1,0 +1,30 @@
+<%
+  content = local_assigns.fetch(:content)
+  form_id = local_assigns.fetch(:form_id)
+%>
+
+<div
+  class="modal fade todo-item-promote-confirm-modal"
+  id="<%= modal_id %>"
+  tabindex="-1"
+  aria-labelledby="<%= "#{modal_id}-label" %>"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title" id="<%= "#{modal_id}-label" %>">Promote to task?</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body pt-2">
+        <p class="mb-0 text-secondary">
+          "<%= content %>" will be added to your task list.
+        </p>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-white btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary btn-sm" form="<%= form_id %>">Promote</button>
+      </div>
+    </div>
+  </div>
+</div>

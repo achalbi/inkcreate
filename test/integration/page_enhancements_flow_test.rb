@@ -291,7 +291,7 @@ class PageEnhancementsFlowTest < ActionDispatch::IntegrationTest
     follow_redirect!
 
     assert_response :success
-    assert_select ".sdoc-excerpt", text: /Open the PDF to review this scanned document\./
+    assert_select ".sdoc-excerpt", count: 0
   end
 
   test "user can store a native OCR result on a saved page scan" do

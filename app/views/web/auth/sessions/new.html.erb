@@ -14,29 +14,35 @@
       <div class="eyebrow">Sign in</div>
       <h1>Resume your notebook workflow.</h1>
       <p>
-        Sign in to review captures, request upload URLs, search extracted text,
+        Sign in to review captures, search extracted text, manage your notebooks,
         and continue the OCR flow from the same workspace.
       </p>
 
       <%= render "web/auth/google_auth_button", label: "Continue with Google" %>
 
-      <%= form_with url: browser_sign_in_path, scope: :user, class: "auth-form" do |form| %>
-        <div class="field">
-          <%= form.label :email %>
-          <%= form.email_field :email, autofocus: true, autocomplete: "email", required: true %>
-        </div>
+      <% if GlobalSetting.password_auth_enabled? %>
+        <%= form_with url: browser_sign_in_path, scope: :user, class: "auth-form" do |form| %>
+          <div class="field">
+            <%= form.label :email %>
+            <%= form.email_field :email, autofocus: true, autocomplete: "email", required: true %>
+          </div>
 
-        <div class="field">
-          <%= form.label :password %>
-          <%= form.password_field :password, autocomplete: "current-password", required: true %>
-        </div>
+          <div class="field">
+            <%= form.label :password %>
+            <%= form.password_field :password, autocomplete: "current-password", required: true %>
+          </div>
 
-        <%= form.submit "Sign in", class: "button button-primary" %>
+          <%= form.submit "Sign in", class: "button button-primary" %>
+        <% end %>
+
+        <div class="helper-links">
+          <a href="<%= browser_sign_up_path %>">Need an account? Create one</a>
+        </div>
+      <% else %>
+        <div class="auth-google-only-notice">
+          Sign in with your Google account to continue.
+        </div>
       <% end %>
-
-      <div class="helper-links">
-        <a href="<%= browser_sign_up_path %>">Need an account? Create one</a>
-      </div>
     </article>
   </section>
 

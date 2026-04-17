@@ -1,4 +1,4 @@
-const SHELL_CACHE = "inkcreate-shell-v11";
+const SHELL_CACHE = "inkcreate-shell-v12";
 const OFFLINE_URL = "/offline.html";
 const DB_NAME = "inkcreate-pwa";
 const DB_VERSION = 3;

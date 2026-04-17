@@ -18,7 +18,14 @@ module Pages
       if doc.save
         respond_to do |fmt|
           fmt.html { redirect_to notebook_chapter_page_path(@notebook, @chapter, @page), notice: "Document saved." }
-          fmt.json { render json: { ok: true } }
+          fmt.json do
+            render json: {
+              ok: true,
+              scanned_document_id: doc.id,
+              submit_ocr_result_url: submit_ocr_result_notebook_chapter_page_scanned_document_path(@notebook, @chapter, @page, doc),
+              ocr_source_url: ocr_source_notebook_chapter_page_scanned_document_path(@notebook, @chapter, @page, doc)
+            }
+          end
         end
       else
         respond_to do |fmt|

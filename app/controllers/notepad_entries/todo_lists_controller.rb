@@ -34,7 +34,7 @@ module NotepadEntries
           ok: true,
           message: message,
           html: render_to_string(
-            partial: "notepad_entries/todo_list_section",
+            partial: todo_list_partial,
             formats: [:html],
             locals: { notepad_entry: @notepad_entry }
           )
@@ -50,6 +50,14 @@ module NotepadEntries
       else
         redirect_to notepad_entry_path(@notepad_entry), alert: message
       end
+    end
+
+    def todo_list_partial
+      referer = request.referer.to_s
+      return "notepad_entries/todo_list_section" if referer.include?(edit_notepad_entry_path(@notepad_entry))
+      return "notepad_entries/todo_list_document_section" if referer.include?(notepad_entry_path(@notepad_entry))
+
+      "notepad_entries/todo_list_section"
     end
   end
 end

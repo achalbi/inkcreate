@@ -11,7 +11,9 @@ export default class extends Controller {
     "filterEmpty",
     "deleteModal",
     "deleteForm",
-    "deleteMessage"
+    "deleteMessage",
+    "promoteModal",
+    "promoteMessage"
   ];
 
   static values = {
@@ -25,7 +27,12 @@ export default class extends Controller {
     this.defaultDeleteMessage = this.hasDeleteMessageTarget
       ? this.deleteMessageTarget.textContent.trim()
       : "This item will be removed from the list.";
+    this.defaultPromoteMessage = this.hasPromoteMessageTarget
+      ? this.promoteMessageTarget.textContent.trim()
+      : "This item will be added to your task list.";
     this.boundResetDeleteConfirmation = this.resetDeleteConfirmation.bind(this);
+    this.boundResetPromoteConfirmation = this.resetPromoteConfirmation.bind(this);
+    this.pendingPromoteForm = null;
     this.renderDraftItems();
     this.renderPersistedState();
     this.resizeAllTextareas();
@@ -33,11 +40,19 @@ export default class extends Controller {
     if (this.hasDeleteModalTarget) {
       this.deleteModalTarget.addEventListener("hidden.bs.modal", this.boundResetDeleteConfirmation);
     }
+
+    if (this.hasPromoteModalTarget) {
+      this.promoteModalTarget.addEventListener("hidden.bs.modal", this.boundResetPromoteConfirmation);
+    }
   }
 
   disconnect() {
     if (this.hasDeleteModalTarget) {
       this.deleteModalTarget.removeEventListener("hidden.bs.modal", this.boundResetDeleteConfirmation);
+    }
+
+    if (this.hasPromoteModalTarget) {
+      this.promoteModalTarget.removeEventListener("hidden.bs.modal", this.boundResetPromoteConfirmation);
     }
   }
 
@@ -157,6 +172,33 @@ export default class extends Controller {
     }
 
     this.showDeleteModal();
+  }
+
+  confirmPromote(event) {
+    event.preventDefault();
+
+    const trigger = event.currentTarget;
+    const form = trigger?.closest("form");
+    if (!(form instanceof HTMLFormElement)) {
+      return;
+    }
+
+    const content = (trigger.dataset.todoListItemContent || "This item").trim();
+    this.pendingPromoteForm = form;
+
+    if (this.hasPromoteMessageTarget) {
+      this.promoteMessageTarget.textContent = `"${content}" will be added to your task list.`;
+    }
+
+    this.showPromoteModal();
+  }
+
+  submitPromote() {
+    if (!(this.pendingPromoteForm instanceof HTMLFormElement)) {
+      return;
+    }
+
+    this.pendingPromoteForm.requestSubmit();
   }
 
   async submitForm(form) {
@@ -353,6 +395,14 @@ export default class extends Controller {
     }
   }
 
+  resetPromoteConfirmation() {
+    this.pendingPromoteForm = null;
+
+    if (this.hasPromoteMessageTarget) {
+      this.promoteMessageTarget.textContent = this.defaultPromoteMessage;
+    }
+  }
+
   showDeleteModal() {
     const ModalClass = window.bootstrap?.Modal;
     if (!ModalClass || !this.hasDeleteModalTarget) {
@@ -377,6 +427,23 @@ export default class extends Controller {
     document.querySelectorAll(".modal-backdrop").forEach((backdrop) => backdrop.remove());
   }
 
+  showPromoteModal() {
+    const ModalClass = window.bootstrap?.Modal;
+    if (!ModalClass || !this.hasPromoteModalTarget) {
+      const message = this.hasPromoteMessageTarget
+        ? this.promoteMessageTarget.textContent.trim()
+        : this.defaultPromoteMessage;
+
+      if (this.pendingPromoteForm && window.confirm(message)) {
+        this.pendingPromoteForm.requestSubmit();
+      }
+      return;
+    }
+
+    const modal = ModalClass.getInstance(this.promoteModalTarget) || ModalClass.getOrCreateInstance(this.promoteModalTarget);
+    modal.show();
+  }
+
   normalizeValue(value) {
     return value
       .toString()
@@ -398,11 +465,27 @@ export default class extends Controller {
       return;
     }
 
-    const computedMinHeight = Number.parseFloat(window.getComputedStyle(element).minHeight);
+    const computedStyle = window.getComputedStyle(element);
+    const computedMinHeight = Number.parseFloat(computedStyle.minHeight);
     const minHeight = Number.isFinite(computedMinHeight) ? computedMinHeight : 0;
+    const lineHeight = Number.parseFloat(computedStyle.lineHeight);
+    const paddingTop = Number.parseFloat(computedStyle.paddingTop);
+    const paddingBottom = Number.parseFloat(computedStyle.paddingBottom);
+    const borderTop = Number.parseFloat(computedStyle.borderTopWidth);
+    const borderBottom = Number.parseFloat(computedStyle.borderBottomWidth);
+    const singleLineHeight = [
+      lineHeight,
+      paddingTop,
+      paddingBottom,
+      borderTop,
+      borderBottom,
+    ].reduce((sum, value) => sum + (Number.isFinite(value) ? value : 0), 0);
 
     element.style.height = "0px";
-    element.style.height = `${Math.max(element.scrollHeight, minHeight)}px`;
+    element.style.height = `${Math.max(
+      element.value.length === 0 ? singleLineHeight : element.scrollHeight,
+      minHeight,
+    )}px`;
   }
 
   csrfToken() {

@@ -501,6 +501,61 @@
         line-height: 1.7;
       }
 
+      .install-prompt-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 24px;
+      }
+
+      .install-prompt-header-main {
+        flex: 1 1 auto;
+        min-width: 0;
+        margin-bottom: 0;
+      }
+
+      .install-prompt-summary {
+        margin: 0 0 24px;
+        max-width: 60ch;
+        color: var(--ink-soft);
+        line-height: 1.7;
+      }
+
+      .install-prompt-header .ibox-toggle-button {
+        width: 1.75rem;
+        height: 1.75rem;
+        border: 1px solid rgba(23, 57, 45, 0.12);
+        border-radius: 999px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 250, 241, 0.78);
+        color: var(--forest);
+        box-shadow: var(--shadow-soft);
+        transition: background-color 180ms ease, color 180ms ease, transform 180ms ease;
+      }
+
+      .install-prompt-header .ibox-toggle-button:hover {
+        background: rgba(23, 57, 45, 0.1);
+        color: var(--ink);
+      }
+
+      .install-prompt-header .ibox-toggle-button:focus-visible {
+        outline: 2px solid rgba(23, 57, 45, 0.2);
+        outline-offset: 2px;
+      }
+
+      .install-prompt-header .ibox-toggle-icon {
+        display: block;
+        transition: transform 0.2s ease;
+      }
+
+      .install-prompt-header .ibox-toggle-button[aria-expanded="false"] .ibox-toggle-icon {
+        transform: rotate(180deg);
+      }
+
       .feature-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
       }
@@ -711,6 +766,86 @@
         width: 1rem;
         height: 1rem;
         fill: currentColor;
+      }
+
+      /* Mobile hamburger menu toggle — hidden on desktop */
+      .mobile-menu-toggle {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        border: 1px solid rgba(20, 38, 31, 0.14);
+        border-radius: 12px;
+        background: rgba(255, 250, 241, 0.85);
+        color: var(--forest);
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+
+      .mobile-menu-toggle:focus-visible {
+        outline: 2px solid rgba(61, 120, 93, 0.4);
+        outline-offset: 2px;
+      }
+
+      /* Auth google-only notice */
+      .auth-google-only-notice {
+        margin-top: 18px;
+        padding: 14px 18px;
+        border-radius: 16px;
+        background: rgba(23, 57, 45, 0.06);
+        border: 1px solid rgba(23, 57, 45, 0.1);
+        color: var(--ink-soft);
+        font-size: 0.92rem;
+        line-height: 1.55;
+        text-align: center;
+      }
+
+      /* CTA section at bottom of landing */
+      .cta-section {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+        align-items: center;
+        gap: 28px;
+        padding: 42px;
+        background: linear-gradient(135deg, var(--forest) 0%, var(--forest-soft) 100%);
+        border-radius: 28px;
+        box-shadow: var(--shadow);
+        color: #fffaf1;
+      }
+
+      .cta-section .eyebrow {
+        color: rgba(255, 250, 241, 0.7);
+      }
+
+      .cta-section h2 {
+        font-size: clamp(1.8rem, 4vw, 2.8rem);
+        max-width: none;
+        color: #fffaf1;
+      }
+
+      .cta-section p {
+        margin: 14px 0 0;
+        color: rgba(255, 250, 241, 0.78);
+        line-height: 1.65;
+      }
+
+      .cta-section-actions {
+        display: grid;
+        gap: 12px;
+      }
+
+      .cta-section .button-primary {
+        background: rgba(255, 250, 241, 0.95);
+        color: var(--forest);
+        box-shadow: 0 12px 28px rgba(0,0,0,0.18);
+      }
+
+      .cta-section .button-secondary {
+        background: rgba(255, 250, 241, 0.12);
+        border-color: rgba(255, 250, 241, 0.28);
+        color: rgba(255, 250, 241, 0.9);
       }
 
       .legal-shell {
@@ -1890,22 +2025,51 @@
           margin-top: 20px;
         }
 
-        .topbar,
-        .topbar-right,
-        footer {
+        /* Hamburger — show on mobile */
+        .mobile-menu-toggle {
+          display: inline-flex;
+        }
+
+        /* On mobile the topbar is: brand | hamburger — flexbox row */
+        .topbar {
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: nowrap;
+          gap: 12px;
+          margin-bottom: 0;
+        }
+
+        /* topbar-right collapses into a drawer below the topbar */
+        .topbar-right {
+          display: none;
+          flex-direction: column;
+          align-items: stretch;
+          width: 100%;
+          gap: 16px;
+          margin-top: 14px;
+          padding: 20px;
+          background: rgba(255, 250, 241, 0.97);
+          border: 1px solid rgba(20, 38, 31, 0.1);
+          border-radius: 20px;
+          box-shadow: var(--shadow-soft);
+          order: 3; /* push below topbar row */
+        }
+
+        .topbar-right.mobile-menu-open {
+          display: flex;
+        }
+
+        /* Wrap topbar + drawer in a block-level container */
+        .topbar {
+          flex-wrap: wrap;
+        }
+
+        footer,
+        .install-prompt-header {
           flex-direction: column;
           align-items: flex-start;
-        }
-
-        .topbar {
-          justify-content: flex-start;
-          gap: 16px;
-        }
-
-        .topbar-right {
-          flex: none;
-          width: 100%;
-          gap: 14px;
         }
 
         .topbar nav,
@@ -1925,6 +2089,11 @@
 
         .nav-actions .mini-button {
           width: 100%;
+        }
+
+        .cta-section {
+          grid-template-columns: minmax(0, 1fr);
+          padding: 28px 24px;
         }
 
         .hero-copy,
@@ -2051,6 +2220,32 @@
 
         .flash-banner__message {
           font-size: 0.86rem;
+        }
+
+        /* Auth pages: full-width single column on small phones */
+        .auth-shell-single .auth-panel {
+          width: 100%;
+        }
+
+        .auth-panel h1 {
+          font-size: clamp(1.8rem, 10vw, 2.8rem);
+        }
+
+        /* Make form inputs and buttons easier to tap */
+        .field input,
+        .field select {
+          min-height: 56px;
+          font-size: 1rem;
+        }
+
+        .button {
+          min-height: 56px;
+          font-size: 0.95rem;
+        }
+
+        .cta-section {
+          padding: 24px 20px;
+          border-radius: 20px;
         }
       }
     </style>

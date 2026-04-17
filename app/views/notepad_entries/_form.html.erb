@@ -125,22 +125,11 @@
             >
               <i class="ti ti-photo-plus" aria-hidden="true"></i>
             </button>
-            <button
-              type="button"
-              class="btn btn-white btn-sm btn-icon photo-section-info-button"
-              data-bs-toggle="collapse"
-              data-bs-target="#notepad-entry-capture-tips"
-              aria-expanded="false"
-              aria-controls="notepad-entry-capture-tips"
-              title="Capture tips"
-            >
-              <i class="ti ti-info-circle" aria-hidden="true"></i>
-            </button>
             <%= render "shared/ibox_toggle_button", target_id: "notepad-entry-photos-content" %>
           </div>
         </div>
         <div id="notepad-entry-photos-content" class="ibox-content collapse show">
-          <%= render "shared/photo_capture_field", form:, field_name: :photos, tips_target_id: "notepad-entry-capture-tips" %>
+          <%= render "shared/photo_capture_field", form:, field_name: :photos %>
 
           <% if notepad_entry.photos.attached? %>
             <hr>
@@ -174,6 +163,7 @@
     class="notepad-quick-actions"
     data-controller="notepad-quick-actions"
     data-action="click@window->notepad-quick-actions#closeOnWindow keydown.esc@window->notepad-quick-actions#close"
+    data-notepad-quick-actions-photos-section-id-value="<%= photos_section_id %>"
     data-notepad-quick-actions-camera-input-id-value="<%= photo_camera_input_id %>"
     data-notepad-quick-actions-camera-button-id-value="<%= photo_camera_button_id %>"
     data-notepad-quick-actions-voice-section-id-value="<%= voice_notes_section_id %>"
@@ -190,6 +180,17 @@
         title="Capture photo"
       >
         <i class="ti ti-camera" aria-hidden="true"></i>
+      </button>
+
+      <button
+        type="button"
+        class="notepad-quick-actions__item"
+        data-notepad-quick-actions-target="item"
+        data-action="click->notepad-quick-actions#openGallery"
+        aria-label="Upload from gallery"
+        title="Upload from gallery"
+      >
+        <i class="ti ti-photo-plus" aria-hidden="true"></i>
       </button>
 
       <% if voice_notes_available %>

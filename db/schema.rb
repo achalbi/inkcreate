@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_16_174500) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_17_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -241,6 +241,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_16_174500) do
     t.index ["capture_id"], name: "index_drive_syncs_on_capture_id"
     t.index ["user_id", "status"], name: "index_drive_syncs_on_user_id_and_status"
     t.index ["user_id"], name: "index_drive_syncs_on_user_id"
+  end
+
+  create_table "global_settings", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.boolean "password_auth_enabled", default: true, null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "google_drive_exports", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|

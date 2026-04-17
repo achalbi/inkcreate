@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notepad Document — Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,600;0,700;1,400&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/@tabler/icons-webfont@3.35.0/dist/tabler-icons.min.css">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --inapp-primary: #e66239;
+  --inapp-ink: #241d17;
+  --inapp-ink-soft: #5f5245;
+  --inapp-muted: #7a6d5d;
+  --inapp-border: rgba(80, 62, 45, 0.12);
+  --inapp-border-strong: rgba(80, 62, 45, 0.18);
+  --inapp-bg: #f5eee3;
+  --inapp-paper: #fbf7f0;
+  --inapp-card-shadow: 0 12px 30px rgba(54, 43, 32, 0.06);
+  --inapp-font-body: "Manrope", "Segoe UI", sans-serif;
+  --inapp-font-heading: "Newsreader", Georgia, serif;
+  --inapp-radius-sm: 0.72rem;
+  --inapp-radius-md: 0.9rem;
+  --inapp-radius-lg: 1.08rem;
+  --inapp-radius-xl: 1.22rem;
+  --inapp-radius-pill: 999px;
+  --inapp-topbar-height: 56px;
+}
+
+body {
+  font-family: var(--inapp-font-body);
+  background: var(--inapp-bg);
+  color: var(--inapp-ink);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ── Fake sidebar + topbar shell ─── */
+.shell { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: 240px;
+  background: #f0e8db;
+  border-right: 1px solid var(--inapp-border);
+  padding: 1rem 0;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.sidebar-logo {
+  padding: 0.5rem 1.25rem 1.25rem;
+  font-family: var(--inapp-font-heading);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--inapp-ink);
+  letter-spacing: -0.02em;
+}
+.sidebar-item {
+  display: flex; align-items: center; gap: 0.625rem;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.8125rem; font-weight: 600;
+  color: var(--inapp-muted);
+  border-radius: 0; cursor: pointer;
+}
+.sidebar-item.active {
+  background: rgba(230, 98, 57, 0.1);
+  color: var(--inapp-primary);
+}
+.sidebar-item i { font-size: 1rem; }
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.topbar {
+  height: var(--inapp-topbar-height);
+  background: rgba(248, 242, 233, 0.92);
+  border-bottom: 1px solid var(--inapp-border);
+  display: flex; align-items: center;
+  padding: 0 1.5rem;
+  gap: 1rem;
+  font-size: 0.8125rem;
+  color: var(--inapp-muted);
+  font-weight: 500;
+  flex-shrink: 0;
+  backdrop-filter: blur(8px);
+}
+.topbar-crumb { color: var(--inapp-muted); }
+.topbar-crumb.active { color: var(--inapp-ink); font-weight: 600; }
+.topbar-sep { opacity: 0.4; }
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+/* ── notepad-doc layout ─────────── */
+.notepad-doc { max-width: 800px; margin: 0 auto; padding-bottom: 5rem; }
+
+.notepad-doc__toolbar {
+  display: flex; align-items: center; justify-content: flex-end;
+  gap: 0.5rem; padding: 0.5rem 0 1.25rem;
+  position: sticky; top: 0; z-index: 200;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: var(--inapp-radius-sm);
+  font-size: 0.8125rem; font-weight: 600;
+  border: 1px solid var(--inapp-border);
+  cursor: pointer; text-decoration: none;
+  font-family: var(--inapp-font-body);
+  transition: background 0.12s, border-color 0.12s;
+}
+.btn-white { background: #fff; color: var(--inapp-ink-soft); }
+.btn-white:hover { background: var(--inapp-bg); border-color: var(--inapp-border-strong); }
+.btn-primary {
+  background: var(--inapp-primary); color: #fff;
+  border-color: var(--inapp-primary);
+}
+.btn-sm { padding: 0.3rem 0.625rem; font-size: 0.75rem; }
+.btn-icon { padding: 0.3rem 0.45rem; }
+.btn i { font-size: 0.9rem; }
+
+/* Dropdown mock */
+.dropdown { position: relative; }
+.dropdown-menu {
+  position: absolute; right: 0; top: calc(100% + 4px);
+  background: #fff; border: 1px solid var(--inapp-border);
+  border-radius: var(--inapp-radius-md);
+  box-shadow: 0 8px 24px rgba(54,43,32,0.12);
+  min-width: 200px; padding: 0.375rem 0;
+  display: none; z-index: 999;
+}
+.dropdown:hover .dropdown-menu,
+.dropdown:focus-within .dropdown-menu { display: block; }
+.dropdown-item {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.5rem 1rem; font-size: 0.8125rem; font-weight: 500;
+  color: var(--inapp-ink-soft); cursor: pointer;
+  font-family: var(--inapp-font-body);
+  white-space: nowrap;
+}
+.dropdown-item:hover { background: var(--inapp-bg); }
+.dropdown-item i { font-size: 0.9rem; color: var(--inapp-muted); }
+
+/* Canvas */
+.notepad-doc__canvas {
+  background: var(--inapp-paper);
+  border-radius: var(--inapp-radius-xl);
+  box-shadow: var(--inapp-card-shadow);
+  border: 1px solid var(--inapp-border);
+  overflow: hidden;
+}
+
+/* Header */
+.notepad-doc__header {
+  padding: 2.25rem 2.5rem 1.75rem;
+  border-bottom: 1px solid var(--inapp-border);
+  background: #fff;
+}
+.notepad-doc__title {
+  font-family: var(--inapp-font-heading);
+  font-size: 1.8rem; font-weight: 700;
+  color: var(--inapp-ink); line-height: 1.2;
+  letter-spacing: -0.02em; margin-bottom: 0.375rem;
+  padding-inline: 0.18rem;
+}
+.notepad-doc__date {
+  font-size: 0.8125rem; color: var(--inapp-muted); font-weight: 500;
+}
+.notepad-doc__meta {
+  display: flex; flex-wrap: wrap; gap: 0.375rem; margin-top: 1rem;
+}
+.notepad-doc__meta-chip {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  padding: 0.25rem 0.65rem;
+  background: var(--inapp-bg);
+  border: 1px solid var(--inapp-border);
+  border-radius: var(--inapp-radius-pill);
+  font-size: 0.75rem; color: var(--inapp-muted); font-weight: 600;
+}
+.notepad-doc__meta-chip i { font-size: 0.8125rem; opacity: 0.8; }
+
+/* Body blocks */
+.notepad-doc__block {
+  padding: 1.75rem 2.5rem;
+  border-bottom: 1px solid var(--inapp-border);
+}
+.notepad-doc__block:last-child { border-bottom: none; }
+.notepad-doc__block--text { background: #fff; }
+.notepad-doc__block--text .detail-notes-copy.trix-content.workspace-trix-content { background: #fff; }
+.notepad-doc__block--media,
+.notepad-doc__block--voice,
+.notepad-doc__block--todos,
+.notepad-doc__block--scans { background: var(--inapp-paper); }
+
+.notepad-doc__block-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1.125rem;
+}
+.notepad-doc__block-label {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  font-size: 0.6875rem; font-weight: 700;
+  letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--inapp-muted);
+}
+.notepad-doc__block-label i { font-size: 0.875rem; opacity: 0.75; }
+.notepad-doc__block-actions { display: flex; align-items: center; gap: 0.375rem; }
+.notepad-doc__tips-panel,
+.section-tips-panel {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(0, 184, 219, 0.16);
+  border-radius: var(--inapp-radius-md);
+  background: rgba(0, 184, 219, 0.08);
+}
+.notepad-doc__tips-icon,
+.section-tips-icon {
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 184, 219, 0.16);
+  color: #0f5f73;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.notepad-doc__tips-title,
+.section-tips-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--inapp-ink);
+  margin-bottom: 0.35rem;
+}
+.notepad-doc__tips-list,
+.section-tips-list {
+  padding-left: 1rem;
+  color: var(--inapp-ink-soft);
+}
+.notepad-doc__tips-list li + li,
+.section-tips-list li + li {
+  margin-top: 0.3rem;
+}
+
+/* Notes text */
+.trix-content {
+  font-size: 0.9375rem; line-height: 1.7;
+  color: var(--inapp-ink-soft);
+}
+.trix-content p + p { margin-top: 0.75em; }
+
+/* Photo strip */
+.notepad-doc__photo-strip {
+  display: grid;
+  gap: 0.45rem;
+  grid-auto-flow: dense;
+}
+.notepad-doc__photo-strip--count-1 {
+  grid-template-columns: minmax(0, 1fr);
+}
+.notepad-doc__photo-strip--count-1 .notepad-doc__photo-item {
+  aspect-ratio: 16/10;
+  min-height: 14rem;
+}
+.notepad-doc__photo-strip--count-2,
+.notepad-doc__photo-strip--count-4 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.notepad-doc__photo-strip--count-2 {
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 12rem;
+}
+.notepad-doc__photo-strip--count-4 .notepad-doc__photo-item {
+  aspect-ratio: 1/1;
+}
+.notepad-doc__photo-strip--count-2 .notepad-doc__photo-item,
+.notepad-doc__photo-strip--count-3 .notepad-doc__photo-item {
+  min-height: 0;
+}
+.notepad-doc__photo-strip--count-2 .notepad-doc__photo-item {
+  height: 100%;
+}
+.notepad-doc__photo-strip--count-3 {
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.95fr);
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  min-height: 13rem;
+}
+.notepad-doc__photo-strip--count-3 .notepad-doc__photo-item:first-child {
+  grid-row: 1 / span 2;
+  min-height: 0;
+}
+.notepad-doc__photo-strip--count-3 .notepad-doc__photo-item:not(:first-child) {
+  height: 100%;
+}
+.notepad-doc__photo-item {
+  position: relative;
+  border-radius: var(--inapp-radius-md);
+  overflow: hidden;
+  background: var(--inapp-bg);
+}
+.notepad-doc__photo-item--overflow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(24,18,13,0.34);
+  z-index: 1;
+  pointer-events: none;
+}
+.notepad-doc__photo-item--overflow::after {
+  content: attr(data-overflow-label);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  z-index: 2;
+  pointer-events: none;
+}
+.notepad-doc__photo-item img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.photo-placeholder {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2rem; color: rgba(122,109,93,0.3);
+}
+
+/* Voice strip */
+.notepad-doc__voice-strip { display: flex; flex-direction: column; gap: 0.625rem; }
+.voice-note-item {
+  display: flex; align-items: center; gap: 0.75rem;
+  background: #fff; border: 1px solid var(--inapp-border);
+  border-radius: var(--inapp-radius-md);
+  padding: 0.75rem 1.15rem;
+}
+.voice-play-btn {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--inapp-primary); color: #fff; border: none;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0;
+}
+.voice-play-btn i { font-size: 0.875rem; }
+.voice-waveform {
+  flex: 1; height: 28px;
+  background: linear-gradient(90deg,
+    var(--inapp-border) 0%, var(--inapp-border) 30%,
+    rgba(230,98,57,0.3) 30%, rgba(230,98,57,0.3) 45%,
+    var(--inapp-border) 45%);
+  border-radius: 0;
+  position: relative; overflow: hidden;
+}
+.voice-waveform-bars {
+  display: flex; align-items: center; gap: 2px; height: 100%; padding: 4px 6px;
+}
+.voice-waveform-bar {
+  width: 3px; border-radius: 2px;
+  background: var(--inapp-border-strong);
+  flex-shrink: 0;
+}
+.voice-waveform-bar.active { background: var(--inapp-primary); opacity: 0.7; }
+.voice-meta { font-size: 0.75rem; color: var(--inapp-muted); font-weight: 500; white-space: nowrap; }
+
+/* Todo list */
+.todo-progress { margin-bottom: 1rem; }
+.todo-progress-track {
+  height: 5px; background: var(--inapp-border);
+  border-radius: 999px; overflow: hidden; margin-bottom: 0.375rem;
+}
+.todo-progress-fill {
+  height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, var(--inapp-primary), #f57b4d);
+  transition: width 0.3s;
+}
+.todo-progress-label { font-size: 0.75rem; color: var(--inapp-muted); font-weight: 600; }
+
+.todo-composer {
+  display: flex; align-items: center; gap: 0.75rem;
+  background: #fff; border: 1px solid var(--inapp-border);
+  border-radius: var(--inapp-radius-md); padding: 0.625rem 0.875rem;
+  margin-bottom: 0.875rem;
+}
+.todo-composer .btn {
+  border-radius: var(--inapp-radius-sm);
+}
+.todo-composer .btn.btn-icon {
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--inapp-border);
+  box-shadow: 0 4px 10px rgba(54, 43, 32, 0.08);
+  outline: none;
+}
+.todo-composer i { font-size: 1rem; color: var(--inapp-muted); flex-shrink: 0; }
+.todo-composer input {
+  flex: 1; border: none; outline: none; font-family: var(--inapp-font-body);
+  font-size: 0.875rem; color: var(--inapp-ink); background: transparent;
+}
+.todo-composer input::placeholder { color: var(--inapp-muted); }
+
+.todo-items { display: flex; flex-direction: column; gap: 0; }
+.todo-item {
+  display: flex; align-items: flex-start; gap: 0.75rem;
+  padding: 0.625rem 0; border-bottom: 1px solid var(--inapp-border);
+}
+.todo-item:last-child { border-bottom: none; }
+.todo-check {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid var(--inapp-border-strong);
+  flex-shrink: 0; margin-top: 0; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.todo-check.done {
+  background: var(--inapp-primary); border-color: var(--inapp-primary);
+}
+.todo-check.done::after {
+  content: ''; width: 5px; height: 9px;
+  border: 2px solid #fff; border-top: none; border-left: none;
+  transform: translate(-50%, -58%) rotate(45deg);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+}
+.todo-text {
+  flex: 1; font-size: 0.875rem; color: var(--inapp-muted); line-height: 1.5;
+}
+.todo-text.done { text-decoration: line-through; color: var(--inapp-muted); }
+
+/* Scanned docs */
+.sdoc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.sdoc-card {
+  display: flex;
+  gap: 0;
+  background: #fff;
+  border: 1px solid var(--inapp-border);
+  border-radius: 1.75rem;
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(54, 43, 32, 0.08);
+}
+.sdoc-accent-bar {
+  width: 6px;
+  background: var(--inapp-primary);
+  flex-shrink: 0;
+}
+.sdoc-inner {
+  flex: 1;
+  padding: 1.1rem 1.1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+.sdoc-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.sdoc-title {
+  font-weight: 700;
+  font-size: 0.8125rem;
+  color: var(--inapp-ink);
+}
+.sdoc-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.sdoc-engine-label {
+  font-size: 0.7rem;
+  color: var(--inapp-muted);
+  font-weight: 500;
+}
+.sdoc-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+}
+.sdoc-preview-button,
+.sdoc-preview-static {
+  width: min(250px, 100%);
+  max-width: 100%;
+  height: 170px;
+  margin: 0 auto;
+  padding: 0;
+  border: 0;
+  background: #f7f2ea;
+  border-radius: 1.35rem;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sdoc-preview-button {
+  cursor: pointer;
+}
+.sdoc-thumb,
+.sdoc-thumb-placeholder {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  background: #f7f2ea;
+}
+.sdoc-thumb-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--inapp-muted);
+  font-size: 1.5rem;
+  opacity: 0.5;
+}
+.sdoc-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  align-items: stretch;
+  justify-content: center;
+  margin: 0;
+}
+.sdoc-action-btn {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.sdoc-action-btn i {
+  font-size: 0.9rem;
+}
+
+/* Quick actions FAB */
+.notepad-quick-actions {
+  position: fixed; right: 1.5rem; bottom: 2rem; z-index: 1040;
+  display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+}
+.notepad-quick-actions__toggle {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: linear-gradient(180deg, #f57b4d 0%, #e66239 100%);
+  border: none; color: #fff; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 16px 30px rgba(230, 98, 57, 0.28);
+  font-size: 1.2rem;
+}
+.notepad-quick-actions__menu {
+  display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+}
+.notepad-quick-actions__item {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: linear-gradient(180deg, #f57b4d 0%, #e66239 100%);
+  border: none; color: #fff; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 8px 20px rgba(230, 98, 57, 0.22);
+  font-size: 0.9rem;
+}
+
+/* Export modal */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(36,29,23,0.45);
+  z-index: 9000; display: flex; align-items: center; justify-content: center;
+  padding: 1.5rem;
+}
+.modal-box {
+  background: #fff; border-radius: var(--inapp-radius-xl);
+  width: 100%; max-width: 680px;
+  box-shadow: 0 24px 60px rgba(36,29,23,0.18);
+  overflow: hidden;
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 1.5rem; border-bottom: 1px solid var(--inapp-border);
+}
+.modal-title {
+  font-family: var(--inapp-font-heading); font-size: 1rem; font-weight: 700;
+  display: flex; align-items: center; gap: 0.5rem; color: var(--inapp-ink);
+}
+.modal-close {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 1px solid var(--inapp-border); background: var(--inapp-bg);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 0.875rem; color: var(--inapp-muted);
+}
+.notepad-format-output {
+  font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
+  font-size: 0.8rem; line-height: 1.65;
+  background: var(--inapp-bg);
+  border: none; padding: 1.25rem 1.5rem;
+  white-space: pre; max-height: 52vh;
+  overflow-y: auto; color: var(--inapp-ink);
+  width: 100%; display: block;
+}
+.notepad-format-toolbar {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--inapp-border);
+  background: var(--inapp-paper);
+}
+.notepad-format-toolbar__label {
+  font-size: 0.75rem; font-weight: 600; color: var(--inapp-muted); flex: 1;
+}
+
+/* Tabs for show/edit/export */
+.preview-tabs {
+  display: flex; gap: 0; margin-bottom: 1.5rem;
+  background: #fff; border: 1px solid var(--inapp-border);
+  border-radius: var(--inapp-radius-md); overflow: hidden; max-width: 800px; margin: 0 auto 1.5rem;
+}
+.preview-tab {
+  flex: 1; padding: 0.6rem 1rem;
+  font-size: 0.8125rem; font-weight: 600;
+  color: var(--inapp-muted); border: none;
+  background: transparent; cursor: pointer;
+  font-family: var(--inapp-font-body);
+  border-right: 1px solid var(--inapp-border);
+  transition: background 0.12s, color 0.12s;
+}
+.preview-tab:last-child { border-right: none; }
+.preview-tab.active { background: var(--inapp-primary); color: #fff; }
+
+.preview-panel { display: none; }
+.preview-panel.active { display: block; }
+
+/* Edit view */
+.notepad-doc-edit__canvas {
+  background: var(--inapp-paper);
+  border-radius: var(--inapp-radius-xl);
+  box-shadow: var(--inapp-card-shadow);
+  border: 1px solid var(--inapp-border);
+  overflow: hidden; max-width: 800px; margin: 0 auto;
+}
+.notepad-doc-edit__head {
+  padding: 2rem 2.5rem 1.5rem;
+  background: #fff; border-bottom: 1px solid var(--inapp-border);
+}
+.notepad-doc-edit__title-row {
+  display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: flex-end;
+}
+.edit-title-input {
+  font-family: var(--inapp-font-heading);
+  font-size: 1.6rem; font-weight: 700;
+  color: var(--inapp-ink); background: transparent;
+  border: none; border-bottom: 2px solid var(--inapp-border);
+  padding: 0 0 0.375rem; outline: none; width: 100%;
+  letter-spacing: -0.02em;
+}
+.edit-title-input:focus { border-bottom-color: var(--inapp-primary); }
+.edit-date-input {
+  font-size: 0.8125rem; color: var(--inapp-muted);
+  border: 1px solid var(--inapp-border); border-radius: var(--inapp-radius-sm);
+  padding: 0.375rem 0.625rem; background: var(--inapp-bg);
+  font-family: var(--inapp-font-body); outline: none;
+}
+.notepad-doc-edit__notes {
+  padding: 1.75rem 2.5rem; border-bottom: 1px solid var(--inapp-border);
+}
+.section-label {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  font-size: 0.6875rem; font-weight: 700;
+  letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--inapp-muted); margin-bottom: 0.875rem;
+  width: 100%; justify-content: space-between;
+}
+.section-label-left { display: flex; align-items: center; gap: 0.4rem; }
+.trix-mock {
+  min-height: 120px; border: 1px solid var(--inapp-border-strong);
+  border-radius: var(--inapp-radius-md); padding: 0.875rem 1rem;
+  font-size: 0.9375rem; line-height: 1.7; color: var(--inapp-ink-soft);
+  background: #fff;
+}
+.trix-toolbar {
+  display: flex; gap: 0.25rem; padding: 0.375rem 0.5rem;
+  border: 1px solid var(--inapp-border-strong);
+  border-bottom: none; border-radius: var(--inapp-radius-md) var(--inapp-radius-md) 0 0;
+  background: var(--inapp-bg);
+}
+.trix-toolbar-btn {
+  width: 26px; height: 26px; border-radius: 0;
+  border: none; background: transparent;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 0.8rem; font-weight: 700;
+  color: var(--inapp-muted);
+}
+.trix-toolbar-btn:first-child {
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+}
+.trix-toolbar-btn:last-child {
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+.trix-toolbar-btn:hover { background: rgba(0,0,0,0.06); }
+.trix-mock.with-toolbar { border-radius: 0 0 var(--inapp-radius-md) var(--inapp-radius-md); }
+
+.notepad-doc-edit__section {
+  padding: 1.5rem 2.5rem; border-bottom: 1px solid var(--inapp-border);
+}
+.notepad-doc-edit__footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 2.5rem; background: #fff; border-top: 1px solid var(--inapp-border);
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Sidebar -->
+  <!-- <nav class="sidebar">
+    <div class="sidebar-logo">inkcreate</div>
+    <div class="sidebar-item"><i class="ti ti-layout-dashboard"></i> Dashboard</div>
+    <div class="sidebar-item active"><i class="ti ti-notebook"></i> Notepad</div>
+    <div class="sidebar-item"><i class="ti ti-book"></i> Notebooks</div>
+    <div class="sidebar-item"><i class="ti ti-checkbox"></i> Tasks</div>
+    <div class="sidebar-item"><i class="ti ti-camera"></i> Captures</div>
+    <div class="sidebar-item"><i class="ti ti-bell"></i> Reminders</div>
+  </nav> -->
+
+  <div class="main">
+    <!-- Topbar -->
+    <div class="topbar">
+      <span class="topbar-crumb">Notepad</span>
+      <span class="topbar-sep">/</span>
+      <span class="topbar-crumb active">Daily review — April 17</span>
+    </div>
+
+    <div class="content">
+
+      <!-- Preview mode tabs -->
+      <!-- <div class="preview-tabs">
+        <button class="preview-tab active" onclick="showTab('show')">Show page</button>
+        <button class="preview-tab" onclick="showTab('edit')">Edit page</button>
+        <button class="preview-tab" onclick="showTab('export-md')">Export: Markdown</button>
+        <button class="preview-tab" onclick="showTab('export-ascii')">Export: ASCII doc</button>
+      </div> -->
+
+      <!-- ── SHOW VIEW ───────────────────────────── -->
+      <div id="tab-show" class="preview-panel active">
+        <div class="notepad-doc">
+
+          <!-- Toolbar -->
+          <div class="notepad-doc__toolbar">
+            <div class="dropdown">
+              <button class="btn btn-white btn-sm">
+                <i class="ti ti-file-export"></i> Export <i class="ti ti-chevron-down" style="font-size:0.7rem;opacity:0.6"></i>
+              </button>
+              <div class="dropdown-menu">
+                <div class="dropdown-item" onclick="showTab('export-md')"><i class="ti ti-brand-markdown"></i>Markdown</div>
+                <div class="dropdown-item" onclick="showTab('export-ascii')"><i class="ti ti-file-text"></i>Plain text / ASCII doc</div>
+              </div>
+            </div>
+            <button class="btn btn-white btn-sm btn-icon"><i class="ti ti-edit"></i></button>
+            <button class="btn btn-white btn-sm btn-icon" onclick="showTab('edit')"><i class="ti ti-pencil"></i></button>
+            <button class="btn btn-white btn-sm btn-icon"><i class="ti ti-trash"></i></button>
+          </div>
+
+          <!-- Canvas -->
+          <div class="notepad-doc__canvas">
+
+            <!-- Header -->
+            <header class="notepad-doc__header">
+              <h1 class="notepad-doc__title">Daily review — April 17</h1>
+              <p class="notepad-doc__date">Thursday, April 17, 2025</p>
+              <div class="notepad-doc__meta">
+                <span class="notepad-doc__meta-chip"><i class="ti ti-file-text"></i> Notes</span>
+                <span class="notepad-doc__meta-chip"><i class="ti ti-photo"></i> 3 photos</span>
+                <span class="notepad-doc__meta-chip"><i class="ti ti-microphone"></i> 2 voice notes</span>
+                <span class="notepad-doc__meta-chip"><i class="ti ti-checkbox"></i> 2/5 to-do</span>
+                <span class="notepad-doc__meta-chip"><i class="ti ti-scan"></i> 1 scan</span>
+              </div>
+            </header>
+
+            <!-- Notes block -->
+            <div class="notepad-doc__block notepad-doc__block--text">
+              <div class="trix-content">
+                <p>Wrapped up the Q2 planning session this morning. Key themes: growth in the Asia-Pacific region, tightening the feedback loop on customer onboarding, and a soft push for a mobile-first redesign of the checkout flow.</p>
+                <p>Need to follow up with Priya on the analytics dashboard timeline — she mentioned Thursday as a possible handoff date.</p>
+                <p>Afternoon: reviewed three wireframes from the design team. The second option feels the most intuitive. Annotated and sent back.</p>
+              </div>
+            </div>
+
+            <!-- Photos block -->
+            <div class="notepad-doc__block notepad-doc__block--media">
+              <div class="notepad-doc__block-header">
+                <div class="notepad-doc__block-label">
+                  <i class="ti ti-photo"></i> Photos · 6
+                </div>
+                <div class="notepad-doc__block-actions">
+                  <button class="btn btn-white btn-sm"><i class="ti ti-camera"></i><span> Capture</span></button>
+                  <button class="btn btn-white btn-sm"><i class="ti ti-photo-plus"></i><span> Upload</span></button>
+                </div>
+              </div>
+              <div class="notepad-doc__photo-strip notepad-doc__photo-strip--count-4 notepad-doc__photo-strip--overflow">
+                <div class="notepad-doc__photo-item">
+                  <div class="photo-placeholder" style="background:linear-gradient(135deg,#f5e6d3,#e8cdb4)">
+                    <i class="ti ti-photo" style="color:#c8a882;font-size:2rem"></i>
+                  </div>
+                </div>
+                <div class="notepad-doc__photo-item">
+                  <div class="photo-placeholder" style="background:linear-gradient(135deg,#e8d5c4,#d4b99a)">
+                    <i class="ti ti-photo" style="color:#b8967a;font-size:2rem"></i>
+                  </div>
+                </div>
+                <div class="notepad-doc__photo-item">
+                  <div class="photo-placeholder" style="background:linear-gradient(135deg,#dde8e0,#c4d9ca)">
+                    <i class="ti ti-photo" style="color:#93b89e;font-size:2rem"></i>
+                  </div>
+                </div>
+                <div class="notepad-doc__photo-item notepad-doc__photo-item--overflow" data-overflow-label="+2">
+                  <div class="photo-placeholder" style="background:linear-gradient(135deg,#d9d2e8,#bdaed8)">
+                    <i class="ti ti-photo" style="color:#8c79b1;font-size:2rem"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Voice notes block -->
+            <div class="notepad-doc__block notepad-doc__block--voice">
+              <div class="notepad-doc__block-header">
+                <div class="notepad-doc__block-label">
+                  <i class="ti ti-microphone"></i> Voice notes · 2
+                </div>
+                <div class="notepad-doc__block-actions">
+                  <button class="btn btn-white btn-sm"><i class="ti ti-microphone"></i> Record</button>
+                </div>
+              </div>
+              <div class="notepad-doc__voice-strip">
+                <div class="voice-note-item">
+                  <button class="voice-play-btn"><i class="ti ti-player-play-filled"></i></button>
+                  <div class="voice-waveform-bars" style="flex:1;height:28px;background:#fff;border:1px solid var(--inapp-border);border-radius:0;padding:4px 8px;display:flex;align-items:center;gap:2px;">
+                    <div style="width:3px;border-radius:2px;background:var(--inapp-primary);opacity:0.8;height:60%"></div>
+                    <div style="width:3px;border-radius:2px;background:var(--inapp-primary);opacity:0.8;height:80%"></div>
+                    <div style="width:3px;border-radius:2px;background:var(--inapp-primary);opacity:0.8;height:100%"></div>
+                    <div style="width:3px;border-radius:2px;background:var(--inapp-primary);opacity:0.8;height:70%"></div>
+                    <div style="width:3px;border-radius:2px;background:var(--inapp-primary);opacity:0.8;height:50%"></div>
+                    <div style="width:3px;border-radius:2px;background:var(--inapp-border-strong);height:80%"></div>
+                    <div style="width:3px;border-radius:2px;background:var(--inapp-border-strong);height:60%"></div>
+                    <div style="width:3px;border-radius:2px;background:var(--inapp-border-strong);height:90%"></div>
+                    <div style="width:3px;border-radius:2px;background:var(--inapp-border-strong);height:40%"></div>
+                    <div style="width:3px;border-radius:2px;background:var(--inapp-border-strong);height:70%"></div>
+                    <div style="width:3px;border-radius:2px;background:var(--inapp-border-strong);height:55%"></div>
+                    <div style="width:3px;border-radius:2px;background:var(--inapp-border-strong);height:85%"></div>
+                  </div>
+                  <span class="voice-meta">0:45</span>
+                  <button class="btn btn-white btn-sm btn-icon"><i class="ti ti-trash"></i></button>
+                </div>
+                <div class="voice-note-item">
+                  <button class="voice-play-btn"><i class="ti ti-player-play-filled"></i></button>
+                  <div style="flex:1;height:28px;background:#fff;border:1px solid var(--inapp-border);border-radius:0;padding:4px 8px;display:flex;align-items:center;gap:2px;">
+                    <div style="width:3px;border-radius:2px;background:var(--inapp-border-strong);height:50%"></div>
+                    <div style="width:3px;border-radius:2px;background:var(--inapp-border-strong);height:75%"></div>
+                    <div style="width:3px;border-radius:2px;background:var(--inapp-border-strong);height:90%"></div>
+                    <div style="width:3px;border-radius:2px;background:var(--inapp-border-strong);height:60%"></div>
+                    <div style="width:3px;border-radius:2px;background:var(--inapp-border-strong);height:40%"></div>
+                    <div style="width:3px;border-radius:2px;background:var(--inapp-border-strong);height:80%"></div>
+                    <div style="width:3px;border-radius:2px;background:var(--inapp-border-strong);height:65%"></div>
+                    <div style="width:3px;border-radius:2px;background:var(--inapp-border-strong);height:55%"></div>
+                    <div style="width:3px;border-radius:2px;background:var(--inapp-border-strong);height:95%"></div>
+                    <div style="width:3px;border-radius:2px;background:var(--inapp-border-strong);height:70%"></div>
+                    <div style="width:3px;border-radius:2px;background:var(--inapp-border-strong);height:45%"></div>
+                    <div style="width:3px;border-radius:2px;background:var(--inapp-border-strong);height:80%"></div>
+                  </div>
+                  <span class="voice-meta">1:23</span>
+                  <button class="btn btn-white btn-sm btn-icon"><i class="ti ti-trash"></i></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- To-do block -->
+            <div class="notepad-doc__block notepad-doc__block--todos">
+              <div class="notepad-doc__block-header">
+                <div class="notepad-doc__block-label">
+                  <i class="ti ti-checkbox"></i> To-do · 2/5
+                </div>
+              </div>
+              <div class="todo-progress">
+                <div class="todo-progress-track">
+                  <div class="todo-progress-fill" style="width:40%"></div>
+                </div>
+                <span class="todo-progress-label">2 of 5 completed</span>
+              </div>
+              <div class="todo-composer">
+                <i class="ti ti-checkbox"></i>
+                <input type="text" placeholder="Add an action item or capture a thought…">
+                <button class="btn btn-white btn-sm btn-icon" aria-label="Add to-do item"><i class="ti ti-plus"></i></button>
+              </div>
+              <div class="todo-items">
+                <div class="todo-item">
+                  <div class="todo-check done"></div>
+                  <span class="todo-text done">Send Q2 recap to the team</span>
+                </div>
+                <div class="todo-item">
+                  <div class="todo-check done"></div>
+                  <span class="todo-text done">Review wireframe options</span>
+                </div>
+                <div class="todo-item">
+                  <div class="todo-check"></div>
+                  <span class="todo-text">Follow up with Priya on analytics dashboard</span>
+                </div>
+                <div class="todo-item">
+                  <div class="todo-check"></div>
+                  <span class="todo-text">Schedule mobile redesign kick-off</span>
+                </div>
+                <div class="todo-item">
+                  <div class="todo-check"></div>
+                  <span class="todo-text">Confirm APAC meeting time with Jordan</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Scanned docs block -->
+            <div class="notepad-doc__block notepad-doc__block--scans">
+              <div class="notepad-doc__block-header">
+                <div class="notepad-doc__block-label">
+                  <i class="ti ti-scan"></i> Scanned documents · 1
+                </div>
+                <div class="notepad-doc__block-actions">
+                  <button class="btn btn-white btn-sm btn-icon" aria-label="Capture tips"><i class="ti ti-info-circle"></i></button>
+                  <button class="btn btn-white btn-sm"><i class="ti ti-scan"></i> Scan</button>
+                </div>
+              </div>
+              <div class="notepad-doc__tips-panel">
+                <div class="notepad-doc__tips-icon">i</div>
+                <div>
+                  <div class="notepad-doc__tips-title">Capture tips</div>
+                  <ul class="notepad-doc__tips-list">
+                    <li>Keep the page flat with the whole document visible inside the frame.</li>
+                    <li>Use even lighting and avoid hard shadows from your hand or phone.</li>
+                    <li>Use Scan to capture a clean PDF you can review or download later.</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="sdoc-list">
+                <div class="sdoc-card">
+                  <div class="sdoc-accent-bar"></div>
+                  <div class="sdoc-inner">
+                    <div class="sdoc-header">
+                      <div class="sdoc-title">Q2 Planning Notes</div>
+                      <div class="sdoc-meta">
+                        <span class="sdoc-engine-label">PDF ready · 17 Apr</span>
+                      </div>
+                    </div>
+                    <div class="sdoc-body">
+                      <button class="sdoc-preview-button" aria-label="Open PDF">
+                        <div class="sdoc-thumb-placeholder"><i class="ti ti-file-text"></i></div>
+                      </button>
+                      <div class="sdoc-actions">
+                        <button class="btn btn-white btn-sm btn-icon sdoc-action-btn" aria-label="Download">
+                          <i class="ti ti-download"></i>
+                        </button>
+                        <button class="btn btn-white btn-sm btn-icon sdoc-action-btn" aria-label="Delete">
+                          <i class="ti ti-trash"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div><!-- /canvas -->
+
+          <!-- FAB -->
+          <div class="notepad-quick-actions">
+            <div class="notepad-quick-actions__menu">
+              <button class="notepad-quick-actions__item"><i class="ti ti-camera"></i></button>
+              <button class="notepad-quick-actions__item"><i class="ti ti-photo-plus"></i></button>
+              <button class="notepad-quick-actions__item"><i class="ti ti-microphone"></i></button>
+              <button class="notepad-quick-actions__item"><i class="ti ti-list-check"></i></button>
+              <button class="notepad-quick-actions__item"><i class="ti ti-scan"></i></button>
+            </div>
+            <button class="notepad-quick-actions__toggle"><i class="ti ti-plus"></i></button>
+          </div>
+
+        </div>
+      </div><!-- /tab-show -->
+
+      <!-- ── EDIT VIEW ───────────────────────────── -->
+      <div id="tab-edit" class="preview-panel">
+        <div style="max-width:800px;margin:0 auto;padding-bottom:5rem;position:relative;">
+          <div class="notepad-doc-edit__canvas">
+            <div class="notepad-doc-edit__head">
+              <div class="notepad-doc-edit__title-row">
+                <div>
+                  <input class="edit-title-input" type="text" value="Daily review — April 17" placeholder="Daily review, meeting recap, ideas…">
+                </div>
+                <div>
+                  <input class="edit-date-input" type="date" value="2025-04-17">
+                </div>
+              </div>
+            </div>
+
+            <div class="notepad-doc-edit__notes">
+              <div class="section-label">
+                <div class="section-label-left"><i class="ti ti-file-text"></i> Notes</div>
+              </div>
+              <div class="trix-toolbar">
+                <button class="trix-toolbar-btn"><b>B</b></button>
+                <button class="trix-toolbar-btn"><i>I</i></button>
+                <button class="trix-toolbar-btn" style="font-size:0.7rem;text-decoration:underline">U</button>
+                <button class="trix-toolbar-btn">H1</button>
+                <button class="trix-toolbar-btn">H2</button>
+                <button class="trix-toolbar-btn"><i class="ti ti-list"></i></button>
+                <button class="trix-toolbar-btn"><i class="ti ti-list-numbers"></i></button>
+                <button class="trix-toolbar-btn"><i class="ti ti-blockquote"></i></button>
+                <button class="trix-toolbar-btn"><i class="ti ti-link"></i></button>
+              </div>
+              <div class="trix-mock with-toolbar" contenteditable="true">
+                Wrapped up the Q2 planning session this morning. Key themes: growth in the Asia-Pacific region, tightening the feedback loop on customer onboarding…
+              </div>
+            </div>
+
+            <div class="notepad-doc-edit__section">
+              <div class="section-label">
+                <div class="section-label-left"><i class="ti ti-photo"></i> Photos</div>
+                <div style="display:flex;gap:0.375rem">
+                  <button class="btn btn-white btn-sm"><i class="ti ti-camera"></i><span> Capture</span></button>
+                  <button class="btn btn-white btn-sm"><i class="ti ti-photo-plus"></i><span> Upload</span></button>
+                </div>
+              </div>
+              <div class="notepad-doc__photo-strip notepad-doc__photo-strip--count-4 notepad-doc__photo-strip--overflow">
+                <div class="notepad-doc__photo-item">
+                  <div class="photo-placeholder" style="background:linear-gradient(135deg,#f5e6d3,#e8cdb4)">
+                    <i class="ti ti-photo" style="color:#c8a882;font-size:2rem"></i>
+                  </div>
+                </div>
+                <div class="notepad-doc__photo-item">
+                  <div class="photo-placeholder" style="background:linear-gradient(135deg,#e8d5c4,#d4b99a)">
+                    <i class="ti ti-photo" style="color:#b8967a;font-size:2rem"></i>
+                  </div>
+                </div>
+                <div class="notepad-doc__photo-item">
+                  <div class="photo-placeholder" style="background:linear-gradient(135deg,#dde8e0,#c4d9ca)">
+                    <i class="ti ti-photo" style="color:#93b89e;font-size:2rem"></i>
+                  </div>
+                </div>
+                <div class="notepad-doc__photo-item notepad-doc__photo-item--overflow" data-overflow-label="+2">
+                  <div class="photo-placeholder" style="background:linear-gradient(135deg,#d9d2e8,#bdaed8)">
+                    <i class="ti ti-photo" style="color:#8c79b1;font-size:2rem"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="notepad-doc-edit__section">
+              <div class="section-label">
+                <div class="section-label-left"><i class="ti ti-microphone"></i> Voice notes</div>
+                <button class="btn btn-white btn-sm"><i class="ti ti-microphone"></i> Record</button>
+              </div>
+              <div class="voice-note-item" style="margin-top:0.25rem">
+                <button class="voice-play-btn"><i class="ti ti-player-play-filled"></i></button>
+                <div style="flex:1;height:28px;background:#fff;border:1px solid var(--inapp-border);border-radius:0;padding:4px 8px;display:flex;align-items:center;gap:2px;">
+                  <div style="width:3px;border-radius:2px;background:var(--inapp-primary);opacity:0.8;height:60%"></div>
+                  <div style="width:3px;border-radius:2px;background:var(--inapp-primary);opacity:0.8;height:80%"></div>
+                  <div style="width:3px;border-radius:2px;background:var(--inapp-primary);opacity:0.8;height:100%"></div>
+                  <div style="width:3px;border-radius:2px;background:var(--inapp-border-strong);height:60%"></div>
+                  <div style="width:3px;border-radius:2px;background:var(--inapp-border-strong);height:80%"></div>
+                  <div style="width:3px;border-radius:2px;background:var(--inapp-border-strong);height:45%"></div>
+                  <div style="width:3px;border-radius:2px;background:var(--inapp-border-strong);height:70%"></div>
+                </div>
+                <span class="voice-meta">0:45</span>
+                <button class="btn btn-white btn-sm btn-icon"><i class="ti ti-trash"></i></button>
+              </div>
+            </div>
+
+            <div class="notepad-doc-edit__section">
+              <div class="section-label">
+                <div class="section-label-left"><i class="ti ti-checkbox"></i> To-do list</div>
+              </div>
+              <div class="todo-composer" style="margin-bottom:0.75rem">
+                <i class="ti ti-checkbox"></i>
+                <input type="text" placeholder="Add a to-do item…">
+                <button class="btn btn-primary btn-sm"><i class="ti ti-plus"></i> Add</button>
+              </div>
+              <div class="todo-items">
+                <div class="todo-item"><div class="todo-check done"></div><span class="todo-text done">Send Q2 recap</span></div>
+                <div class="todo-item"><div class="todo-check"></div><span class="todo-text">Follow up with Priya</span></div>
+                <div class="todo-item"><div class="todo-check"></div><span class="todo-text">Schedule mobile redesign kick-off</span></div>
+              </div>
+            </div>
+
+            <div class="notepad-doc-edit__section">
+              <div class="section-label">
+                <div class="section-label-left"><i class="ti ti-scan"></i> Scanned documents</div>
+                <div style="display:flex;align-items:center;gap:0.375rem;">
+                  <button class="btn btn-white btn-sm btn-icon" aria-label="Capture tips"><i class="ti ti-info-circle"></i></button>
+                  <button class="btn btn-white btn-sm"><i class="ti ti-scan"></i> Scan</button>
+                </div>
+              </div>
+              <div class="section-tips-panel">
+                <div class="section-tips-icon">i</div>
+                <div>
+                  <div class="section-tips-title">Capture tips</div>
+                  <ul class="section-tips-list">
+                    <li>Keep the page flat with the whole document visible inside the frame.</li>
+                    <li>Use even lighting and avoid hard shadows from your hand or phone.</li>
+                    <li>Use Scan to capture a clean PDF you can review or download later.</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="sdoc-list">
+                <div class="sdoc-card">
+                  <div class="sdoc-accent-bar"></div>
+                  <div class="sdoc-inner">
+                    <div class="sdoc-header">
+                      <div class="sdoc-title">Q2 Planning Notes</div>
+                      <div class="sdoc-meta">
+                        <span class="sdoc-engine-label">PDF ready · 17 Apr</span>
+                      </div>
+                    </div>
+                    <div class="sdoc-body">
+                      <button class="sdoc-preview-button" aria-label="Open PDF">
+                        <div class="sdoc-thumb-placeholder"><i class="ti ti-file-text"></i></div>
+                      </button>
+                      <div class="sdoc-actions">
+                        <button class="btn btn-white btn-sm btn-icon sdoc-action-btn" aria-label="Download">
+                          <i class="ti ti-download"></i>
+                        </button>
+                        <button class="btn btn-white btn-sm btn-icon sdoc-action-btn" aria-label="Delete">
+                          <i class="ti ti-trash"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="notepad-doc-edit__footer">
+              <button class="btn btn-white btn-sm" onclick="showTab('show')"><i class="ti ti-arrow-left"></i> View</button>
+              <div style="display:flex;gap:0.5rem;align-items:center;">
+                <button class="btn btn-white btn-sm btn-icon"><i class="ti ti-trash"></i></button>
+                <button class="btn btn-primary btn-sm">Save changes</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="notepad-quick-actions">
+            <div class="notepad-quick-actions__menu">
+              <button class="notepad-quick-actions__item"><i class="ti ti-camera"></i></button>
+              <button class="notepad-quick-actions__item"><i class="ti ti-photo-plus"></i></button>
+              <button class="notepad-quick-actions__item"><i class="ti ti-microphone"></i></button>
+              <button class="notepad-quick-actions__item"><i class="ti ti-list-check"></i></button>
+              <button class="notepad-quick-actions__item"><i class="ti ti-scan"></i></button>
+            </div>
+            <button class="notepad-quick-actions__toggle"><i class="ti ti-plus"></i></button>
+          </div>
+        </div>
+      </div><!-- /tab-edit -->
+
+      <!-- ── EXPORT: MARKDOWN ────────────────────── -->
+      <div id="tab-export-md" class="preview-panel">
+        <div style="max-width:800px;margin:0 auto;">
+          <div class="notepad-doc-edit__canvas">
+            <div class="modal-header" style="border-bottom:1px solid var(--inapp-border);padding:1rem 1.5rem;">
+              <div class="modal-title"><i class="ti ti-brand-markdown"></i> Markdown export</div>
+            </div>
+            <pre class="notepad-format-output"># Daily review — April 17
+*Thursday, April 17, 2025*
+
+Wrapped up the Q2 planning session this morning. Key themes: growth in the
+Asia-Pacific region, tightening the feedback loop on customer onboarding,
+and a soft push for a mobile-first redesign of the checkout flow.
+
+Need to follow up with Priya on the analytics dashboard timeline — she
+mentioned Thursday as a possible handoff date.
+
+Afternoon: reviewed three wireframes from the design team. The second option
+feels the most intuitive. Annotated and sent back.
+
+## Photos
+*3 photos attached*
+
+## Voice notes
+- Voice note 1 — 0:45
+- Voice note 2 — 1:23
+
+## To-do list
+- [x] Send Q2 recap to the team
+- [x] Review wireframe options
+- [ ] Follow up with Priya on analytics dashboard
+- [ ] Schedule mobile redesign kick-off
+- [ ] Confirm APAC meeting time with Jordan
+
+## Scanned documents
+- Q2 Planning Notes · PDF ready · 17 Apr</pre>
+            <div class="notepad-format-toolbar">
+              <span class="notepad-format-toolbar__label">Click to select · Cmd+A to select all</span>
+              <button class="btn btn-primary btn-sm"><i class="ti ti-copy"></i> Copy to clipboard</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── EXPORT: ASCII ───────────────────────── -->
+      <div id="tab-export-ascii" class="preview-panel">
+        <div style="max-width:800px;margin:0 auto;">
+          <div class="notepad-doc-edit__canvas">
+            <div class="modal-header" style="border-bottom:1px solid var(--inapp-border);padding:1rem 1.5rem;">
+              <div class="modal-title"><i class="ti ti-file-text"></i> Plain text / ASCII doc</div>
+            </div>
+            <pre class="notepad-format-output">DAILY REVIEW — APRIL 17
+═══════════════════════
+Date: Thursday, April 17, 2025
+
+Wrapped up the Q2 planning session this morning. Key themes: growth in the
+Asia-Pacific region, tightening the feedback loop on customer onboarding,
+and a soft push for a mobile-first redesign of the checkout flow.
+
+Need to follow up with Priya on the analytics dashboard timeline — she
+mentioned Thursday as a possible handoff date.
+
+Afternoon: reviewed three wireframes from the design team. The second option
+feels the most intuitive. Annotated and sent back.
+
+── PHOTOS ───────────────────────────────────────────
+  3 photos attached
+
+── VOICE NOTES ──────────────────────────────────────
+  • Voice note 1 — 0:45
+  • Voice note 2 — 1:23
+
+── TO-DO LIST ───────────────────────────────────────
+  [✓] Send Q2 recap to the team
+  [✓] Review wireframe options
+  [ ] Follow up with Priya on analytics dashboard
+  [ ] Schedule mobile redesign kick-off
+  [ ] Confirm APAC meeting time with Jordan
+
+── SCANNED DOCUMENTS ────────────────────────────────
+  • Q2 Planning Notes · PDF ready · 17 Apr</pre>
+            <div class="notepad-format-toolbar">
+              <span class="notepad-format-toolbar__label">Click to select · Cmd+A to select all</span>
+              <button class="btn btn-primary btn-sm"><i class="ti ti-copy"></i> Copy to clipboard</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.preview-tab').forEach((t, i) => {
+    const ids = ['show','edit','export-md','export-ascii'];
+    t.classList.toggle('active', ids[i] === id);
+  });
+  document.querySelectorAll('.preview-panel').forEach(p => {
+    p.classList.toggle('active', p.id === 'tab-' + id);
+  });
+}
+</script>
+</body>
+</html>

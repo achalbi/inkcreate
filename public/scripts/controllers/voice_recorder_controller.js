@@ -446,6 +446,7 @@ export default class extends Controller {
     if (this.hasSaveButtonTarget) this.saveButtonTarget.hidden = true;
     if (this.hasDiscardButtonTarget) this.discardButtonTarget.hidden = true;
     if (this.hasTimerTarget) this.timerTarget.textContent = "00:00";
+    this.setFeedback("");
     this.syncActionState();
   }
 
@@ -462,7 +463,9 @@ export default class extends Controller {
       return;
     }
 
-    this.feedbackTarget.textContent = message;
+    const nextMessage = String(message || "").trim();
+    this.feedbackTarget.textContent = nextMessage;
+    this.feedbackTarget.hidden = nextMessage.length === 0;
   }
 
   expandPanel() {

@@ -22,7 +22,14 @@ module NotepadEntries
       if doc.save
         respond_to do |fmt|
           fmt.html { redirect_to notepad_entry_path(@notepad_entry), notice: "Document saved." }
-          fmt.json { render json: { ok: true } }
+          fmt.json do
+            render json: {
+              ok: true,
+              scanned_document_id: doc.id,
+              submit_ocr_result_url: submit_ocr_result_notepad_entry_scanned_document_path(@notepad_entry, doc),
+              ocr_source_url: ocr_source_notepad_entry_scanned_document_path(@notepad_entry, doc)
+            }
+          end
         end
       else
         respond_to do |fmt|

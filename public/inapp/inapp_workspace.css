@@ -14,6 +14,7 @@
   --inapp-paper: #fbf7f0;
   --inapp-paper-soft: rgba(251, 247, 240, 0.84);
   --inapp-topbar-bg: rgba(248, 242, 233, 0.88);
+  --inapp-notepad-header-bg: #fff;
   --inapp-card-shadow: 0 12px 30px rgba(54, 43, 32, 0.06);
   --inapp-card-shadow-soft: 0 8px 18px rgba(54, 43, 32, 0.05);
   --inapp-font-body: "Manrope", "Segoe UI", sans-serif;
@@ -1560,8 +1561,8 @@ body.workspace-body {
 }
 
 .notepad-quick-actions__item {
-  width: 3rem;
-  height: 3rem;
+  width: 40px;
+  height: 40px;
   border: 0;
   border-radius: 999px;
   background: linear-gradient(180deg, #f57b4d 0%, #e66239 100%);
@@ -1583,7 +1584,7 @@ body.workspace-body {
 }
 
 .notepad-quick-actions__item i {
-  font-size: 1rem;
+  font-size: 0.9rem;
   line-height: 1;
   filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.22));
 }
@@ -2564,6 +2565,22 @@ body.workspace-body {
   scroll-margin-top: calc(var(--inapp-topbar-height) + 4.25rem);
 }
 
+.workspace-body:has(.notepad-doc) .topbar {
+  position: relative !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+}
+
+.workspace-body:has(.notepad-doc) .content {
+  padding-top: 1.35rem;
+}
+
+.workspace-body:has(.notepad-doc) .detail-section-anchor {
+  scroll-margin-top: 4.25rem;
+}
+
 .workspace-body .detail-section-shortcuts {
   position: sticky;
   top: calc(var(--inapp-topbar-height) - 1px);
@@ -2574,6 +2591,10 @@ body.workspace-body {
   margin: 0 0 1rem;
   pointer-events: none;
   transform: translateZ(0);
+}
+
+.workspace-body:has(.notepad-doc) .detail-section-shortcuts {
+  top: 0;
 }
 
 .workspace-body .detail-section-shortcuts__rail {
@@ -2597,6 +2618,10 @@ body.workspace-body {
   transform: translateZ(0);
   backface-visibility: hidden;
   transition: background-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.workspace-body:has(.notepad-doc) .detail-section-shortcuts__rail {
+  background: var(--inapp-notepad-header-bg);
 }
 
 .workspace-body .detail-section-shortcuts__rail::-webkit-scrollbar {
@@ -2679,6 +2704,10 @@ body.workspace-body {
   transform: translateY(-1px) translateZ(0);
 }
 
+.workspace-body:has(.notepad-doc) .detail-section-shortcuts.is-docked .detail-section-shortcuts__rail {
+  background: var(--inapp-notepad-header-bg);
+}
+
 .workspace-body .detail-section-shortcut:focus-visible {
   outline: 2px solid rgba(230, 98, 57, 0.22);
   outline-offset: 3px;
@@ -2696,11 +2725,27 @@ body.workspace-body {
   z-index: 1;
   display: block;
   max-width: 100%;
+  max-height: 1rem;
   font-size: 0.58rem;
   font-weight: 700;
   line-height: 1.05;
   letter-spacing: -0.01em;
   white-space: nowrap;
+  overflow: hidden;
+  transition: opacity 0.16s ease, max-height 0.16s ease, transform 0.16s ease;
+}
+
+.workspace-body .detail-section-shortcuts.is-docked .detail-section-shortcut {
+  min-height: 2.45rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  gap: 0;
+}
+
+.workspace-body .detail-section-shortcuts.is-docked .detail-section-shortcut__label {
+  opacity: 0;
+  max-height: 0;
+  transform: translateY(-0.2rem);
 }
 
 .workspace-body .notes-gallery-row {
@@ -2916,7 +2961,7 @@ body.workspace-body {
 
 .workspace-body .notepad-entry-move-panel__description {
   margin: 0.3rem 0 0;
-  font-size: 0.86rem;
+  font-size: 0.8rem;
   line-height: 1.5;
   color: #6c584c;
 }
@@ -2970,7 +3015,7 @@ body.workspace-body {
 
 .workspace-body .notepad-entry-move-picker-button__value {
   color: #1f2937;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   font-weight: 600;
   line-height: 1.3;
 }
@@ -3358,18 +3403,18 @@ body.workspace-body {
   height: 1.75rem;
   min-height: 1.75rem;
   font-size: 0.78rem;
-  border: 1px solid rgba(0, 201, 81, 0.2);
+  border: 1px solid var(--inapp-border);
   border-radius: 999px;
-  background: var(--inapp-success-soft);
-  color: #14532d;
+  background: #fff;
+  color: var(--inapp-ink-soft);
   padding: 0;
 }
 
 .workspace-body .photo-section-info-button:hover,
 .workspace-body .photo-section-info-button:focus {
-  border-color: rgba(0, 201, 81, 0.3);
-  background: rgba(0, 201, 81, 0.18);
-  color: #052e16;
+  border-color: var(--inapp-border-strong);
+  background: var(--inapp-bg);
+  color: var(--inapp-ink-soft);
 }
 
 .workspace-body .photo-section-info-button i {
@@ -3865,8 +3910,8 @@ body.workspace-body {
   }
 
   .notepad-quick-actions__item {
-    width: 2.85rem;
-    height: 2.85rem;
+    width: 40px;
+    height: 40px;
   }
 
   .notepad-quick-actions__toggle {
@@ -3875,7 +3920,7 @@ body.workspace-body {
   }
 
   .notepad-quick-actions__item i {
-    font-size: 0.92rem;
+    font-size: 0.9rem;
   }
 
   .workspace-body .ibox-title.notebook-section-title .notebook-section-title-row {
@@ -3933,7 +3978,7 @@ body.workspace-body {
   }
 
   .workspace-body .notebook-list-card__body {
-    padding: 0.9rem;
+    padding: 0.5rem;
   }
 
   .workspace-body .notebook-list-card__content {
@@ -4073,9 +4118,21 @@ body.workspace-body {
     scroll-margin-top: calc(var(--inapp-topbar-height) + 3.95rem);
   }
 
+  .workspace-body:has(.notepad-doc) .content {
+    padding-top: 1rem;
+  }
+
+  .workspace-body:has(.notepad-doc) .detail-section-anchor {
+    scroll-margin-top: 3.95rem;
+  }
+
   .workspace-body .detail-section-shortcuts {
     top: calc(var(--inapp-topbar-height) - 1px);
     margin-bottom: 0.88rem;
+  }
+
+  .workspace-body:has(.notepad-doc) .detail-section-shortcuts {
+    top: 0;
   }
 
   .workspace-body .detail-section-shortcuts__rail {
@@ -5420,12 +5477,23 @@ body.workspace-body {
 .workspace-body trix-toolbar .trix-button-group,
 .workspace-body trix-toolbar .trix-dialog {
   border-color: var(--inapp-border);
-  border-radius: var(--inapp-radius-sm);
+  border-radius: 0.35rem;
   background: rgba(255, 250, 244, 0.92);
 }
 
 .workspace-body trix-toolbar .trix-button {
   background: transparent;
+  border-radius: 0;
+}
+
+.workspace-body trix-toolbar .trix-button-group .trix-button:first-child {
+  border-top-left-radius: 0.35rem;
+  border-bottom-left-radius: 0.35rem;
+}
+
+.workspace-body trix-toolbar .trix-button-group .trix-button:last-child {
+  border-top-right-radius: 0.35rem;
+  border-bottom-right-radius: 0.35rem;
 }
 
 .workspace-body trix-toolbar .trix-button.trix-active {
@@ -5465,6 +5533,8 @@ body.workspace-body {
 .workspace-body .workspace-trix-content {
   color: var(--inapp-ink);
   line-height: 1.6;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .workspace-body .workspace-trix-content h1 {
@@ -5783,7 +5853,7 @@ body.workspace-body {
 
 .workspace-body .notebook-list-card__title,
 .workspace-body #content .notebook-list-card__title {
-  font-size: clamp(0.9rem, 0.87rem + 0.18vw, 1rem);
+  font-size: clamp(0.8rem, 0.87rem + 0.18vw, 0.5rem);
 }
 
 .workspace-body h6,
@@ -6330,16 +6400,61 @@ body.workspace-body {
   background: transparent;
 }
 
+[data-controller~="voice-note-list"] {
+  --voice-note-list-symbol-width-expanded: 2.5rem;
+}
+
 .voice-note-list-card .notebook-list-card__content {
   display: grid;
-  grid-template-columns: 3rem minmax(0, 1fr);
+  align-items: start;
+  row-gap: 0.28rem;
+  transition: row-gap 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.voice-note-list__toggle i {
+  transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.voice-note-list__toggle.is-expanded i {
+  transform: rotate(90deg);
+}
+
+.voice-note-list-card .voice-note-list-card__details {
+  display: grid;
+  grid-template-columns: var(--voice-note-list-symbol-width-expanded) minmax(0, 1fr);
   align-items: start;
   column-gap: 0.95rem;
+}
+
+[data-controller~="voice-note-list"].is-voice-note-list-expanded .voice-note-list-card .notebook-list-card__content {
   row-gap: 0.68rem;
+}
+
+.voice-note-list-card .notebook-list-card__symbol {
+  width: 100%;
+  max-width: var(--voice-note-list-symbol-width-expanded);
+  height: var(--voice-note-list-symbol-width-expanded);
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
+.voice-note-list-card .notebook-list-card__symbol i {
+  font-size: 1.05rem;
 }
 
 .voice-note-list-card .notebook-list-card__main {
   min-width: 0;
+}
+
+.voice-note-list-card .notebook-list-card__title {
+  font-size: clamp(0.8rem, 0.87rem + 0.18vw, 0.5rem);
+  line-height: 1.1;
+}
+
+@media (max-width: 767px) {
+  [data-controller~="voice-note-list"] {
+    --voice-note-list-symbol-width-expanded: 2.25rem;
+  }
 }
 
 .voice-note-player {
@@ -6357,7 +6472,7 @@ body.workspace-body {
   align-items: center;
   gap: 0.72rem;
   width: 100%;
-  padding: 0;
+  padding: 0 0.32rem;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -6371,25 +6486,25 @@ body.workspace-body {
 
 .workspace-body .voice-note-player__toggle.btn.btn-white.btn-sm.btn-icon,
 .workspace-body #content .voice-note-player__toggle.btn.btn-white.btn-sm.btn-icon {
-  width: 2.5rem;
-  height: 2.5rem;
-  min-width: 2.5rem;
-  min-height: 2.5rem;
-  max-width: 2.5rem;
-  max-height: 2.5rem;
+  width: 2rem;
+  height: 2rem;
+  min-width: 2rem;
+  min-height: 2rem;
+  max-width: 2rem;
+  max-height: 2rem;
   aspect-ratio: 1 / 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0;
   line-height: 1;
-  margin-top: 0.18rem;
+  margin-top: 0.1rem;
   border-radius: 50%;
   overflow: hidden;
   background: linear-gradient(180deg, #f97316 0%, #e66239 100%);
   border-color: #e66239;
   color: #fff;
-  box-shadow: 0 10px 18px rgba(230, 98, 57, 0.2);
+  box-shadow: 0 8px 14px rgba(230, 98, 57, 0.18);
 }
 
 .voice-note-player__toggle:hover,
@@ -6400,7 +6515,7 @@ body.workspace-body {
 }
 
 .voice-note-player__toggle i {
-  font-size: 1rem;
+  font-size: 0.875rem;
 }
 
 .voice-note-player__content {
@@ -6440,7 +6555,7 @@ body.workspace-body {
   padding: 0 0.18rem;
   display: flex;
   align-items: center;
-  border-radius: 0.9rem;
+  border-radius: 0;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.32), rgba(247, 240, 231, 0.12));
   cursor: pointer;
   outline: none;
@@ -6456,6 +6571,7 @@ body.workspace-body {
   height: 1.55rem;
   min-width: 0;
   line-height: 0;
+  border-radius: 0;
 }
 
 .voice-note-player__waveform > div {
@@ -6476,11 +6592,11 @@ body.workspace-body {
   width: 2.16rem;
   min-width: 2.16rem;
   margin-top: 0;
-  border: 1px solid rgba(230, 98, 57, 0.24);
+  border: 1px solid var(--inapp-border);
   border-radius: 1rem;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.86);
-  box-shadow: 0 4px 10px rgba(230, 98, 57, 0.08);
+  box-shadow: 0 4px 10px rgba(54, 43, 32, 0.06);
 }
 
 .voice-note-player__action {
@@ -6502,7 +6618,7 @@ body.workspace-body {
 
 .voice-note-player__action + .voice-note-player__action {
   margin-top: 0;
-  border-top: 1px solid rgba(230, 98, 57, 0.18);
+  border-top: 1px solid var(--inapp-border);
 }
 
 .voice-note-player__action i {
@@ -6525,7 +6641,7 @@ body.workspace-body {
 }
 
 .voice-note-player__action--delete {
-  color: #e66239;
+  color: #1f2937;
 }
 
 .voice-note-player__action--delete i,
@@ -6535,21 +6651,23 @@ body.workspace-body {
 
 .voice-note-player__action--delete:hover,
 .voice-note-player__action--delete:focus-visible {
-  background: rgba(230, 98, 57, 0.12);
-  color: #cf572f;
+  background: rgba(230, 98, 57, 0.1);
+  color: #111827;
 }
 
 @media (max-width: 767.98px) {
   .voice-note-list-card .notebook-list-card__content {
-    grid-template-columns: 2.65rem minmax(0, 1fr);
-    column-gap: 0.72rem;
     row-gap: 0.58rem;
+  }
+
+  .voice-note-list-card .voice-note-list-card__details {
+    column-gap: 0.72rem;
   }
 
   .voice-note-player__surface {
     grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 0.58rem;
-    padding: 0;
+    padding: 0 0.24rem;
   }
 
   .voice-note-player__content {
@@ -8573,13 +8691,17 @@ body.task-modal-open { overflow: hidden; }
 .sdoc-list {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 1rem;
 }
 
 .sdoc-card {
   display: flex;
   gap: 0;
-  border-bottom: 1px solid #f0f0f0;
+  background: #fff;
+  border: 1px solid #eee5d7;
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: 0 12px 32px rgba(95, 66, 34, 0.08);
 }
 
 .sdoc-card:last-child {
@@ -8587,29 +8709,32 @@ body.task-modal-open { overflow: hidden; }
 }
 
 .sdoc-accent-bar {
-  flex: 0 0 3px;
+  flex: 0 0 6px;
   background: var(--inapp-primary, #ff5f4e);
-  border-radius: 3px 0 0 3px;
+  border-radius: 28px 0 0 28px;
 }
 
 .sdoc-inner {
   flex: 1;
-  padding: 12px 12px 10px;
+  padding: 1.25rem 1.25rem 1rem;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: #fff;
 }
 
 .sdoc-header {
-  margin-bottom: 8px;
+  margin-bottom: 0;
 }
 
 .sdoc-title {
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 3px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #2f241b;
+  margin-bottom: 0.35rem;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
 }
 
 .sdoc-title-button {
@@ -8642,40 +8767,64 @@ body.task-modal-open { overflow: hidden; }
 .sdoc-conf-badge--none   { background: #e2e3e5; color: #383d41; }
 
 .sdoc-engine-label {
-  font-size: 0.7rem;
-  color: #999;
+  font-size: 0.82rem;
+  color: #7f6d5c;
+  font-weight: 500;
 }
 
 .sdoc-body {
   display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  margin-bottom: 8px;
+  justify-content: center;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0;
 }
 
 .sdoc-thumb {
-  flex: 0 0 52px;
-  width: 52px;
-  height: 64px;
-  object-fit: cover;
-  border-radius: 3px;
-  border: 1px solid #e0e0e0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  background: #f7f2ea;
+  border: 0;
+  border-radius: 0;
+}
+
+.sdoc-preview-button,
+.sdoc-preview-static {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(250px, 100%);
+  max-width: 100%;
+  height: 170px;
+  margin: 0 auto;
+  padding: 0;
+  border: 0;
+  background: #f7f2ea;
+  line-height: 0;
+  border-radius: 22px;
+  overflow: hidden;
 }
 
 .sdoc-preview-button {
-  padding: 0;
-  border: 0;
-  background: none;
-  line-height: 0;
   cursor: pointer;
+}
+
+.sdoc-preview-static {
+  cursor: default;
 }
 
 .sdoc-thumb--placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f5f5;
-  font-size: 1.4rem;
+  width: 100%;
+  height: 100%;
+  background: #f7f2ea;
+  font-size: 2rem;
+  color: #c2b3a2;
 }
 
 .sdoc-excerpt {
@@ -8700,18 +8849,72 @@ body.task-modal-open { overflow: hidden; }
 
 .sdoc-actions {
   display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+  width: auto;
+  gap: 0.45rem;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  justify-content: center;
+  margin: 0;
 }
 
+.sdoc-action-form {
+  margin: 0;
+  display: flex;
+}
+
+.sdoc-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  min-height: calc((var(--bs-btn-font-size, 0.82rem) * 1.5) + (var(--bs-btn-padding-y, 0.28rem) * 2) + 2px);
+  padding: var(--bs-btn-padding-y, 0.28rem) var(--bs-btn-padding-x, 0.56rem) !important;
+  border-radius: 0.75rem !important;
+  border: 1px solid #ddd5ca !important;
+  background: #fff !important;
+  color: #655648 !important;
+  font-weight: 600 !important;
+  box-shadow: 0 1px 1px rgba(56, 43, 28, 0.05) !important;
+}
+
+.sdoc-action-btn:hover,
+.sdoc-action-btn:focus {
+  border-color: #d0c4b7 !important;
+  color: #3d2f23 !important;
+  background: #fff !important;
+}
+
+.sdoc-action-btn .ti {
+  font-size: 0.9rem;
+}
+
+.sdoc-action-btn--primary {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-left: 1.15rem !important;
+  padding-right: 1.15rem !important;
+  border-radius: 1.3rem !important;
+  font-size: 0.9rem !important;
+}
+
+.sdoc-action-btn--icon {
+  width: calc((var(--bs-btn-font-size, 0.82rem) * 1.5) + (var(--bs-btn-padding-y, 0.28rem) * 2) + 2px);
+  min-width: calc((var(--bs-btn-font-size, 0.82rem) * 1.5) + (var(--bs-btn-padding-y, 0.28rem) * 2) + 2px);
+  height: calc((var(--bs-btn-font-size, 0.82rem) * 1.5) + (var(--bs-btn-padding-y, 0.28rem) * 2) + 2px);
+  padding: 0 !important;
+  border-radius: 0.75rem !important;
+}
+
+.sdoc-delete-form,
 .sdoc-delete-btn {
-  margin-left: auto;
+  margin-left: 0;
 }
 
 /* Empty state */
 .sdoc-empty-state {
   text-align: center;
-  padding: 28px 16px;
+  padding: 4px 16px;
   color: #999;
 }
 
@@ -9957,25 +10160,18 @@ body.task-modal-open { overflow: hidden; }
   margin-bottom: 8px;
 }
 
-.idle-shortcuts-card__icon {
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 14px;
-  background: linear-gradient(180deg, #fff0e8 0%, #ffe1d2 100%);
-  border: 1px solid rgba(230, 98, 57, 0.12);
+.idle-shortcuts-card__icon-shell > i {
+  display: block;
   color: #e66239;
-  font-size: 1.04rem;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 8px 14px rgba(230, 98, 57, 0.08);
+  font-size: 2.5rem;
+  line-height: 1;
 }
 
 .idle-shortcuts-card__title {
   display: block;
   font-size: 0.8rem;
   font-weight: 800;
-  color: #1b1b1d;
+  color: #676158;
   line-height: 1.26;
 }
 
@@ -9984,7 +10180,7 @@ body.task-modal-open { overflow: hidden; }
   margin-top: 4px;
   font-size: 0.68rem;
   line-height: 1.34;
-  color: #6f6a61;
+  color: #8a847b;
   max-width: 14ch;
 }
 
@@ -10004,6 +10200,35 @@ body.task-modal-open { overflow: hidden; }
 
 .idle-shortcuts-continue {
   min-width: 168px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.9rem 1.6rem;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #f57b4d 0%, #e66239 100%);
+  color: #fff;
+  border: 4px solid rgba(250, 245, 237, 0.96);
+  box-shadow: 0 18px 30px rgba(230, 98, 57, 0.28);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease, opacity 0.18s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .idle-shortcuts-continue:hover {
+    background: #7c2d12;
+    transform: translateY(-1px);
+    box-shadow: 0 20px 34px rgba(230, 98, 57, 0.32);
+    opacity: 1;
+  }
+}
+
+.idle-shortcuts-continue:focus-visible {
+  background: #7c2d12;
+  transform: translateY(-1px);
+  box-shadow: 0 20px 34px rgba(230, 98, 57, 0.32);
+  outline: 2px solid rgba(230, 98, 57, 0.24);
+  outline-offset: 3px;
+  opacity: 1;
 }
 
 .workspace-launcher-modal {
@@ -10104,11 +10329,8 @@ body.task-modal-open { overflow: hidden; }
     padding: 0.8rem 1rem;
   }
 
-  .idle-shortcuts-card__icon {
-    width: 34px;
-    height: 34px;
-    border-radius: 12px;
-    font-size: 0.88rem;
+  .idle-shortcuts-card__icon-shell > i {
+    font-size: 2rem;
   }
 
   .idle-shortcuts-header {
@@ -10429,4 +10651,1208 @@ body.task-modal-open { overflow: hidden; }
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* ─────────────────────────────────────────────────
+   Notepad Document Layout  — flowing rich canvas
+   ───────────────────────────────────────────────── */
+
+.notepad-doc {
+  max-width: 800px;
+  margin: 0 auto;
+  padding-bottom: 8rem;
+  --notepad-doc-type-ui: 0.8125rem;
+  --notepad-doc-type-chip: 0.75rem;
+  --notepad-doc-type-label: 0.6875rem;
+  --notepad-doc-type-body: 0.875rem;
+  --notepad-doc-type-body-lg: 0.9375rem;
+  --notepad-doc-type-meta: 0.7rem;
+}
+
+.workspace-body .notepad-doc .btn,
+.workspace-body #content .notepad-doc .btn {
+  --bs-btn-font-size: var(--notepad-doc-type-ui);
+}
+
+.workspace-body .notepad-doc .btn-sm,
+.workspace-body #content .notepad-doc .btn-sm {
+  --bs-btn-font-size: var(--notepad-doc-type-chip);
+}
+
+.workspace-body .notepad-doc .btn i,
+.workspace-body #content .notepad-doc .btn i {
+  font-size: 0.9rem;
+}
+
+/* White paper canvas */
+.notepad-doc__canvas {
+  background: var(--inapp-paper);
+  border-radius: var(--inapp-radius-xl);
+  box-shadow: var(--inapp-card-shadow);
+  border: 1px solid var(--inapp-border);
+  overflow: hidden;
+}
+
+/* Document header */
+.notepad-doc__header {
+  padding: 2.25rem 2.5rem 1.75rem;
+  border-bottom: 1px solid var(--inapp-border);
+  background: var(--inapp-notepad-header-bg);
+}
+
+.notepad-doc__header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.notepad-doc__header-content {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.notepad-doc__title {
+  font-family: var(--inapp-font-heading);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--inapp-ink);
+  line-height: 1.2;
+  margin: 0 0 0.375rem;
+  letter-spacing: -0.02em;
+  padding-inline: 0.18rem;
+}
+
+.workspace-body .notepad-doc__title,
+.workspace-body #content .notepad-doc__title {
+  font-family: var(--inapp-font-heading);
+  font-size: 1.8rem !important;
+  font-weight: 700;
+  color: var(--inapp-ink);
+  line-height: 1.2;
+  margin: 0 0 0.375rem;
+  letter-spacing: -0.02em;
+  padding-inline: 0.18rem;
+}
+
+.notepad-doc__date {
+  font-size: var(--notepad-doc-type-ui);
+  color: var(--inapp-muted);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.notepad-doc__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: 1rem;
+}
+
+.notepad-doc__meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.65rem;
+  background: var(--inapp-bg);
+  border: 1px solid var(--inapp-border);
+  border-radius: var(--inapp-radius-pill);
+  font-size: var(--notepad-doc-type-chip);
+  color: var(--inapp-muted);
+  font-weight: 600;
+  transition: background 0.14s;
+}
+
+.notepad-doc__meta-chip i {
+  font-size: var(--notepad-doc-type-ui);
+  opacity: 0.8;
+}
+
+.notepad-doc__meta-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  text-decoration: none;
+  cursor: pointer;
+  background: linear-gradient(180deg, #fff2ea 0%, #ffe6da 100%);
+  border-color: rgba(230, 98, 57, 0.22);
+  color: #c9562f;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82), 0 6px 14px rgba(230, 98, 57, 0.1);
+}
+
+.notepad-doc__meta-action:hover,
+.notepad-doc__meta-action:focus-visible {
+  background: linear-gradient(180deg, #f57b4d 0%, #e66239 100%);
+  border-color: #e66239;
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(230, 98, 57, 0.18);
+  outline: none;
+}
+
+.notepad-doc__meta-action i {
+  font-size: 0.85rem;
+}
+
+.notepad-doc .dropdown-item {
+  font-size: var(--notepad-doc-type-ui);
+}
+
+.notepad-doc .dropdown-item i {
+  font-size: 0.9rem;
+  color: var(--inapp-muted);
+}
+
+.notepad-doc__meta .dropdown-menu {
+  margin-top: 0.45rem;
+}
+
+/* ── Content blocks ────────────────────────────── */
+.notepad-doc__body {
+  padding: 0;
+}
+
+.notepad-doc-edit__body-form .notepad-doc__block:last-child {
+  border-bottom: 1px solid var(--inapp-border);
+}
+
+.notepad-doc__block {
+  padding: 1.75rem 2.5rem;
+  border-bottom: 1px solid var(--inapp-border);
+  position: relative;
+}
+
+.notepad-doc__block:last-child {
+  border-bottom: none;
+}
+
+/* Block type modifiers */
+.notepad-doc__block--text {
+  background: #fff;
+}
+
+.notepad-doc__block--text .detail-notes-copy.trix-content.workspace-trix-content {
+  background: #fff;
+  font-size: var(--notepad-doc-type-body-lg);
+  line-height: 1.7;
+  color: var(--inapp-ink-soft);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.notepad-doc__block--media {
+  background: var(--inapp-paper);
+}
+
+.notepad-doc__block--voice {
+  background: var(--inapp-paper);
+}
+
+.notepad-doc__block--todos {
+  background: linear-gradient(180deg, #f7f2ea 0%, #f4eee5 100%);
+}
+
+.notepad-doc__block--scans {
+  background: var(--inapp-paper);
+}
+
+.notepad-doc__block--empty {
+  padding: 3rem 2.5rem;
+  text-align: center;
+}
+
+/* Block header row */
+.notepad-doc__block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.125rem;
+}
+
+.notepad-doc__block-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--notepad-doc-type-label);
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--inapp-muted);
+}
+
+.notepad-doc__block-label i {
+  font-size: 0.875rem;
+  opacity: 0.75;
+}
+
+.notepad-doc__block-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex-shrink: 0;
+}
+
+.workspace-body .notepad-doc__block-actions .btn:not(.btn-icon),
+.workspace-body #content .notepad-doc__block-actions .btn:not(.btn-icon) {
+  border-radius: var(--inapp-radius-sm);
+}
+
+.notepad-doc__block--todos .notepad-doc__block-header {
+  margin-bottom: 0.875rem;
+}
+
+.notepad-doc__block--todos .notepad-doc__block-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #857868;
+}
+
+.notepad-doc__block--todos .notepad-doc__block-label i {
+  font-size: 0.875rem;
+  opacity: 0.72;
+}
+
+.notepad-doc__block--todos .todo-list-progress {
+  grid-template-columns: 1fr;
+  gap: 0.375rem;
+  margin-bottom: 1rem;
+}
+
+.notepad-doc__block--todos .todo-list-progress__track {
+  height: 0.3125rem;
+  background: var(--inapp-border);
+}
+
+.notepad-doc__block--todos .todo-list-progress__value {
+  background: linear-gradient(90deg, var(--inapp-primary), #f57b4d);
+}
+
+.notepad-doc__block--todos .todo-list-progress__summary {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--inapp-muted);
+}
+
+.notepad-doc__block--todos .todo-list-composer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.875rem;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--inapp-border);
+  border-radius: var(--inapp-radius-md);
+  background: #fff;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.notepad-doc__block--todos .todo-list-composer:focus-within {
+  border-color: rgba(230, 98, 57, 0.22);
+  box-shadow: 0 0 0 3px rgba(230, 98, 57, 0.08);
+}
+
+.notepad-doc__block--todos .todo-list-composer__field {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  gap: 0.75rem;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.notepad-doc__block--todos .todo-list-composer__field::after {
+  display: none;
+}
+
+.notepad-doc__block--todos .todo-list-composer__badge {
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--inapp-muted);
+}
+
+.notepad-doc__block--todos .todo-list-composer__badge .ti {
+  font-size: 1rem;
+}
+
+.notepad-doc__block--todos .todo-list-composer__content {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-right: 0;
+}
+
+.workspace-body .notepad-doc__block--todos textarea.todo-list-composer__input.form-control,
+.workspace-body #content .notepad-doc__block--todos textarea.todo-list-composer__input.form-control {
+  min-height: 1.3125rem;
+  padding: 0 !important;
+  font-size: 0.875rem !important;
+  line-height: 1.5 !important;
+  color: var(--inapp-ink);
+}
+
+.workspace-body .notepad-doc__block--todos textarea.todo-list-composer__input.form-control::placeholder,
+.workspace-body #content .notepad-doc__block--todos textarea.todo-list-composer__input.form-control::placeholder {
+  color: var(--inapp-muted);
+}
+
+.notepad-doc__block--todos .todo-list-composer__submit {
+  width: 1.96rem;
+  min-width: 1.96rem;
+  height: 1.96rem;
+  min-height: 1.96rem;
+  flex: 0 0 1.96rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  margin: 0;
+  padding: 0 !important;
+  border-radius: var(--inapp-radius-sm) !important;
+  border-width: 1px;
+  border-style: solid;
+  box-shadow: none;
+  outline: none;
+  flex-shrink: 0;
+}
+
+.notepad-doc__block--todos .todo-list-composer__submit--icon {
+  min-width: 1.96rem;
+  gap: 0;
+  background: #fff;
+  border-color: var(--inapp-border);
+  color: var(--inapp-ink);
+  box-shadow: 0 4px 10px rgba(54, 43, 32, 0.08);
+}
+
+.notepad-doc__block--todos .todo-list-composer__submit--icon:hover,
+.notepad-doc__block--todos .todo-list-composer__submit--icon:focus-visible {
+  background: #fff;
+  border-color: var(--inapp-border);
+  color: var(--inapp-ink);
+  box-shadow: 0 6px 14px rgba(54, 43, 32, 0.1);
+  outline: none;
+}
+
+.notepad-doc__block--todos .todo-list-composer__submit--icon .ti {
+  font-size: 0.82rem;
+}
+
+.notepad-doc__block--todos .todo-list-composer__submit-label {
+  display: none;
+}
+
+.notepad-doc__block--todos .todo-list-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.notepad-doc__block--todos .todo-list-item {
+  gap: 0.375rem;
+  padding: 0.625rem 0;
+  border: 0;
+  border-bottom: 1px solid var(--inapp-border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.notepad-doc__block--todos .todo-list-item:last-child {
+  border-bottom: 0;
+}
+
+.notepad-doc__block--todos .todo-list-item::before {
+  display: none;
+}
+
+.notepad-doc__block--todos .todo-list-item.is-completed {
+  background: transparent;
+  border-color: rgba(180, 165, 146, 0.36);
+}
+
+.notepad-doc__block--todos .todo-list-item__header {
+  gap: 0;
+}
+
+.notepad-doc__block--todos .todo-list-item__lead {
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.notepad-doc__block--todos .todo-list-item__toggle-form {
+  margin-top: 0;
+}
+
+.notepad-doc__block--todos .todo-list-item__check {
+  min-width: 1.125rem;
+  min-height: 1.125rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.notepad-doc__block--todos .todo-list-item__check-indicator {
+  width: 1.125rem;
+  height: 1.125rem;
+  border: 2px solid var(--inapp-border-strong);
+}
+
+.notepad-doc__block--todos .todo-list-item__check:hover .todo-list-item__check-indicator,
+.notepad-doc__block--todos .todo-list-item__check:focus-visible .todo-list-item__check-indicator {
+  border-color: var(--inapp-primary);
+}
+
+.notepad-doc__block--todos .todo-list-item__check.is-completed {
+  background: transparent;
+  border-color: transparent;
+}
+
+.notepad-doc__block--todos .todo-list-item__check.is-completed .todo-list-item__check-indicator {
+  border-color: var(--inapp-primary);
+  background: var(--inapp-primary);
+}
+
+.notepad-doc__block--todos .todo-list-item__check.is-completed .todo-list-item__check-indicator::after {
+  transform: translate(-50%, -58%) rotate(45deg) scale(1);
+}
+
+.notepad-doc__block--todos .todo-list-item__check-indicator::after {
+  left: 50%;
+  top: 50%;
+  width: 0.3125rem;
+  height: 0.5625rem;
+  border-right-width: 2px;
+  border-bottom-width: 2px;
+  transform: translate(-50%, -58%) rotate(45deg) scale(0.9);
+}
+
+.workspace-body .notepad-doc__block--todos textarea.todo-list-item__input.form-control,
+.workspace-body #content .notepad-doc__block--todos textarea.todo-list-item__input.form-control {
+  min-height: 1.3125rem;
+  padding: 0 !important;
+  font-size: 0.875rem !important;
+  font-weight: 400;
+  line-height: 1.5 !important;
+  color: var(--inapp-muted);
+}
+
+.workspace-body .notepad-doc__block--todos textarea.todo-list-item__input.form-control:focus,
+.workspace-body #content .notepad-doc__block--todos textarea.todo-list-item__input.form-control:focus {
+  background: transparent !important;
+}
+
+.notepad-doc__block--todos .todo-list-item.is-completed textarea.todo-list-item__input.form-control {
+  color: var(--inapp-muted);
+  text-decoration-thickness: 1.5px;
+}
+
+.notepad-doc__block--todos .todo-list-item__meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.58rem;
+  min-height: 0;
+  padding-left: 0;
+}
+
+.notepad-doc__block--todos .todo-list-item__reminder {
+  gap: 0.32rem;
+  font-size: 0.75rem;
+}
+
+.notepad-doc__block--todos .todo-list-item__reminder-summary {
+  color: #a67622;
+}
+
+.notepad-doc__block--todos .todo-list-item__reminder--scheduled .todo-list-item__reminder-summary {
+  padding: 0;
+  background: transparent;
+}
+
+.notepad-doc__block--todos .todo-list-item__reminder--empty,
+.notepad-doc__block--todos .todo-list-item__meta-spacer {
+  display: none;
+}
+
+.notepad-doc__block--todos .todo-list-item__actions {
+  gap: 0.28rem;
+  flex-wrap: nowrap;
+}
+
+.notepad-doc__block--todos .todo-list-item__action-button {
+  width: 1.5rem;
+  height: 1.5rem;
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  border-radius: 999px;
+  border-color: rgba(180, 165, 146, 0.3);
+  background: rgba(255, 255, 255, 0.95);
+  color: #8b7765;
+  box-shadow: none;
+}
+
+.notepad-doc__block--todos .todo-list-item__action-button:hover,
+.notepad-doc__block--todos .todo-list-item__action-button:focus {
+  border-color: rgba(230, 98, 57, 0.26);
+  background: #fff8f4;
+  color: #e66239;
+}
+
+.notepad-doc__block--todos .todo-list-item.has-reminder .todo-list-item__reminder-toggle {
+  border-color: rgba(230, 98, 57, 0.26);
+  background: #fff4ec;
+  color: #e66239;
+}
+
+.notepad-doc__block--todos .todo-list-item__handle .ti,
+.notepad-doc__block--todos .todo-list-item__delete-button .ti {
+  font-size: 0.72rem;
+}
+
+.notepad-doc__block--todos .todo-list-empty {
+  padding: 0.625rem 0 0;
+  border: 0;
+  border-top: 1px solid var(--inapp-border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--inapp-muted);
+  font-size: 0.75rem;
+  text-align: left;
+}
+
+.notepad-doc .voice-note-recorder__pending-copy {
+  font-size: var(--notepad-doc-type-chip);
+}
+
+.notepad-doc .voice-note-recorder__pending-copy strong {
+  font-size: var(--notepad-doc-type-ui);
+}
+
+.notepad-doc .voice-note-list-card .notebook-list-card__title {
+  font-size: var(--notepad-doc-type-ui);
+  line-height: 1.2;
+}
+
+.notepad-doc .voice-note-player__time {
+  font-size: var(--notepad-doc-type-chip);
+  font-weight: 600;
+}
+
+.notepad-doc .sdoc-title {
+  font-size: var(--notepad-doc-type-ui);
+  font-weight: 700;
+  color: var(--inapp-ink);
+}
+
+.notepad-doc .sdoc-meta,
+.notepad-doc .sdoc-engine-label {
+  font-size: var(--notepad-doc-type-meta);
+  color: var(--inapp-muted);
+  font-weight: 500;
+}
+
+.notepad-doc .sdoc-excerpt {
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--inapp-muted);
+}
+
+@media (min-width: 768px) {
+  .notepad-doc__block--todos .todo-list-item {
+    padding-right: 0;
+  }
+
+  .notepad-doc__block--todos .todo-list-item__meta {
+    justify-content: flex-start;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .notepad-doc__block--todos .todo-list-item__reminder--scheduled {
+    min-width: 0;
+    margin-right: auto;
+  }
+
+  .notepad-doc__block--todos .todo-list-item__actions {
+    margin-left: auto;
+    min-width: 0;
+    width: 0;
+    max-width: 0;
+    overflow: hidden;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateX(0.2rem);
+    transition: max-width 0.18s ease, opacity 0.18s ease, transform 0.18s ease, visibility 0s linear 0.18s;
+  }
+
+  .notepad-doc__block--todos .todo-list-item__reminder--scheduled + .todo-list-item__actions {
+    margin-left: 0;
+  }
+
+  .notepad-doc__block--todos .todo-list-item:focus-within .todo-list-item__actions {
+    width: auto;
+    max-width: 8rem;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateX(0);
+    transition-delay: 0s;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .notepad-doc__block--todos .todo-list-composer {
+    gap: 0.625rem;
+    padding: 0.625rem 0.75rem;
+  }
+
+  .notepad-doc__block--todos .todo-list-composer__field {
+    min-height: 0;
+    gap: 0.625rem;
+    padding: 0;
+  }
+
+  .notepad-doc__block--todos .todo-list-composer__badge .ti {
+    font-size: 1rem;
+  }
+
+  .workspace-body .notepad-doc__block--todos textarea.todo-list-composer__input.form-control,
+  .workspace-body #content .notepad-doc__block--todos textarea.todo-list-composer__input.form-control {
+    font-size: 0.875rem !important;
+  }
+
+  .notepad-doc__block--todos .todo-list-composer__submit {
+    padding: 0 !important;
+  }
+
+  .notepad-doc__block--todos .todo-list-item {
+    padding: 0.625rem 0;
+  }
+
+  .notepad-doc__block--todos .todo-list-item__lead {
+    gap: 0.75rem;
+  }
+
+  .notepad-doc__block--todos .todo-list-item__check {
+    min-width: 1.125rem;
+    min-height: 1.125rem;
+  }
+
+  .notepad-doc__block--todos .todo-list-item__check-indicator {
+    width: 1.125rem;
+    height: 1.125rem;
+    border-width: 2px;
+  }
+
+  .workspace-body .notepad-doc__block--todos textarea.todo-list-item__input.form-control,
+  .workspace-body #content .notepad-doc__block--todos textarea.todo-list-item__input.form-control {
+    font-size: 0.875rem !important;
+  }
+
+  .notepad-doc__block--todos .todo-list-item__meta {
+    justify-content: flex-end;
+    gap: 0.58rem;
+    padding-left: 0;
+  }
+}
+
+/* ── Photo strip ───────────────────────────────── */
+.notepad-doc__photo-strip {
+  display: grid;
+  gap: 0.45rem;
+  grid-auto-flow: dense;
+}
+
+.notepad-doc__photo-strip--count-1 {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.notepad-doc__photo-strip--count-1 .notepad-doc__photo-item {
+  aspect-ratio: 16 / 10;
+  min-height: clamp(13rem, 34vw, 18rem);
+}
+
+.notepad-doc__photo-strip--count-2,
+.notepad-doc__photo-strip--count-4 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.notepad-doc__photo-strip--count-2 {
+  grid-template-rows: minmax(0, 1fr);
+  min-height: clamp(11.5rem, 28vw, 15.5rem);
+}
+
+.notepad-doc__photo-strip--count-4 .notepad-doc__photo-item {
+  aspect-ratio: 1 / 1;
+}
+
+.notepad-doc__photo-strip--count-2 .notepad-doc__photo-item,
+.notepad-doc__photo-strip--count-3 .notepad-doc__photo-item {
+  min-height: 0;
+}
+
+.notepad-doc__photo-strip--count-2 .notepad-doc__photo-item {
+  height: 100%;
+}
+
+.notepad-doc__photo-strip--count-3 {
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.95fr);
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  min-height: clamp(12.75rem, 31vw, 17rem);
+}
+
+.notepad-doc__photo-strip--count-3 .notepad-doc__photo-item:first-child {
+  grid-row: 1 / span 2;
+  min-height: 0;
+}
+
+.notepad-doc__photo-strip--count-3 .notepad-doc__photo-item:not(:first-child) {
+  height: 100%;
+}
+
+.notepad-doc__photo-item {
+  position: relative;
+  min-width: 0;
+  border-radius: var(--inapp-radius-md);
+  overflow: hidden;
+  background: var(--inapp-bg);
+  isolation: isolate;
+}
+
+.notepad-doc__photo-item .thumbnail,
+.notepad-doc__photo-item a {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.notepad-doc__photo-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 180ms ease;
+}
+
+.notepad-doc__photo-item:hover img,
+.notepad-doc__photo-item:focus-within img {
+  transform: scale(1.02);
+}
+
+.notepad-doc__photo-item--overflow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(24, 18, 13, 0.34);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.notepad-doc__photo-item--overflow::after {
+  content: attr(data-overflow-label);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: clamp(1.2rem, 1rem + 0.9vw, 1.8rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.notepad-doc__photo-item--hidden {
+  display: none;
+}
+
+.notepad-doc__photo-upload-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.875rem;
+}
+
+/* ── Voice strip ───────────────────────────────── */
+.notepad-doc__voice-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin-top: 0.25rem;
+}
+
+/* ── Scans grid ────────────────────────────────── */
+.notepad-doc .sdoc-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+/* ── Format export modal ────────────────────────── */
+.notepad-format-modal .modal-dialog {
+  max-width: 700px;
+}
+
+.notepad-format-output {
+  font-family: 'Menlo', 'Monaco', 'Consolas', 'Courier New', monospace;
+  font-size: 0.8rem;
+  line-height: 1.65;
+  background: var(--inapp-bg);
+  border: 1px solid var(--inapp-border);
+  border-radius: var(--inapp-radius-md);
+  padding: 1.25rem 1.5rem;
+  white-space: pre-wrap;
+  max-height: 55vh;
+  overflow-y: auto;
+  color: var(--inapp-ink);
+  resize: vertical;
+  width: 100%;
+  outline: none;
+}
+
+.notepad-format-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: var(--inapp-paper);
+  border-top: 1px solid var(--inapp-border);
+  border-radius: 0 0 var(--inapp-radius-md) var(--inapp-radius-md);
+}
+
+.notepad-format-toolbar__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--inapp-muted);
+  flex: 1;
+}
+
+/* ── Edit form document mode ───────────────────── */
+.notepad-doc-edit {
+  max-width: 800px;
+  margin: 0 auto;
+  padding-bottom: 8rem;
+}
+
+.notepad-doc-edit__canvas {
+  background: var(--inapp-paper);
+  border-radius: var(--inapp-radius-xl);
+  box-shadow: var(--inapp-card-shadow);
+  border: 1px solid var(--inapp-border);
+  overflow: hidden;
+}
+
+.notepad-doc-edit__head {
+  padding: 2rem 2.5rem 1.5rem;
+  background: #fff;
+  border-bottom: 1px solid var(--inapp-border);
+}
+
+.notepad-doc-edit__title-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.notepad-doc-edit__title-input {
+  font-family: var(--inapp-font-heading) !important;
+  font-size: 1.6rem !important;
+  font-weight: 700 !important;
+  color: var(--inapp-ink) !important;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 2px solid var(--inapp-border) !important;
+  border-radius: 0 !important;
+  padding: 0 0 0.375rem !important;
+  box-shadow: none !important;
+  letter-spacing: -0.02em;
+}
+
+.notepad-doc-edit__title-input:focus {
+  border-bottom-color: var(--inapp-primary) !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.notepad-doc-edit__date-input {
+  font-size: 0.8125rem !important;
+  color: var(--inapp-muted) !important;
+  border: 1px solid var(--inapp-border) !important;
+  border-radius: var(--inapp-radius-sm) !important;
+  padding: 0.375rem 0.625rem !important;
+  background: var(--inapp-bg) !important;
+}
+
+.notepad-doc-edit__notes {
+  padding: 1.75rem 2.5rem;
+  border-bottom: 1px solid var(--inapp-border);
+}
+
+.notepad-doc-edit__notes-shell {
+  padding: 1rem 1.1rem 1.15rem;
+  border: 1px solid rgba(180, 165, 146, 0.34);
+  border-radius: 1.1rem;
+  background: linear-gradient(180deg, #fff 0%, #fffaf4 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82), 0 10px 24px rgba(54, 43, 32, 0.05);
+  overflow: hidden;
+}
+
+.notepad-doc-edit__notes-shell trix-toolbar {
+  margin: 0 0 0.9rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid rgba(180, 165, 146, 0.28);
+}
+
+.notepad-doc-edit__notes-shell trix-toolbar .trix-button-row {
+  flex-wrap: wrap;
+  row-gap: 0.42rem;
+  overflow-x: visible;
+}
+
+.notepad-doc-edit__notes-shell trix-toolbar .trix-button-group,
+.notepad-doc-edit__notes-shell trix-toolbar .trix-dialog {
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 2px 8px rgba(54, 43, 32, 0.05);
+}
+
+.notepad-doc-edit__notes .workspace-rich-text-editor {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  min-height: clamp(16rem, 42vh, 24rem);
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  font-size: 0.95rem;
+  line-height: 1.72;
+  color: var(--inapp-ink);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.notepad-doc-edit__notes .workspace-rich-text-editor:focus {
+  box-shadow: none !important;
+}
+
+.notepad-doc-edit__notes .workspace-rich-text-editor,
+.notepad-doc-edit__notes .workspace-rich-text-editor h1,
+.notepad-doc-edit__notes .workspace-rich-text-editor h2,
+.notepad-doc-edit__notes .workspace-rich-text-editor h3,
+.notepad-doc-edit__notes .workspace-rich-text-editor h4,
+.notepad-doc-edit__notes .workspace-rich-text-editor h5,
+.notepad-doc-edit__notes .workspace-rich-text-editor h6,
+.notepad-doc-edit__notes .workspace-rich-text-editor p,
+.notepad-doc-edit__notes .workspace-rich-text-editor li,
+.notepad-doc-edit__notes .workspace-rich-text-editor blockquote {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.notepad-doc-edit__notes .workspace-rich-text-editor a,
+.notepad-doc__block--text .detail-notes-copy.trix-content.workspace-trix-content a {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.notepad-doc-edit__notes .workspace-rich-text-editor pre,
+.notepad-doc__block--text .detail-notes-copy.trix-content.workspace-trix-content pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.notepad-doc-edit__notes .workspace-rich-text-editor figure,
+.notepad-doc-edit__notes .workspace-rich-text-editor img,
+.notepad-doc__block--text .detail-notes-copy.trix-content.workspace-trix-content figure,
+.notepad-doc__block--text .detail-notes-copy.trix-content.workspace-trix-content img {
+  max-width: 100%;
+  height: auto;
+}
+
+.notepad-doc-edit__section {
+  padding: 1.5rem 2.5rem;
+  border-bottom: 1px solid var(--inapp-border);
+}
+
+.notepad-doc-edit__section:last-child {
+  border-bottom: none;
+}
+
+.notepad-doc-edit__section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--inapp-muted);
+  margin-bottom: 1rem;
+}
+
+.notepad-doc-edit__section-label i {
+  font-size: 0.875rem;
+  opacity: 0.75;
+}
+
+.notepad-doc-edit__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 2.5rem;
+  background: #fff;
+  border-top: 1px solid var(--inapp-border);
+}
+
+/* ── Responsive ────────────────────────────────── */
+
+/* Tablet: tighten padding */
+@media (max-width: 767px) {
+  .notepad-doc {
+    padding-bottom: 6rem;
+  }
+
+  .notepad-doc__header,
+  .notepad-doc__block {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+
+  .notepad-doc-edit__head,
+  .notepad-doc-edit__notes,
+  .notepad-doc-edit__section,
+  .notepad-doc-edit__footer {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+
+  .notepad-doc .sdoc-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Phone: icon-only block actions, wrap block-header */
+@media (max-width: 540px) {
+  .notepad-doc__header,
+  .notepad-doc__block {
+    padding-left: 1.125rem;
+    padding-right: 1.125rem;
+  }
+
+  .notepad-doc-edit__head,
+  .notepad-doc-edit__notes,
+  .notepad-doc-edit__section,
+  .notepad-doc-edit__footer {
+    padding-left: 1.125rem;
+    padding-right: 1.125rem;
+  }
+
+  /* Wrap so actions fall below label when space is tight */
+  .notepad-doc__block-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  /* Hide text labels in block-action buttons — icon-only on mobile */
+  .notepad-doc__block-actions .btn span {
+    display: none;
+  }
+
+  .notepad-doc__block-actions .btn {
+    padding: 0.3rem 0.45rem;
+  }
+
+  .notepad-doc__photo-strip {
+    gap: 0.35rem;
+  }
+
+  .notepad-doc__photo-strip--count-1 .notepad-doc__photo-item {
+    min-height: 11rem;
+  }
+
+  .notepad-doc__photo-strip--count-2 {
+    min-height: 10rem;
+  }
+
+  .notepad-doc__photo-strip--count-3 {
+    min-height: 10.75rem;
+  }
+
+  .notepad-doc .sdoc-list {
+    grid-template-columns: 1fr;
+  }
+
+  .notepad-doc-edit__title-row {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+}
+
+/* Small phone (<400px): further compact */
+@media (max-width: 400px) {
+  .notepad-doc__header,
+  .notepad-doc__block {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .notepad-doc-edit__head,
+  .notepad-doc-edit__notes,
+  .notepad-doc-edit__section,
+  .notepad-doc-edit__footer {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .notepad-doc__photo-strip--count-1 .notepad-doc__photo-item {
+    min-height: 9.75rem;
+  }
+
+  .notepad-doc__photo-strip--count-2 {
+    min-height: 8.75rem;
+  }
+
+  .notepad-doc__photo-strip--count-3 {
+    min-height: 9.5rem;
+  }
+
+  .notepad-doc .sdoc-list {
+    grid-template-columns: 1fr;
+  }
+
+  /* To-do composer add button: icon-only on smallest screens */
+  .notepad-doc__block--todos .todo-list-composer__submit-label {
+    display: none;
+  }
+}
+
+/* Desktop: generous centred canvas with side padding */
+@media (min-width: 768px) {
+  .notepad-doc,
+  .notepad-doc-edit {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+
+  .notepad-doc__photo-strip {
+    gap: 0.55rem;
+  }
+
+  .notepad-doc .sdoc-list {
+    grid-template-columns: 1fr;
+  }
 }

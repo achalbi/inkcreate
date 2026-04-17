@@ -1,0 +1,11 @@
+<% tips_body = capture do %>
+  <ul class="small m-b-none photo-capture-tips-list">
+    <li>Keep the page flat with the whole document visible inside the frame.</li>
+    <li>Use even lighting and avoid hard shadows from your hand or phone.</li>
+    <li>Use Scan to capture a clean PDF you can review or download later.</li>
+  </ul>
+<% end %>
+
+<div id="<%= target_id %>" class="<%= ["collapse", "photo-capture-tips-panel", local_assigns[:extra_classes]].compact.join(" ") %>">
+  <%= render "shared/inline_alert", type: :info, title: "Capture tips", body_html: tips_body, extra_classes: "m-b-none" %>
+</div>

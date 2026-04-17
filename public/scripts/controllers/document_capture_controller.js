@@ -133,25 +133,25 @@ export default class extends Controller {
             </div>
           </div>
 
-          <div class="sdoc-body">
-            ${doc.image_data
-              ? `<img src="${this._escapeAttribute(doc.image_data)}" class="sdoc-thumb" alt="${this._escapeAttribute(doc.title || "Untitled scan")}">`
-              : `<div class="sdoc-thumb sdoc-thumb--placeholder"><i class="ti ti-file-text" aria-hidden="true"></i></div>`}
-            <p class="sdoc-excerpt">Save this scan to keep the PDF with the rest of this page.</p>
-          </div>
-
-          <div class="sdoc-actions">
-            <button
-              type="button"
-              class="btn btn-white btn-sm sdoc-delete-btn"
-              data-action="click->document-capture#removeDraftDocument"
-              data-index="${index}"
-              title="Remove pending scan"
-            ><i class="ti ti-trash" aria-hidden="true"></i><span class="sr-only">Delete</span></button>
-          </div>
-        </div>
-      </div>
-    `).join("");
+	          <div class="sdoc-body">
+	            <div class="sdoc-preview-static">
+	              ${doc.image_data
+	                ? `<img src="${this._escapeAttribute(doc.image_data)}" class="sdoc-thumb" alt="${this._escapeAttribute(doc.title || "Untitled scan")}">`
+	                : `<div class="sdoc-thumb sdoc-thumb--placeholder"><i class="ti ti-file-text" aria-hidden="true"></i></div>`}
+	            </div>
+	            <div class="sdoc-actions">
+	              <button
+	                type="button"
+	                class="btn btn-white btn-sm sdoc-action-btn sdoc-action-btn--icon sdoc-delete-btn"
+	                data-action="click->document-capture#removeDraftDocument"
+	                data-index="${index}"
+	                aria-label="Delete"
+	              ><i class="ti ti-trash" aria-hidden="true"></i></button>
+	            </div>
+	          </div>
+	        </div>
+	      </div>
+	    `).join("");
   }
 
   removeDraftDocument(event) {
@@ -1079,7 +1079,10 @@ export default class extends Controller {
     if (!canvas) { btn.disabled = false; btn.textContent = "Save PDF"; return; }
 
     try {
-      await this._saveScannedDocumentPayload(this._buildScannedDocumentPayload(canvas));
+      const saveResponse = await this._saveScannedDocumentPayload(this._buildScannedDocumentPayload(canvas));
+      if (!saveResponse?.draft) {
+        window.location.reload();
+      }
     } catch (error) {
       btn.disabled = false; btn.textContent = "Save PDF";
       alert(error?.message || "Network error. Please try again.");
@@ -1103,7 +1106,7 @@ export default class extends Controller {
       this.saveBtnTarget.disabled = false;
       this.saveBtnTarget.textContent = "Save PDF";
       this.close();
-      return;
+      return { ok: true, draft: true };
     }
 
     const formData = new FormData();
@@ -1116,12 +1119,15 @@ export default class extends Controller {
     const resp = await fetch(this.postUrlValue, {
       method: "POST",
       body: formData,
-      headers: { "X-CSRF-Token": this.csrfValue, "X-Requested-With": "XMLHttpRequest" }
+      headers: {
+        "Accept": "application/json",
+        "X-CSRF-Token": this.csrfValue,
+        "X-Requested-With": "XMLHttpRequest"
+      }
     });
 
-    if (resp.ok || resp.redirected) {
-      window.location.reload();
-      return;
+    if (resp.ok) {
+      return resp.json().catch(() => ({ ok: true }));
     }
 
     throw new Error("Save failed. Please try again.");
@@ -1152,7 +1158,11 @@ export default class extends Controller {
         throw new Error("Native scanner did not return a preview image.");
       }
 
-      await this._saveScannedDocumentPayload(payload);
+      const saveResponse = await this._saveScannedDocumentPayload(payload);
+      await this._persistNativeScanAnalysis(saveResponse, result);
+      if (!saveResponse?.draft) {
+        window.location.reload();
+      }
       return true;
     } catch (error) {
       if (this._isNativeDocumentScanCancelled(error)) return true;
@@ -1162,11 +1172,15 @@ export default class extends Controller {
   }
 
   _shouldUseNativeDocumentScanner() {
-    return Boolean(this._isNativeAndroidApp() && this._nativeDocumentScannerPlugin());
+    return Boolean(this._inkcreateNativeBridge()?.isNativeShellAvailable?.() || (this._isNativeAndroidApp() && this._nativeDocumentScannerPlugin()));
   }
 
   _isNativeAndroidApp() {
     return this._capacitorPlatform() === "android" && this._isNativeCapacitorApp();
+  }
+
+  _inkcreateNativeBridge() {
+    return window.InkCreateNativeBridge || null;
   }
 
   _capacitorPlatform() {
@@ -1184,6 +1198,34 @@ export default class extends Controller {
   }
 
   async _runNativeDocumentScanner() {
+    const bridge = this._inkcreateNativeBridge();
+    if (bridge?.isNativeShellAvailable?.()) {
+      const response = await bridge.openNativeRoute("mlkit:document-scanner", {
+        source: "scanned_documents",
+        allowGalleryImport: true,
+        pageLimit: 24,
+        scannerMode: "full"
+      });
+
+      if (response?.status === "cancelled") {
+        return { cancelled: true };
+      }
+
+      if (response?.status === "success") {
+        return response.data || {};
+      }
+
+      if (response?.status === "unavailable") {
+        const unavailableError = new Error(response.error?.message || "Native document scanner is unavailable.");
+        unavailableError.code = response.error?.code || "FEATURE_UNAVAILABLE";
+        throw unavailableError;
+      }
+
+      if (response?.status === "error") {
+        throw new Error(response.error?.message || "Native document scanner failed.");
+      }
+    }
+
     const plugin = this._nativeDocumentScannerPlugin();
     const runner = plugin?.scanDocument || plugin?.startScan || plugin?.openScanner;
     if (typeof runner !== "function") {
@@ -1208,26 +1250,55 @@ export default class extends Controller {
   }
 
   _buildNativeScannedDocumentPayload(result) {
-    const pages = Array.isArray(result?.pages) ? result.pages : [];
+    const scanner = result?.scanner || result || {};
+    const pages = Array.isArray(scanner?.pages) ? scanner.pages : [];
     const firstPage = pages[0] || null;
-    const tags = Array.isArray(result?.tags) ? result.tags : [];
+    const tags = Array.isArray(scanner?.tags) ? scanner.tags : [];
 
     return {
-      title: result?.title || this._nextAutoScanTitle(),
-      enhancement_filter: result?.enhancementFilter || "auto",
+      title: scanner?.title || this._nextAutoScanTitle(),
+      enhancement_filter: scanner?.enhancementFilter || "auto",
       tags: JSON.stringify(tags.filter(Boolean)),
-      image_data: result?.previewImageDataUrl
-        || result?.imageDataUrl
-        || result?.preview?.dataUrl
+      image_data: scanner?.previewImageDataUrl
+        || scanner?.imageDataUrl
+        || scanner?.preview?.dataUrl
         || firstPage?.imageDataUrl
         || firstPage?.previewImageDataUrl
         || firstPage?.dataUrl
         || "",
-      pdf_data: result?.pdfDataUrl
-        || result?.documentPdfDataUrl
-        || result?.pdf?.dataUrl
+      pdf_data: scanner?.pdfDataUrl
+        || scanner?.documentPdfDataUrl
+        || scanner?.pdf?.dataUrl
         || ""
     };
+  }
+
+  async _persistNativeScanAnalysis(saveResponse, result) {
+    const submitUrl = saveResponse?.submit_ocr_result_url;
+    const ocrPayload = this._buildNativeOcrPayload(result);
+
+    if (!submitUrl || !ocrPayload.text) {
+      return;
+    }
+
+    const response = await fetch(submitUrl, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "X-CSRF-Token": this.csrfValue,
+        "X-Requested-With": "XMLHttpRequest"
+      },
+      body: JSON.stringify({
+        ocr_result: ocrPayload
+      })
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => null);
+      throw new Error(data?.error || "The scanned document was saved, but OCR enrichment failed.");
+    }
   }
 
   openPdf(event) {
@@ -1348,10 +1419,20 @@ export default class extends Controller {
   }
 
   _buildNativeOcrPayload(result) {
-    const text = result?.text || result?.extractedText || result?.fullText || "";
-    const confidence = result?.confidence ?? result?.meanConfidence ?? result?.confidencePercent ?? null;
-    const language = result?.language || result?.languageCode || result?.detectedLanguage || null;
-    const engine = result?.engine || "google-ml";
+    const analysis = result?.analysis || {};
+    const ocr = analysis.ocr || result?.ocr || result || {};
+    const languageInfo = analysis.languageIdentification || {};
+    const text = ocr?.fullText || ocr?.text || result?.text || result?.extractedText || result?.fullText || "";
+    const confidence = ocr?.confidence ?? result?.confidence ?? result?.meanConfidence ?? result?.confidencePercent ?? null;
+    const language = languageInfo?.languageCode
+      || languageInfo?.bestLanguageCode
+      || ocr?.language
+      || ocr?.languageCode
+      || result?.language
+      || result?.languageCode
+      || result?.detectedLanguage
+      || null;
+    const engine = ocr?.engine || result?.engine || "google-ml";
 
     return { text, confidence, language, engine };
   }

@@ -4,28 +4,46 @@ import {
   notificationPreferenceState
 } from "/scripts/notification_preferences.js";
 
+const INSTALL_PROMPT_COLLAPSED_STORAGE_KEY = "inkcreate.installPrompt.collapsed";
+
 export default class extends Controller {
-  static targets = ["notificationSetup", "notificationStatus", "notificationButton"];
+  static targets = ["notificationSetup", "notificationStatus", "notificationButton", "promptButton", "panelBody", "collapseButton"];
 
   connect() {
     this.deferredPrompt = null;
+    this.installState = null;
     this.handleBeforeInstallPrompt = (event) => {
       event.preventDefault();
       this.deferredPrompt = event;
     };
-    this.handleInstalled = () => {
-      this.showNotificationSetup().catch(() => {
+    this.handleInstalled = async () => {
+      this.setPromptButtonHidden(true);
+      this.installState = await notificationPreferenceState().catch(() => ({
+        supported: true,
+        installed: true,
+        permission: "default"
+      }));
+      this.showNotificationSetup(this.installState).catch(() => {
         // Keep install flow usable even if notification setup cannot be rendered.
       });
+      this.setCollapsed(true, { persist: true });
     };
 
     window.addEventListener("beforeinstallprompt", this.handleBeforeInstallPrompt);
     window.addEventListener("inkcreate:app-installed", this.handleInstalled);
+
+    this.syncInstallState().catch(() => {
+      // Ignore install state lookup failures and keep the app usable.
+    });
   }
 
   disconnect() {
     window.removeEventListener("beforeinstallprompt", this.handleBeforeInstallPrompt);
     window.removeEventListener("inkcreate:app-installed", this.handleInstalled);
+  }
+
+  toggleCollapse() {
+    this.setCollapsed(!this.collapsed(), { persist: true });
   }
 
   async prompt() {
@@ -35,12 +53,14 @@ export default class extends Controller {
       this.deferredPrompt = null;
 
       if (installChoice?.outcome === "accepted") {
+        this.setPromptButtonHidden(true);
         await enableNotificationsForInstall({
           requestPermission: false,
           showConfirmation: false
         });
 
         await this.showNotificationSetup();
+        this.setCollapsed(true, { persist: true });
       }
 
       return;
@@ -67,13 +87,79 @@ export default class extends Controller {
     }
   }
 
-  async showNotificationSetup() {
+  async showNotificationSetup(state = null) {
     if (!this.hasNotificationSetupTarget) {
       return;
     }
 
     this.notificationSetupTarget.hidden = false;
-    this.renderNotificationSetup(await notificationPreferenceState());
+    this.renderNotificationSetup(state || await notificationPreferenceState());
+  }
+
+  async syncInstallState() {
+    const state = await notificationPreferenceState();
+    this.installState = state;
+    this.setPromptButtonHidden(Boolean(state?.installed));
+    const storedCollapsed = this.readCollapsedPreference();
+    const collapsed = storedCollapsed === null ? Boolean(state?.installed) : storedCollapsed;
+
+    if (state?.installed) {
+      await this.showNotificationSetup(state);
+    }
+
+    this.setCollapsed(collapsed, {
+      persist: storedCollapsed === null && collapsed
+    });
+  }
+
+  setPromptButtonHidden(hidden) {
+    if (this.hasPromptButtonTarget) {
+      this.promptButtonTarget.hidden = hidden;
+    }
+  }
+
+  setCollapsed(collapsed, { persist = false } = {}) {
+    if (this.hasPanelBodyTarget) {
+      this.panelBodyTarget.hidden = collapsed;
+      this.panelBodyTarget.style.display = collapsed ? "none" : "";
+      this.panelBodyTarget.setAttribute("aria-hidden", String(collapsed));
+    }
+
+    if (this.hasCollapseButtonTarget) {
+      this.collapseButtonTarget.setAttribute("aria-expanded", String(!collapsed));
+      this.collapseButtonTarget.setAttribute("title", collapsed ? "Expand section" : "Collapse section");
+      this.collapseButtonTarget.setAttribute("aria-label", collapsed ? "Expand section" : "Collapse section");
+    }
+
+    this.element.dataset.installPromptCollapsed = collapsed ? "true" : "false";
+
+    if (persist) {
+      this.writeCollapsedPreference(collapsed);
+    }
+  }
+
+  collapsed() {
+    return this.hasPanelBodyTarget ? this.panelBodyTarget.hidden : this.element.dataset.installPromptCollapsed === "true";
+  }
+
+  readCollapsedPreference() {
+    try {
+      const value = window.localStorage?.getItem(INSTALL_PROMPT_COLLAPSED_STORAGE_KEY);
+      if (value === "true") return true;
+      if (value === "false") return false;
+    } catch (_error) {
+      return null;
+    }
+
+    return null;
+  }
+
+  writeCollapsedPreference(collapsed) {
+    try {
+      window.localStorage?.setItem(INSTALL_PROMPT_COLLAPSED_STORAGE_KEY, String(Boolean(collapsed)));
+    } catch (_error) {
+      // Ignore storage failures and keep the app usable.
+    }
   }
 
   renderNotificationSetup(state = null, feedback = "") {

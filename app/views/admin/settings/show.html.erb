@@ -1,0 +1,61 @@
+<div class="row g-4">
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-4">
+        <h5 class="fw-bold mb-1">Authentication settings</h5>
+        <p class="text-muted small mb-4">Control which sign-in methods are available on the sign-in and sign-up pages.</p>
+
+        <%= form_with model: @global_setting, url: admin_settings_path, method: :patch do |f| %>
+          <div class="mb-4">
+            <div class="form-check form-switch">
+              <%= f.check_box :password_auth_enabled,
+                    class: "form-check-input",
+                    role: "switch",
+                    id: "password_auth_enabled" %>
+              <%= f.label :password_auth_enabled,
+                    class: "form-check-label fw-semibold" do %>
+                Enable email &amp; password sign-in
+              <% end %>
+            </div>
+            <p class="text-muted small mt-1 mb-0 ps-4">
+              When disabled, only Google sign-in is shown on the login and sign-up pages.
+              Existing password-based accounts can still be managed, but users cannot authenticate with them from the UI.
+            </p>
+          </div>
+
+          <div class="d-flex gap-2">
+            <%= f.submit "Save settings", class: "btn btn-primary" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-4">
+        <h5 class="fw-bold mb-1">Current auth status</h5>
+        <p class="text-muted small mb-3">What users see on the sign-in page right now.</p>
+        <div class="d-flex flex-column gap-2">
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge <%= @global_setting.password_auth_enabled? ? "bg-success" : "bg-secondary" %>">
+              <%= @global_setting.password_auth_enabled? ? "Enabled" : "Disabled" %>
+            </span>
+            <span class="small">Email &amp; password sign-in</span>
+          </div>
+          <% if defined?(Auth::GoogleOauthClient) && Auth::GoogleOauthClient.configured? %>
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-success">Enabled</span>
+              <span class="small">Google sign-in</span>
+            </div>
+          <% else %>
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-warning text-dark">Not configured</span>
+              <span class="small">Google sign-in (set GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET to enable)</span>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

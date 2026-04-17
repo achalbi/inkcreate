@@ -1,0 +1,283 @@
+<%
+  todo_lists_available = TodoList.schema_ready? && TodoItem.schema_ready?
+  voice_notes_available = VoiceNote.notepad_entries_supported?
+  persisted_entry = @notepad_entry.persisted?
+  notepad_entry_form_id = dom_id(@notepad_entry, :edit_form)
+  details_section_id = dom_id(@notepad_entry, :details_section)
+  notes_section_id = dom_id(@notepad_entry, :notes_section)
+  photos_section_id = dom_id(@notepad_entry, :photos_section)
+  photo_camera_input_id = dom_id(@notepad_entry, :photo_camera_input)
+  photo_camera_button_id = dom_id(@notepad_entry, :photo_camera_button)
+  voice_notes_section_id = dom_id(@notepad_entry, :voice_notes_section)
+  todo_list_section_id = persisted_entry ? dom_id(@notepad_entry, :todo_list_section) : dom_id(@notepad_entry, :todo_list_form_section)
+  scanned_documents_section_id = dom_id(@notepad_entry, :scanned_documents_section)
+  move_to_notebook_section_id = dom_id(@notepad_entry, :move_to_notebook_section)
+  photo_count = @notepad_entry.photos.count
+  voice_note_count = persisted_entry && voice_notes_available ? @notepad_entry.voice_notes.count : 0
+  todo_items = if persisted_entry && todo_lists_available
+    @notepad_entry.todo_list&.display_todo_items&.to_a || []
+  else
+    []
+  end
+  completed_todo_count = todo_items.count(&:completed?)
+  scanned_document_count = if persisted_entry
+    @notepad_entry.scanned_documents.count
+  else
+    @notepad_entry.pending_scanned_document_payloads.size
+  end
+  section_shortcuts = [
+    { label: "Details", short_label: "Details", icon: "ti-file-text", target: details_section_id },
+    { label: "Photos", short_label: "Photos", icon: "ti-photo", target: photos_section_id }
+  ]
+  section_shortcuts << { label: "Voice notes", short_label: "Voice", icon: "ti-microphone", target: voice_notes_section_id } if voice_notes_available
+  section_shortcuts << { label: "To-do list", short_label: "To-do", icon: "ti-checkbox", target: todo_list_section_id } if todo_lists_available
+  section_shortcuts << { label: "Scanned documents", short_label: "Scans", icon: "ti-scan", target: scanned_documents_section_id }
+  section_shortcuts << { label: "Move to notebook", short_label: "Move", icon: "ti-arrows-transfer-up-down", target: move_to_notebook_section_id } if persisted_entry
+%>
+
+<div class="wrapper wrapper-content animated fadeInRight">
+  <nav class="detail-section-shortcuts" aria-label="Jump to daily page sections" data-controller="section-shortcuts">
+    <div class="detail-section-shortcuts__rail" data-section-shortcuts-target="rail">
+      <span class="detail-section-shortcuts__indicator" data-section-shortcuts-target="indicator" aria-hidden="true"></span>
+      <% section_shortcuts.each_with_index do |shortcut, index| %>
+        <a
+          href="#<%= shortcut[:target] %>"
+          class="detail-section-shortcut<%= " is-active" if index.zero? %>"
+          title="<%= shortcut[:label] %>"
+          aria-label="Jump to <%= shortcut[:label] %>"
+          <% if index.zero? %>aria-current="location"<% end %>
+          data-section-shortcuts-target="link"
+          data-action="click->section-shortcuts#markActive"
+        >
+          <i class="ti <%= shortcut[:icon] %>" aria-hidden="true"></i>
+          <span class="detail-section-shortcut__label"><%= shortcut[:short_label] %></span>
+        </a>
+      <% end %>
+    </div>
+  </nav>
+
+  <div class="notepad-doc notepad-doc--edit notepad-doc-edit">
+    <% if @notepad_entry.errors.any? %>
+      <div class="m-b-md">
+        <% error_body = capture do %>
+          <ul class="m-b-none m-t-sm">
+            <% @notepad_entry.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+        <% end %>
+        <%= render "shared/inline_alert", type: :danger, title: "Please fix the following:", body_html: error_body %>
+      </div>
+    <% end %>
+
+    <div class="notepad-doc__canvas notepad-doc-edit__canvas">
+      <% if persisted_entry %>
+        <%= form_with model: @notepad_entry,
+          data: { controller: "photo-capture", photo_capture_auto_save: true },
+          html: { id: notepad_entry_form_id } do |form| %>
+          <%= render "notepad_entries/editor_primary_form_sections",
+            form:,
+            notepad_entry: @notepad_entry,
+            persisted_entry:,
+            body_class: "notepad-doc__body notepad-doc-edit__body-form",
+            photo_camera_input_id:,
+            details_section_id:,
+            notes_section_id:,
+            photos_section_id:,
+            photo_camera_button_id:,
+            photo_count:,
+            voice_note_count:,
+            completed_todo_count:,
+            todo_items:,
+            scanned_document_count: %>
+        <% end %>
+
+        <div class="notepad-doc__body">
+          <% if voice_notes_available %>
+            <%= render "notepad_entries/voice_notes_document_section", notepad_entry: @notepad_entry %>
+          <% end %>
+
+          <% if todo_lists_available %>
+            <%= render "notepad_entries/todo_list_document_section", notepad_entry: @notepad_entry %>
+          <% else %>
+            <div class="notepad-doc__block notepad-doc__block--todos notepad-doc-edit__section detail-section-anchor" id="<%= todo_list_section_id %>">
+              <%= render "pages/todo_list_unavailable_section" %>
+            </div>
+          <% end %>
+
+          <%= render "notepad_entries/scanned_documents_document_section", notepad_entry: @notepad_entry %>
+        </div>
+
+        <div class="notepad-doc-edit__footer">
+          <%= link_to notepad_entry_path(@notepad_entry),
+            class: "btn btn-white btn-sm",
+            title: "View page" do %>
+            <i class="ti ti-arrow-left" aria-hidden="true"></i> View
+          <% end %>
+          <div class="ms-auto d-flex gap-2 align-items-center">
+            <%= link_to notepad_entry_path(@notepad_entry),
+              class: "btn btn-white btn-sm btn-icon notebook-overview-delete-button",
+              title: "Delete page",
+              data: { turbo_method: :delete, turbo_confirm: "Delete this page?" } do %>
+              <i class="ti ti-trash" aria-hidden="true"></i>
+            <% end %>
+            <%= button_tag "Save changes",
+              type: "submit",
+              form: notepad_entry_form_id,
+              class: "btn btn-primary btn-sm page-details-save-button" %>
+          </div>
+        </div>
+      <% else %>
+        <%= form_with model: @notepad_entry,
+          data: { controller: "photo-capture", photo_capture_auto_save: false },
+          html: { id: notepad_entry_form_id } do |form| %>
+          <%= render "notepad_entries/editor_primary_form_sections",
+            form:,
+            notepad_entry: @notepad_entry,
+            persisted_entry:,
+            body_class: "notepad-doc__body notepad-doc-edit__body-form",
+            photo_camera_input_id:,
+            details_section_id:,
+            notes_section_id:,
+            photos_section_id:,
+            photo_camera_button_id:,
+            photo_count:,
+            voice_note_count:,
+            completed_todo_count:,
+            todo_items:,
+            scanned_document_count: %>
+
+          <div class="notepad-doc__body">
+            <% if voice_notes_available %>
+              <%= render "notepad_entries/voice_notes_document_form_section",
+                notepad_entry: @notepad_entry,
+                form: form %>
+            <% end %>
+
+            <% if todo_lists_available %>
+              <%= render "notepad_entries/todo_list_form_document_section",
+                notepad_entry: @notepad_entry,
+                form: form %>
+            <% else %>
+              <div class="notepad-doc__block notepad-doc__block--todos notepad-doc-edit__section detail-section-anchor" id="<%= todo_list_section_id %>">
+                <%= render "pages/todo_list_unavailable_section" %>
+              </div>
+            <% end %>
+
+            <%= render "notepad_entries/scanned_documents_form_document_section",
+              notepad_entry: @notepad_entry,
+              form: form %>
+          </div>
+
+          <div class="notepad-doc-edit__footer">
+            <div class="ms-auto d-flex gap-2 align-items-center">
+              <%= form.submit "Create page",
+                class: "btn btn-primary btn-sm page-details-save-button" %>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+    </div><%# /notepad-doc-edit__canvas %>
+
+    <%# ── Move to notebook ─────────────────────────── %>
+    <% if persisted_entry %>
+      <div id="<%= move_to_notebook_section_id %>" class="detail-section-anchor m-t-lg">
+        <%= render "notepad_entries/move_to_notebook_section",
+          notepad_entry: @notepad_entry,
+          form_id: notepad_entry_form_id,
+          move_destination_notebooks: @move_destination_notebooks,
+          selected_move_destination_chapter_id: @selected_move_destination_chapter_id,
+          selected_move_destination_label: @selected_move_destination_label %>
+      </div>
+    <% end %>
+
+  </div><%# /notepad-doc-edit %>
+
+  <%# ── Quick actions FAB ───────────────────────── %>
+  <div
+    class="notepad-quick-actions"
+    data-controller="notepad-quick-actions"
+    data-action="click@window->notepad-quick-actions#closeOnWindow keydown.esc@window->notepad-quick-actions#close"
+    data-notepad-quick-actions-photos-section-id-value="<%= dom_id(@notepad_entry, :photos_section) %>"
+    data-notepad-quick-actions-camera-input-id-value="<%= photo_camera_input_id %>"
+    data-notepad-quick-actions-camera-button-id-value="<%= photo_camera_button_id %>"
+    data-notepad-quick-actions-voice-section-id-value="<%= voice_notes_section_id %>"
+    data-notepad-quick-actions-todo-section-id-value="<%= todo_list_section_id %>"
+    data-notepad-quick-actions-scan-section-id-value="<%= scanned_documents_section_id %>"
+  >
+    <div class="notepad-quick-actions__menu" data-notepad-quick-actions-target="menu" aria-hidden="true">
+      <button
+        type="button"
+        class="notepad-quick-actions__item"
+        data-notepad-quick-actions-target="item"
+        data-action="click->notepad-quick-actions#openCamera"
+        aria-label="Capture photo"
+        title="Capture photo"
+      >
+        <i class="ti ti-camera" aria-hidden="true"></i>
+      </button>
+
+      <button
+        type="button"
+        class="notepad-quick-actions__item"
+        data-notepad-quick-actions-target="item"
+        data-action="click->notepad-quick-actions#openGallery"
+        aria-label="Upload from gallery"
+        title="Upload from gallery"
+      >
+        <i class="ti ti-photo-plus" aria-hidden="true"></i>
+      </button>
+
+      <% if voice_notes_available %>
+        <button
+          type="button"
+          class="notepad-quick-actions__item"
+          data-notepad-quick-actions-target="item"
+          data-action="click->notepad-quick-actions#openVoiceNote"
+          aria-label="Record voice note"
+          title="Record voice note"
+        >
+          <i class="ti ti-microphone" aria-hidden="true"></i>
+        </button>
+      <% end %>
+
+      <% if todo_lists_available %>
+        <button
+          type="button"
+          class="notepad-quick-actions__item"
+          data-notepad-quick-actions-target="item"
+          data-action="click->notepad-quick-actions#openTodo"
+          aria-label="Open to-do list"
+          title="Open to-do list"
+        >
+          <i class="ti ti-list-check" aria-hidden="true"></i>
+        </button>
+      <% end %>
+
+      <button
+        type="button"
+        class="notepad-quick-actions__item"
+        data-notepad-quick-actions-target="item"
+        data-action="click->notepad-quick-actions#openScan"
+        aria-label="Scan document"
+        title="Scan document"
+      >
+        <i class="ti ti-scan" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <button
+      type="button"
+      class="notepad-quick-actions__toggle"
+      data-notepad-quick-actions-target="toggle"
+      data-action="click->notepad-quick-actions#toggle"
+      aria-expanded="false"
+      aria-pressed="false"
+      aria-label="Open quick actions"
+      title="Open quick actions"
+    >
+      <i class="ti ti-plus" aria-hidden="true"></i>
+    </button>
+  </div>
+
+</div><%# /wrapper %>

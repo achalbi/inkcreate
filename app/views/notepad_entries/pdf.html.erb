@@ -1,0 +1,197 @@
+<%
+  voice_notes = if VoiceNote.notepad_entries_supported?
+    @notepad_entry.voice_notes.includes(audio_attachment: :blob).reorder(recorded_at: :asc, created_at: :asc)
+  else
+    []
+  end
+  todo_list = TodoList.schema_ready? && TodoItem.schema_ready? ? @notepad_entry.todo_list : nil
+  todo_items = todo_list ? todo_list.display_todo_items.includes(:reminder).to_a : []
+  docs = @notepad_entry.scanned_documents.with_attached_enhanced_image.with_attached_document_pdf.order(created_at: :asc)
+  photo_attachments = @notepad_entry.photos.attachments.sort_by(&:created_at)
+  completed_count = todo_items.count(&:completed?)
+  total_count = todo_items.size
+  autoprint = ActiveModel::Type::Boolean.new.cast(params[:autoprint])
+  has_content = @notepad_entry.plain_notes.present? || photo_attachments.any? || voice_notes.any? || todo_items.any? || docs.any?
+%>
+<!DOCTYPE html>
+<html lang="en" data-export-format="pdf">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title><%= @notepad_entry.display_title %> PDF export</title>
+    <link href="<%= versioned_public_asset_path("/inapp/notepad_pdf_export.css") %>" rel="stylesheet">
+    <script src="<%= versioned_public_asset_path("/scripts/notepad_pdf_export.js") %>" defer></script>
+  </head>
+  <body data-notepad-pdf-export data-autoprint="<%= autoprint %>">
+    <div class="notepad-pdf-export">
+      <header class="notepad-pdf-toolbar" aria-label="PDF export actions">
+        <%= link_to "Back to page", notepad_entry_path(@notepad_entry), class: "notepad-pdf-toolbar__link" %>
+        <div class="notepad-pdf-toolbar__actions">
+          <span class="notepad-pdf-toolbar__hint">Open the print dialog and choose Save as PDF.</span>
+          <button type="button" class="notepad-pdf-toolbar__button" data-notepad-pdf-print>Print / Save as PDF</button>
+        </div>
+      </header>
+
+      <main class="notepad-pdf-sheet">
+        <header class="notepad-pdf-sheet__header">
+          <p class="notepad-pdf-sheet__eyebrow">Daily page export</p>
+          <h1 class="notepad-pdf-sheet__title"><%= @notepad_entry.display_title %></h1>
+          <p class="notepad-pdf-sheet__date"><%= @notepad_entry.entry_date.strftime("%A, %B %-d, %Y") %></p>
+
+          <div class="notepad-pdf-summary">
+            <% if @notepad_entry.plain_notes.present? %>
+              <span class="notepad-pdf-summary__item">Notes</span>
+            <% end %>
+            <% if photo_attachments.any? %>
+              <span class="notepad-pdf-summary__item"><%= pluralize(photo_attachments.size, "photo") %></span>
+            <% end %>
+            <% if voice_notes.any? %>
+              <span class="notepad-pdf-summary__item"><%= pluralize(voice_notes.size, "voice note") %></span>
+            <% end %>
+            <% if todo_items.any? %>
+              <span class="notepad-pdf-summary__item"><%= completed_count %>/<%= total_count %> tasks complete</span>
+            <% end %>
+            <% if docs.any? %>
+              <span class="notepad-pdf-summary__item"><%= pluralize(docs.size, "scan") %></span>
+            <% end %>
+          </div>
+        </header>
+
+        <% if @notepad_entry.plain_notes.present? %>
+          <section class="notepad-pdf-section notepad-pdf-section--notes">
+            <div class="notepad-pdf-section__header">
+              <h2>Notes</h2>
+            </div>
+            <div class="notepad-pdf-rich-notes">
+              <%= render "shared/rich_notes", notes: @notepad_entry.notes %>
+            </div>
+          </section>
+        <% end %>
+
+        <% if photo_attachments.any? %>
+          <section class="notepad-pdf-section notepad-pdf-section--photos">
+            <div class="notepad-pdf-section__header">
+              <h2>Photos</h2>
+              <span><%= pluralize(photo_attachments.size, "photo") %></span>
+            </div>
+            <div class="notepad-pdf-photo-grid">
+              <% photo_attachments.each do |attachment| %>
+                <figure class="notepad-pdf-photo-card">
+                  <%= image_tag attachment, class: "notepad-pdf-photo-card__image", alt: attachment.filename.to_s %>
+                  <figcaption class="notepad-pdf-photo-card__caption"><%= attachment.filename.to_s %></figcaption>
+                </figure>
+              <% end %>
+            </div>
+          </section>
+        <% end %>
+
+        <% if voice_notes.any? %>
+          <section class="notepad-pdf-section notepad-pdf-section--voice">
+            <div class="notepad-pdf-section__header">
+              <h2>Voice Notes</h2>
+              <span><%= pluralize(voice_notes.size, "recording") %></span>
+            </div>
+            <div class="notepad-pdf-voice-list">
+              <% voice_notes.each_with_index do |voice_note, index| %>
+                <article class="notepad-pdf-voice-note">
+                  <div class="notepad-pdf-voice-note__header">
+                    <h3>Voice note <%= index + 1 %></h3>
+                    <span><%= voice_note_duration_label(voice_note.duration_seconds) %></span>
+                  </div>
+                  <dl class="notepad-pdf-voice-note__meta">
+                    <div>
+                      <dt>Recorded</dt>
+                      <dd><%= voice_note.recorded_at.in_time_zone.strftime("%b %-d, %Y at %-I:%M %p") %></dd>
+                    </div>
+                    <div>
+                      <dt>Size</dt>
+                      <dd><%= number_to_human_size(voice_note.byte_size) %></dd>
+                    </div>
+                    <div>
+                      <dt>Audio file</dt>
+                      <dd>
+                        <%= link_to voice_note.audio.filename.to_s,
+                          rails_blob_url(voice_note.audio, disposition: "attachment"),
+                          target: "_blank",
+                          rel: "noopener" %>
+                      </dd>
+                    </div>
+                  </dl>
+                  <% if voice_note.respond_to?(:transcript) && voice_note.transcript.present? %>
+                    <div class="notepad-pdf-voice-note__transcript">
+                      <strong>Transcript</strong>
+                      <p><%= voice_note.transcript %></p>
+                    </div>
+                  <% end %>
+                </article>
+              <% end %>
+            </div>
+          </section>
+        <% end %>
+
+        <% if todo_items.any? %>
+          <section class="notepad-pdf-section notepad-pdf-section--todos">
+            <div class="notepad-pdf-section__header">
+              <h2>To-do List</h2>
+              <span><%= completed_count %> of <%= total_count %> completed</span>
+            </div>
+            <ul class="notepad-pdf-checklist">
+              <% todo_items.each do |todo_item| %>
+                <li class="notepad-pdf-checklist__item <%= "is-complete" if todo_item.completed? %>">
+                  <span class="notepad-pdf-checklist__mark" aria-hidden="true"><%= todo_item.completed? ? "✓" : "○" %></span>
+                  <div class="notepad-pdf-checklist__content">
+                    <div class="notepad-pdf-checklist__text"><%= todo_item.content %></div>
+                    <% if todo_item.reminder.present? %>
+                      <div class="notepad-pdf-checklist__meta">
+                        Reminder: <%= todo_item.reminder.fire_at.in_time_zone.strftime("%b %-d, %Y at %-I:%M %p") %>
+                      </div>
+                    <% end %>
+                  </div>
+                </li>
+              <% end %>
+            </ul>
+          </section>
+        <% end %>
+
+        <% if docs.any? %>
+          <section class="notepad-pdf-section notepad-pdf-section--scans">
+            <div class="notepad-pdf-section__header">
+              <h2>Scanned Documents</h2>
+              <span><%= pluralize(docs.size, "document") %></span>
+            </div>
+            <div class="notepad-pdf-scan-grid">
+              <% docs.each do |doc| %>
+                <article class="notepad-pdf-scan">
+                  <div class="notepad-pdf-scan__header">
+                    <h3><%= doc.title.presence || "Untitled scan" %></h3>
+                    <span><%= doc.status_label %></span>
+                  </div>
+                  <% if doc.enhanced_image.attached? %>
+                    <%= image_tag doc.enhanced_image, class: "notepad-pdf-scan__image", alt: doc.title.presence || "Scanned document" %>
+                  <% end %>
+                  <% if doc.document_pdf.attached? %>
+                    <p class="notepad-pdf-scan__link">
+                      PDF:
+                      <%= link_to doc.document_pdf.filename.to_s,
+                        rails_blob_url(doc.document_pdf, disposition: "attachment"),
+                        target: "_blank",
+                        rel: "noopener" %>
+                    </p>
+                  <% end %>
+                </article>
+              <% end %>
+            </div>
+          </section>
+        <% end %>
+
+        <% unless has_content %>
+          <section class="notepad-pdf-section notepad-pdf-section--empty">
+            <div class="notepad-pdf-empty-state">
+              No content has been added to this daily page yet.
+            </div>
+          </section>
+        <% end %>
+      </main>
+    </div>
+  </body>
+</html>

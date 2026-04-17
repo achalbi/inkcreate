@@ -88,8 +88,12 @@ export default class extends Controller {
 
   syncDockedState() {
     const railElement = this.hasRailTarget ? this.railTarget : this.element;
-
-    const topbarBottom = this.topbarElement?.getBoundingClientRect().bottom || 0;
+    const topbarIsFixed = this.topbarElement
+      ? window.getComputedStyle(this.topbarElement).position === "fixed"
+      : false;
+    const topbarBottom = topbarIsFixed
+      ? (this.topbarElement?.getBoundingClientRect().bottom || 0)
+      : 0;
     const railTop = railElement.getBoundingClientRect().top;
     const dockedBoundary = this.lastDockedState
       ? topbarBottom + this.constructor.DOCK_EXIT_OFFSET_PX
