@@ -1213,7 +1213,7 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "[data-controller='install-prompt']", count: 1
-    assert_select "button[data-action='install-prompt#prompt']:not([hidden])", text: "Install on this device"
+    assert_select "button[data-action='install-prompt#prompt']:not([hidden])", text: "Install app"
     assert_select "[data-install-prompt-target='notificationSetup']", count: 1
     assert_select "button.ibox-toggle-button[data-action='install-prompt#toggleCollapse'][aria-expanded='true']"
     assert_select "button[data-action='install-prompt#requestNotifications']", text: "Enable notifications"

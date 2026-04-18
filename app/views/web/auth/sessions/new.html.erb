@@ -1,7 +1,7 @@
 <% if google_only_auth_mode? %>
   <%= render "web/auth/google_only_access" %>
 <% else %>
-  <div class="page-shell">
+  <div class="page-shell page-shell--public">
     <%= render "shared/public_topbar" %>
 
     <section class="auth-shell">

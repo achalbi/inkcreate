@@ -37,9 +37,22 @@ class InstallPromptSystemTest < ApplicationSystemTestCase
     JS
 
     inject_install_prompt
-    click_button "Install on this device"
+    click_button "Install app"
 
     assert_text "Enable background sync updates"
+  end
+
+  test "install route keeps the install CTA visible after dismissal" do
+    visit install_path
+    reset_install_prompt_state
+
+    execute_script(<<~JS)
+      window.localStorage.setItem("inkcreate.installPrompt.dismissed", "true");
+      window.dispatchEvent(new CustomEvent("inkcreate:install-available"));
+    JS
+
+    assert_selector "button[data-install-prompt-target='promptButton']:not([hidden])", text: "Install app", visible: :all
+    assert_no_text "Install dismissed for now. Use the install guide when you want to add Inkcreate later."
   end
 
   private

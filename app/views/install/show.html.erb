@@ -4,13 +4,13 @@
 <% content_for :og_image,       "#{request.base_url}/icons/og-install.png" %>
 <% content_for :og_url,         install_url %>
 
-<div class="page-shell">
+<div class="page-shell page-shell--public">
   <%# ── Install CTA card ───────────────────────────────────────────────── %>
   <section
     class="section-card"
     style="padding: 40px 36px 36px;"
     data-controller="install-prompt"
-    data-install-prompt-force-show-button-value="true"
+    data-install-prompt-force-show-prompt-button-value="true"
   >
     <div class="install-prompt-header">
       <div class="section-header install-prompt-header-main">
@@ -33,7 +33,7 @@
         data-install-prompt-target="promptButton"
         data-action="install-prompt#prompt"
       >
-        Install on this device
+        Install app
       </button>
       <%= link_to browser_sign_up_path, class: "button button-secondary" do %>
         Create free account

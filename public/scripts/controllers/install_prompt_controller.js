@@ -103,6 +103,14 @@ export default class extends Controller {
       return;
     }
 
+    if (availability.kind === "force-cta") {
+      this.renderInstallState({
+        ...availability,
+        note: "Open this page in Chrome on Android or Safari on iPhone or iPad to install Inkcreate."
+      });
+      return;
+    }
+
     this.renderInstallState(availability);
   }
 
@@ -167,7 +175,7 @@ export default class extends Controller {
 
   setPromptButtonHidden(hidden) {
     if (this.hasPromptButtonTarget) {
-      const shouldHide = this.forceShowPromptButtonValue && this.element.dataset.installPromptState !== "installed"
+      const shouldHide = this.forceShowPromptButtonEnabled() && this.element.dataset.installPromptState !== "installed"
         ? false
         : hidden;
       this.promptButtonTarget.hidden = shouldHide;
@@ -246,6 +254,7 @@ export default class extends Controller {
 
   installAvailability(state = null) {
     const installed = this.installedPreferenceActive(state);
+    const forceShowPrompt = this.forceShowPromptButtonEnabled();
 
     if (installed) {
       return {
@@ -256,7 +265,7 @@ export default class extends Controller {
       };
     }
 
-    if (this.readDismissedPreference()) {
+    if (!forceShowPrompt && this.readDismissedPreference()) {
       return {
         kind: "dismissed",
         note: "Install dismissed for now. Use the install guide when you want to add Inkcreate later.",
@@ -279,6 +288,15 @@ export default class extends Controller {
         kind: "manual",
         note: "Safari on iPhone or iPad can add Inkcreate from the Share menu.",
         promptLabel: "Show Add to Home Screen steps",
+        showPrompt: true
+      };
+    }
+
+    if (forceShowPrompt) {
+      return {
+        kind: "force-cta",
+        note: "",
+        promptLabel: this.defaultPromptLabel,
         showPrompt: true
       };
     }
@@ -317,7 +335,11 @@ export default class extends Controller {
       return true;
     }
 
-    return this.forceShowPromptButtonValue && this.manualInstallEligible();
+    return this.forceShowPromptButtonEnabled() && this.manualInstallEligible();
+  }
+
+  forceShowPromptButtonEnabled() {
+    return this.forceShowPromptButtonValue || this.element.dataset.installPromptForceShowButtonValue === "true";
   }
 
   readDismissedPreference() {
