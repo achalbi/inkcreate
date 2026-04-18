@@ -47,6 +47,23 @@ export default class extends Controller {
       });
     };
 
+    // On force-show pages (e.g. /install) the button must be visible the
+    // instant the controller connects — before the async syncInstallState
+    // resolves.  Do this synchronously so there's no frame where the button
+    // is hidden by a stale localStorage or availability check.
+    if (this.forceShowPromptButtonEnabled() && !this.isStandaloneDisplay()) {
+      this.setPromptButtonHidden(false);
+    }
+
+    // Before Turbo caches the page, reset any transient hidden state so the
+    // cached snapshot always shows the button rather than a stale hidden state.
+    this.handleBeforeCache = () => {
+      if (this.forceShowPromptButtonEnabled() && !this.isStandaloneDisplay()) {
+        this.setPromptButtonHidden(false);
+      }
+    };
+    document.addEventListener("turbo:before-cache", this.handleBeforeCache);
+
     window.addEventListener("inkcreate:install-available", this.handleInstallAvailable);
     window.addEventListener("inkcreate:app-installed", this.handleInstalled);
 
@@ -56,6 +73,7 @@ export default class extends Controller {
   }
 
   disconnect() {
+    document.removeEventListener("turbo:before-cache", this.handleBeforeCache);
     window.removeEventListener("inkcreate:install-available", this.handleInstallAvailable);
     window.removeEventListener("inkcreate:app-installed", this.handleInstalled);
   }
@@ -189,6 +207,12 @@ export default class extends Controller {
     }
 
     this.renderInstallState(availability);
+
+    // Belt-and-suspenders: after all state is applied, ensure the button
+    // is never left hidden on force-show pages (e.g. /install).
+    if (this.forceShowPromptButtonEnabled() && !this.isStandaloneDisplay()) {
+      this.setPromptButtonHidden(false);
+    }
 
     const storedCollapsed = this.readCollapsedPreference();
     this.setCollapsed(storedCollapsed === null ? false : storedCollapsed);
@@ -394,7 +418,13 @@ export default class extends Controller {
   }
 
   forceShowPromptButtonEnabled() {
-    return this.forceShowPromptButtonValue || this.element.dataset.installPromptForceShowButtonValue === "true";
+    // Primary: Stimulus Boolean value (data-install-prompt-force-show-prompt-button-value="true")
+    // Fallback: direct dataset read in case the Stimulus value observer hasn't fired yet.
+    // NOTE: the dataset key must include "Prompt" to match the full attribute name.
+    return (
+      this.forceShowPromptButtonValue ||
+      this.element.dataset.installPromptForceShowPromptButtonValue === "true"
+    );
   }
 
   readDismissedPreference() {
