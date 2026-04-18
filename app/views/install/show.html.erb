@@ -1,1 +1,175 @@
-<%= render "shared/install_prompt_panel", variant: :install %>
+<%# OG / WhatsApp card overrides for this page %>
+<% content_for :og_title,       "Install Inkcreate — Get the App" %>
+<% content_for :og_description, "Keep your notebooks, notepad, and capture queue one tap away. Works offline and syncs to Google Drive." %>
+<% content_for :og_image,       "#{request.base_url}/icons/og-install.png" %>
+<% content_for :og_url,         install_url %>
+
+<div class="page-shell">
+  <%# ── Install CTA card ───────────────────────────────────────────────── %>
+  <section class="section-card" style="padding: 40px 36px 36px;" data-controller="install-prompt">
+    <div class="install-prompt-header">
+      <div class="section-header install-prompt-header-main">
+        <div class="eyebrow">Get the app</div>
+        <h1 style="font-size: clamp(2.2rem, 6vw, 3.8rem); line-height: 1.05;">
+          Install Inkcreate<br>on your device
+        </h1>
+      </div>
+    </div>
+
+    <p class="install-prompt-summary" style="font-size: 1.1rem; max-width: 52ch;">
+      One tap from your home screen. Offline-ready shell, faster capture, and background Google Drive sync.
+    </p>
+
+    <div class="dashboard-actions" style="margin-top: 28px; flex-wrap: wrap; gap: 12px;">
+      <button
+        class="button button-primary"
+        type="button"
+        style="min-width: 200px;"
+        data-install-prompt-target="promptButton"
+        data-action="install-prompt#prompt"
+        hidden
+      >
+        Install on this device
+      </button>
+      <%= link_to browser_sign_up_path, class: "button button-secondary" do %>
+        Create free account
+      <% end %>
+    </div>
+
+    <p class="install-prompt-note" data-install-prompt-target="availabilityNote" hidden style="margin-top: 16px;"></p>
+
+    <article class="feature-card" style="margin-top: 20px;" data-install-prompt-target="manualInstructions" hidden>
+      <div class="pill">iPhone / iPad Safari</div>
+      <h3>Add Inkcreate to Home Screen</h3>
+      <ol class="install-step-list">
+        <li>Tap the <strong>Share</strong> button in Safari.</li>
+        <li>Choose <strong>Add to Home Screen</strong>.</li>
+        <li>Tap <strong>Add</strong> to pin Inkcreate.</li>
+      </ol>
+      <p>If the Add action is hidden, scroll the Share sheet's lower action row until it appears.</p>
+    </article>
+
+    <article class="feature-card" style="margin-top: 20px;" data-install-prompt-target="notificationSetup" hidden>
+      <div class="pill">After install</div>
+      <h3>Enable background sync updates</h3>
+      <p data-install-prompt-target="notificationStatus">
+        Install accepted. Allow notifications for background upload and sync updates on this device.
+      </p>
+      <div class="dashboard-actions" style="margin-top: 16px;">
+        <button
+          class="button button-primary"
+          type="button"
+          data-install-prompt-target="notificationButton"
+          data-action="install-prompt#requestNotifications"
+        >
+          Enable notifications
+        </button>
+      </div>
+    </article>
+  </section>
+
+  <%# ── Share this link card ───────────────────────────────────────────── %>
+  <section class="section-card" style="padding: 32px 36px;">
+    <div class="section-header" style="margin-bottom: 18px;">
+      <div class="eyebrow">Share</div>
+      <h2 style="font-size: clamp(1.6rem, 4vw, 2.4rem);">Send this link to a friend</h2>
+    </div>
+
+    <p style="margin: 0 0 22px; color: var(--ink-soft); line-height: 1.65; max-width: 52ch;">
+      Share the install link via WhatsApp, Messages, or any other app. When they open it, they'll see this page and can install Inkcreate right away.
+    </p>
+
+    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px;">
+      <%# URL display chip %>
+      <div
+        style="
+          flex: 1 1 260px; min-width: 0;
+          padding: 14px 18px;
+          border-radius: 14px;
+          background: rgba(20,38,31,0.05);
+          border: 1px solid rgba(20,38,31,0.1);
+          font-family: var(--mono-font, monospace);
+          font-size: 0.9rem;
+          color: var(--ink-soft);
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        "
+        title="<%= install_url %>"
+      ><%= install_url %></div>
+
+      <button
+        type="button"
+        id="install-share-btn"
+        class="button button-primary"
+        style="flex: 0 0 auto; min-width: 160px; min-height: 52px;"
+        data-share-url="<%= install_url %>"
+        data-share-title="Install Inkcreate"
+        data-share-text="Keep your notebooks one tap away — install Inkcreate on your phone:"
+      >
+        Share link
+      </button>
+    </div>
+  </section>
+
+  <%# ── Feature bullets ───────────────────────────────────────────────── %>
+  <div class="feature-grid" style="margin-top: 0;">
+    <article class="feature-card">
+      <div class="pill">Android Chrome</div>
+      <h3>One-tap install</h3>
+      <p>The browser shows a native install prompt — tap it to pin Inkcreate directly to your home screen.</p>
+    </article>
+    <article class="feature-card">
+      <div class="pill">iPhone Safari</div>
+      <h3>Add to Home Screen</h3>
+      <p>Use Share → Add to Home Screen in Safari. The guided steps appear automatically when you tap Install.</p>
+    </article>
+    <article class="feature-card">
+      <div class="pill">Offline</div>
+      <h3>Works without signal</h3>
+      <p>The service worker caches the app shell so the app opens instantly even when there's no network.</p>
+    </article>
+  </div>
+</div>
+
+<script>
+(function () {
+  var btn = document.getElementById('install-share-btn');
+  if (!btn) return;
+
+  btn.addEventListener('click', async function () {
+    var url   = btn.dataset.shareUrl;
+    var title = btn.dataset.shareTitle;
+    var text  = btn.dataset.shareText;
+
+    // Web Share API — shows native sheet (WhatsApp, Messages, etc.) on mobile
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: title, text: text, url: url });
+        return;
+      } catch (e) {
+        if (e.name === 'AbortError') return; // user cancelled, do nothing
+      }
+    }
+
+    // Clipboard fallback (desktop browsers)
+    var originalLabel = btn.textContent;
+    try {
+      await navigator.clipboard.writeText(url);
+      btn.textContent = 'Link copied!';
+    } catch (_e) {
+      // execCommand fallback for very old browsers
+      var tmp = document.createElement('input');
+      tmp.value = url;
+      tmp.style.position = 'fixed';
+      tmp.style.opacity  = '0';
+      document.body.appendChild(tmp);
+      tmp.select();
+      try { document.execCommand('copy'); } catch (_) {}
+      document.body.removeChild(tmp);
+      btn.textContent = 'Link copied!';
+    }
+    setTimeout(function () { btn.textContent = originalLabel; }, 2500);
+  });
+}());
+</script>

@@ -53,6 +53,7 @@
     <%= render "shared/photo_removal_confirm_modal" %>
     <%= render "shared/reminder_dismiss_confirm_modal" %>
     <%= render "shared/reminder_snooze_modal" %>
+    <%= render "shared/install_popup_modal" %>
     <% if current_user %>
       <%= render "shared/onboarding_wizard",
             autoshow: !current_user.onboarding_completed? %>

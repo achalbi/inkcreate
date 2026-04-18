@@ -1,0 +1,205 @@
+<%# Mobile PWA install nudge. Rendered hidden; the install-popup Stimulus
+    controller decides whether to show it (mobile browser + not already
+    installed) and re-shows it every 5 minutes after dismissal. Uses inline
+    styles so it works in both the Bootstrap-loaded workspace layout and the
+    Tailwind landing layout without additional CSS wiring. %>
+<div data-controller="install-popup">
+  <style>
+    body.install-popup-open { overflow: hidden; }
+
+    .install-popup-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 16px;
+      background: rgba(20, 38, 31, 0.52);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      animation: install-popup-fade-in 220ms ease-out;
+    }
+
+    .install-popup-card {
+      width: 100%;
+      max-width: 420px;
+      background: #fffaf1;
+      color: #14261f;
+      border-radius: 24px;
+      box-shadow: 0 28px 70px rgba(20, 38, 31, 0.32);
+      padding: 22px 22px 20px;
+      font-family: "Manrope", "Trebuchet MS", "Gill Sans", "Segoe UI", sans-serif;
+      position: relative;
+      animation: install-popup-slide-up 260ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .install-popup-eyebrow {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #3d785d;
+      margin-bottom: 8px;
+    }
+
+    .install-popup-title {
+      margin: 0 0 8px;
+      font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+      font-size: 1.35rem;
+      line-height: 1.2;
+    }
+
+    .install-popup-body {
+      margin: 0 0 18px;
+      color: #395146;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    .install-popup-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .install-popup-button {
+      flex: 1 1 140px;
+      min-height: 46px;
+      padding: 0 18px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.92rem;
+      border: 1px solid transparent;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .install-popup-button-primary {
+      background: linear-gradient(135deg, #17392d 0%, #3d785d 100%);
+      color: #fffaf1;
+      box-shadow: 0 14px 28px rgba(23, 57, 45, 0.22);
+    }
+
+    .install-popup-button-secondary {
+      background: rgba(20, 38, 31, 0.06);
+      color: #17392d;
+      border-color: rgba(20, 38, 31, 0.1);
+    }
+
+    .install-popup-close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      border: 1px solid rgba(20, 38, 31, 0.1);
+      background: rgba(255, 250, 241, 0.85);
+      color: #17392d;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.1rem;
+      line-height: 1;
+    }
+
+    .install-popup-ios {
+      margin: 14px 0 0;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(23, 57, 45, 0.08);
+      color: #17392d;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .install-popup-ios ol {
+      margin: 8px 0 0;
+      padding-left: 1.2rem;
+    }
+
+    .install-popup-ios li + li {
+      margin-top: 4px;
+    }
+
+    @keyframes install-popup-fade-in {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes install-popup-slide-up {
+      from { transform: translateY(28px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @media (min-width: 560px) {
+      .install-popup-backdrop { align-items: center; }
+    }
+  </style>
+
+  <div
+    class="install-popup-backdrop"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="install-popup-title"
+    data-install-popup-target="popup"
+    data-visible="false"
+    hidden
+  >
+    <div class="install-popup-card">
+      <button
+        type="button"
+        class="install-popup-close"
+        aria-label="Dismiss install prompt"
+        data-action="install-popup#dismiss"
+      >
+        &times;
+      </button>
+
+      <div class="install-popup-eyebrow">Get the app</div>
+      <h2
+        class="install-popup-title"
+        id="install-popup-title"
+        data-install-popup-target="title"
+      >
+        Install Inkcreate on your device
+      </h2>
+      <p class="install-popup-body" data-install-popup-target="body">
+        Install Inkcreate on your phone for faster launch, app-like navigation, and offline shell access.
+      </p>
+
+      <div class="install-popup-actions">
+        <button
+          type="button"
+          class="install-popup-button install-popup-button-primary"
+          data-install-popup-target="installButton"
+          data-action="install-popup#install"
+        >
+          Install app
+        </button>
+        <button
+          type="button"
+          class="install-popup-button install-popup-button-secondary"
+          data-action="install-popup#dismiss"
+        >
+          Not now
+        </button>
+      </div>
+
+      <div
+        class="install-popup-ios"
+        data-install-popup-target="iosSteps"
+        hidden
+      >
+        <strong>Add to Home Screen on iPhone or iPad</strong>
+        <ol>
+          <li>Tap the Share button in Safari.</li>
+          <li>Choose <em>Add to Home Screen</em>.</li>
+          <li>Tap <em>Add</em> to pin Inkcreate on this device.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>

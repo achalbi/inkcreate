@@ -11,6 +11,14 @@
     <meta name="theme-color" content="#17392d">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
+    <%# Open Graph / WhatsApp link-preview tags — pages override via content_for %>
+    <meta property="og:type"        content="website">
+    <meta property="og:site_name"   content="Inkcreate">
+    <meta property="og:title"       content="<%= content_for?(:og_title)       ? yield(:og_title).strip       : 'Inkcreate' %>">
+    <meta property="og:description" content="<%= content_for?(:og_description) ? yield(:og_description).strip : 'Capture, organise, and export your handwritten notes with background OCR and Google Drive sync.' %>">
+    <meta property="og:image"       content="<%= content_for?(:og_image)       ? yield(:og_image).strip       : "#{request.base_url}/icons/og-install.png" %>">
+    <meta property="og:url"         content="<%= content_for?(:og_url)         ? yield(:og_url).strip         : request.url %>">
+    <meta name="twitter:card"       content="summary_large_image">
     <script src="<%= versioned_public_asset_path("/scripts/device_time_zone.js") %>" defer></script>
     <% if Rails.env.test? %>
       <script src="<%= versioned_public_asset_path("/scripts/test_browser_mocks.js") %>"></script>
@@ -2338,6 +2346,7 @@
     <%= render "shared/flash_banners" unless workspace_layout_page? %>
 
     <%= yield %>
+    <%= render "shared/install_popup_modal" %>
     <script src="<%= versioned_public_asset_path("/scripts/page_loader.js") %>" defer></script>
     <script type="module" src="/scripts/app.js"></script>
   </body>

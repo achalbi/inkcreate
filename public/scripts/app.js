@@ -1,6 +1,7 @@
 import { Application } from "/scripts/vendor/stimulus.js";
 import OfflineStatusController from "/scripts/controllers/offline_status_controller.js";
 import InstallPromptController from "/scripts/controllers/install_prompt_controller.js";
+import InstallPopupController from "/scripts/controllers/install_popup_controller.js";
 import CameraController from "/scripts/controllers/camera_controller.js";
 import PhotoCaptureController from "/scripts/controllers/photo_capture_controller.js";
 import QueueController from "/scripts/controllers/queue_controller.js";
@@ -77,6 +78,7 @@ const scheduleTimedMessages = (root = document) => {
 const application = Application.start();
 application.register("offline-status", OfflineStatusController);
 application.register("install-prompt", InstallPromptController);
+application.register("install-popup", InstallPopupController);
 application.register("camera", CameraController);
 application.register("photo-capture", PhotoCaptureController);
 application.register("queue", QueueController);
