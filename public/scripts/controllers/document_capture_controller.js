@@ -1159,7 +1159,6 @@ export default class extends Controller {
       }
 
       const saveResponse = await this._saveScannedDocumentPayload(payload);
-      await this._persistNativeScanAnalysis(saveResponse, result);
       if (!saveResponse?.draft) {
         window.location.reload();
       }
@@ -1271,34 +1270,6 @@ export default class extends Controller {
         || scanner?.pdf?.dataUrl
         || ""
     };
-  }
-
-  async _persistNativeScanAnalysis(saveResponse, result) {
-    const submitUrl = saveResponse?.submit_ocr_result_url;
-    const ocrPayload = this._buildNativeOcrPayload(result);
-
-    if (!submitUrl || !ocrPayload.text) {
-      return;
-    }
-
-    const response = await fetch(submitUrl, {
-      method: "POST",
-      credentials: "same-origin",
-      headers: {
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-        "X-CSRF-Token": this.csrfValue,
-        "X-Requested-With": "XMLHttpRequest"
-      },
-      body: JSON.stringify({
-        ocr_result: ocrPayload
-      })
-    });
-
-    if (!response.ok) {
-      const data = await response.json().catch(() => null);
-      throw new Error(data?.error || "The scanned document was saved, but OCR enrichment failed.");
-    }
   }
 
   openPdf(event) {

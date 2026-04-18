@@ -390,7 +390,7 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     refute_includes response.body, submit_transcript_notebook_chapter_page_voice_note_path(@notebook, @chapter, @page, voice_note)
   end
 
-  test "notepad show page keeps scanned document cards focused on pdf actions" do
+  test "notepad show page keeps scanned document cards focused on preview, OCR, and pdf actions" do
     sign_in!
 
     entry = @user.notepad_entries.create!(
@@ -427,7 +427,11 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert card.present?, "Expected a rendered scanned document card"
     assert_equal "PDF ready · #{scanned_document.created_at.strftime("%-d %b")}", card.at_css(".sdoc-engine-label")&.text&.strip
     assert_nil card.at_css(".sdoc-excerpt"), "Helper copy should not render"
-    assert_nil card.at_xpath(".//form[contains(@action, '#{extract_text_notepad_entry_scanned_document_path(entry, scanned_document)}')]"), "OCR action should not render"
+    ocr_form = card.at_xpath(".//form[contains(@action, '#{extract_text_notepad_entry_scanned_document_path(entry, scanned_document)}')]")
+    assert ocr_form.present?, "Expected OCR action to render"
+    assert_equal "post", ocr_form["method"]&.downcase
+    assert_equal scanned_document.ocr_action_label, ocr_form.at_xpath(".//button")&.text&.strip
+    assert_equal "click->document-capture#runOcr", ocr_form.at_xpath(".//button")&.[]("data-action")
     assert_nil card.at_xpath(".//*[@data-action='click->document-capture#copyText']"), "Copy extracted text action should not render"
     assert_nil card.at_xpath(".//*[@data-action='click->document-capture#viewFull']"), "View extracted text action should not render"
     assert_nil card.at_css(".sdoc-conf-badge"), "OCR confidence badge should not render"
@@ -514,7 +518,7 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_select ".notepad-doc__block--scans", text: /Meeting scan/
   end
 
-  test "page show page keeps scanned document cards focused on pdf actions" do
+  test "page show page keeps scanned document cards focused on preview, OCR, and pdf actions" do
     sign_in!
 
     scanned_document = @page.scanned_documents.new(
@@ -546,7 +550,11 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert card.present?, "Expected a rendered scanned document card"
     assert_equal "PDF ready · #{scanned_document.created_at.strftime("%-d %b")}", card.at_css(".sdoc-engine-label")&.text&.strip
     assert_nil card.at_css(".sdoc-excerpt"), "Helper copy should not render"
-    assert_nil card.at_xpath(".//form[contains(@action, '#{extract_text_notebook_chapter_page_scanned_document_path(@notebook, @chapter, @page, scanned_document)}')]"), "OCR action should not render"
+    ocr_form = card.at_xpath(".//form[contains(@action, '#{extract_text_notebook_chapter_page_scanned_document_path(@notebook, @chapter, @page, scanned_document)}')]")
+    assert ocr_form.present?, "Expected OCR action to render"
+    assert_equal "post", ocr_form["method"]&.downcase
+    assert_equal scanned_document.ocr_action_label, ocr_form.at_xpath(".//button")&.text&.strip
+    assert_equal "click->document-capture#runOcr", ocr_form.at_xpath(".//button")&.[]("data-action")
     assert_nil card.at_xpath(".//*[@data-action='click->document-capture#copyText']"), "Copy extracted text action should not render"
     assert_nil card.at_xpath(".//*[@data-action='click->document-capture#viewFull']"), "View extracted text action should not render"
     assert_nil card.at_css(".sdoc-conf-badge"), "OCR confidence badge should not render"
@@ -1205,6 +1213,7 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "[data-controller='install-prompt']", count: 1
+    assert_select "button[data-action='install-prompt#prompt']:not([hidden])", text: "Install on this device"
     assert_select "[data-install-prompt-target='notificationSetup']", count: 1
     assert_select "button.ibox-toggle-button[data-action='install-prompt#toggleCollapse'][aria-expanded='true']"
     assert_select "button[data-action='install-prompt#requestNotifications']", text: "Enable notifications"

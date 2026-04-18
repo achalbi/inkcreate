@@ -2,6 +2,7 @@
   pdf_export_mode = local_assigns[:pdf_export_mode] == true
   docs = notepad_entry.scanned_documents.with_attached_enhanced_image.with_attached_document_pdf.recent_first
   scan_capture_tips_id = dom_id(notepad_entry, :scan_capture_tips)
+  ocr_enabled = current_user.ensure_app_setting!.allow_ocr_processing?
 %>
 
 <section
@@ -54,6 +55,9 @@
       <% docs.each do |doc| %>
         <% pdf_view_url = doc.document_pdf.attached? ? rails_blob_path(doc.document_pdf, only_path: true, disposition: "inline") : nil %>
         <% pdf_download_url = doc.document_pdf.attached? ? rails_blob_path(doc.document_pdf, only_path: true, disposition: "attachment") : nil %>
+        <% extract_text_url = extract_text_notepad_entry_scanned_document_path(notepad_entry, doc) %>
+        <% submit_ocr_result_url = submit_ocr_result_notepad_entry_scanned_document_path(notepad_entry, doc) %>
+        <% ocr_source_url = ocr_source_notepad_entry_scanned_document_path(notepad_entry, doc) %>
         <div class="sdoc-card" id="<%= dom_id(doc) %>">
           <div class="sdoc-accent-bar"></div>
           <div class="sdoc-inner">
@@ -111,6 +115,25 @@
               <% end %>
               <% unless pdf_export_mode %>
                 <div class="sdoc-actions">
+                  <%= button_to(
+                    extract_text_url,
+                    method: :post,
+                    form: { class: "sdoc-action-form sdoc-action-form--primary" },
+                    class: "btn btn-white btn-sm sdoc-action-btn sdoc-action-btn--primary",
+                    data: {
+                      action: "click->document-capture#runOcr",
+                      image_url: ocr_source_url,
+                      native_ocr_url: submit_ocr_result_url,
+                      document_id: doc.id,
+                      document_title: doc.title
+                    },
+                    disabled: !ocr_enabled,
+                    title: ocr_enabled ? doc.ocr_action_label : "Enable OCR in Privacy settings"
+                  ) do %>
+                    <i class="ti ti-scan" aria-hidden="true"></i>
+                    <span><%= doc.ocr_action_label %></span>
+                  <% end %>
+
                   <% if pdf_download_url.present? %>
                     <%= link_to(
                       pdf_download_url,

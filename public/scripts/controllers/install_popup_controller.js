@@ -287,7 +287,7 @@ export default class extends Controller {
       return false;
     }
 
-    if (this.installed || this.readInstalled()) {
+    if (this.installedPreferenceActive()) {
       return false;
     }
 
@@ -300,6 +300,24 @@ export default class extends Controller {
     }
 
     return Boolean(this.deferredPrompt) || this.isIosSafari();
+  }
+
+  installedPreferenceActive() {
+    if (!this.installed && !this.readInstalled()) {
+      return false;
+    }
+
+    if (this.isStandalone()) {
+      return true;
+    }
+
+    if (this.deferredPrompt) {
+      this.installed = false;
+      this.writeInstalled(false);
+      return false;
+    }
+
+    return true;
   }
 
   isStandalone() {

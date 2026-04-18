@@ -41,6 +41,19 @@ class InstallPopupSystemTest < ApplicationSystemTestCase
     assert_popup_visible
   end
 
+  test "stale installed flag does not suppress the popup once install becomes available again" do
+    visit root_path
+
+    configure_install_popup(
+      mobile: true,
+      standalone: false,
+      prompt_outcome: "dismissed",
+      installed_preference: true
+    )
+
+    assert_popup_visible
+  end
+
   test "desktop browsers never show the popup" do
     visit root_path
 
@@ -80,9 +93,9 @@ class InstallPopupSystemTest < ApplicationSystemTestCase
     )
   end
 
-  def configure_install_popup(mobile:, standalone:, prompt_outcome:, ios_safari: false)
-    execute_script(<<~JS, mobile, standalone, prompt_outcome, ios_safari)
-      const [mobile, standalone, promptOutcome, iosSafari] = arguments;
+  def configure_install_popup(mobile:, standalone:, prompt_outcome:, ios_safari: false, installed_preference: false)
+    execute_script(<<~JS, mobile, standalone, prompt_outcome, ios_safari, installed_preference)
+      const [mobile, standalone, promptOutcome, iosSafari, installedPreference] = arguments;
       const controllerElement = document.querySelector('[data-controller~="install-popup"]');
       if (!controllerElement || !controllerElement.installPopupController) {
         throw new Error("install-popup controller not available");
@@ -90,7 +103,11 @@ class InstallPopupSystemTest < ApplicationSystemTestCase
 
       const controller = controllerElement.installPopupController;
 
-      window.localStorage.removeItem("inkcreate.installPrompt.installed");
+      if (installedPreference) {
+        window.localStorage.setItem("inkcreate.installPrompt.installed", "true");
+      } else {
+        window.localStorage.removeItem("inkcreate.installPrompt.installed");
+      }
       window.sessionStorage.removeItem("inkcreate.installPopup.dismissedAt");
       window.__inkcreateDeferredInstallPrompt = null;
 

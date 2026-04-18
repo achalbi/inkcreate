@@ -119,21 +119,31 @@
       <span class="dcap-topbar-title">Review & Save</span>
     </div>
     <div class="dcap-review-scroll">
-      <canvas class="dcap-review-thumb" data-document-capture-target="reviewCanvas"></canvas>
-      <div class="dcap-review-stats" data-document-capture-target="reviewStats"></div>
-      <div class="dcap-review-field">
-        <label class="dcap-review-label">Title</label>
-        <input type="text" class="dcap-review-input" data-document-capture-target="reviewTitle" placeholder="Scan — Apr 13, 2026 17:15:34" />
-      </div>
-      <div class="dcap-review-field">
-        <label class="dcap-review-label">Tags</label>
-        <input type="text" class="dcap-review-input" data-document-capture-target="reviewTags" placeholder="meeting, notes, q1…" />
-      </div>
-      <div class="dcap-footer-row" style="padding-bottom:32px">
-        <button class="btn btn-white dcap-btn" data-action="click->document-capture#goToScreen3">← Edit</button>
-        <button class="btn btn-primary dcap-btn" data-document-capture-target="saveBtn" data-action="click->document-capture#save">
-          Save PDF
-        </button>
+      <div class="dcap-review-layout">
+        <div class="dcap-review-preview-pane">
+          <div class="dcap-review-preview-frame">
+            <canvas class="dcap-review-thumb" data-document-capture-target="reviewCanvas"></canvas>
+          </div>
+        </div>
+        <div class="dcap-review-panel">
+          <div class="dcap-review-stats" data-document-capture-target="reviewStats"></div>
+          <div class="dcap-review-fields">
+            <div class="dcap-review-field">
+              <label class="dcap-review-label">Title</label>
+              <input type="text" class="dcap-review-input" data-document-capture-target="reviewTitle" placeholder="Scan — Apr 13, 2026 17:15:34" />
+            </div>
+            <div class="dcap-review-field">
+              <label class="dcap-review-label">Tags</label>
+              <input type="text" class="dcap-review-input" data-document-capture-target="reviewTags" placeholder="meeting, notes, q1…" />
+            </div>
+          </div>
+          <div class="dcap-review-actions">
+            <button class="btn btn-white dcap-btn" data-action="click->document-capture#goToScreen3">← Edit</button>
+            <button class="btn btn-primary dcap-btn" data-document-capture-target="saveBtn" data-action="click->document-capture#save">
+              Save PDF
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>

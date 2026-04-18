@@ -8852,39 +8852,39 @@ body.task-modal-open { overflow: hidden; }
 }
 
 .sdoc-body {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 0.55rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.8rem;
   margin-bottom: 0;
 }
 
 .sdoc-thumb {
   display: block;
   width: 100%;
-  height: 100%;
+  height: auto;
+  max-height: min(26rem, 54vh);
   object-fit: contain;
-  object-position: center;
-  background: #f7f2ea;
+  object-position: top center;
+  background: transparent;
   border: 0;
   border-radius: 0;
 }
 
 .sdoc-preview-button,
 .sdoc-preview-static {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: min(250px, 100%);
+  display: block;
+  width: min(100%, 22rem);
   max-width: 100%;
-  height: 170px;
-  margin: 0 auto;
+  margin: 0;
   padding: 0;
   border: 0;
-  background: #f7f2ea;
+  background: linear-gradient(180deg, #f7f2ea 0%, #efe3d3 100%);
   line-height: 0;
   border-radius: 22px;
   overflow: hidden;
+  justify-self: start;
+  box-shadow: inset 0 0 0 1px rgba(95, 66, 34, 0.08);
 }
 
 .sdoc-preview-button {
@@ -8900,7 +8900,8 @@ body.task-modal-open { overflow: hidden; }
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 100%;
+  min-height: 220px;
+  aspect-ratio: 0.72 / 1;
   background: #f7f2ea;
   font-size: 2rem;
   color: #c2b3a2;
@@ -8928,18 +8929,24 @@ body.task-modal-open { overflow: hidden; }
 
 .sdoc-actions {
   display: flex;
-  width: auto;
+  width: min(10rem, 100%);
   gap: 0.45rem;
-  flex-direction: column;
-  flex-wrap: nowrap;
+  flex-direction: row;
+  flex-wrap: wrap;
   align-items: stretch;
-  justify-content: center;
+  align-content: flex-start;
+  justify-content: flex-start;
   margin: 0;
 }
 
 .sdoc-action-form {
   margin: 0;
   display: flex;
+  flex: 0 0 auto;
+}
+
+.sdoc-action-form--primary {
+  flex: 1 1 100%;
 }
 
 .sdoc-action-btn {
@@ -8969,8 +8976,10 @@ body.task-modal-open { overflow: hidden; }
 }
 
 .sdoc-action-btn--primary {
-  flex: 1 1 auto;
+  width: 100%;
   min-width: 0;
+  justify-content: center;
+  gap: 0.42rem;
   padding-left: 1.15rem !important;
   padding-right: 1.15rem !important;
   border-radius: 1.3rem !important;
@@ -8988,6 +8997,27 @@ body.task-modal-open { overflow: hidden; }
 .sdoc-delete-form,
 .sdoc-delete-btn {
   margin-left: 0;
+}
+
+@media (max-width: 767.98px) {
+  .sdoc-inner {
+    padding: 1rem 1rem 0.9rem;
+  }
+
+  .sdoc-body {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .sdoc-preview-button,
+  .sdoc-preview-static,
+  .sdoc-actions {
+    width: 100%;
+  }
+
+  .sdoc-thumb {
+    max-height: min(30rem, 68vh);
+  }
 }
 
 /* Empty state */
@@ -9055,10 +9085,16 @@ body.task-modal-open { overflow: hidden; }
   transition: background 0.2s, color 0.2s;
 }
 
-.dcap-stage-pill.is-active {
+.dcap-stage-pill.is-active,
+.dcap-stage-pill.dcap-stage--active {
   background: var(--inapp-primary, #ff5f4e);
   color: #fff;
   font-weight: 600;
+}
+
+.dcap-stage-pill.dcap-stage--done {
+  background: rgba(255,95,78,0.18);
+  color: rgba(255,255,255,0.82);
 }
 
 /* Screen visibility */
@@ -9585,25 +9621,99 @@ body.task-modal-open { overflow: hidden; }
 /* ── Screen 5: Review & Save ────────────────────────────────── */
 .dcap-review-scroll {
   flex: 1;
-  overflow-y: auto;
+  overflow: auto;
+  padding: 14px;
+  background:
+    radial-gradient(circle at top, rgba(255,255,255,0.08), transparent 34%),
+    linear-gradient(180deg, #141414 0%, #0d0d0d 100%);
+}
+
+.dcap-review-layout {
+  min-height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px;
+  gap: 14px;
+}
+
+.dcap-review-preview-pane {
+  flex: 1 1 auto;
+  min-height: clamp(320px, 48vh, 620px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(10px, 2.5vw, 22px);
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+}
+
+.dcap-review-preview-frame {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(10px, 2vw, 18px);
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(0,0,0,0.1), rgba(0,0,0,0.34)),
+    radial-gradient(circle at top, rgba(255,255,255,0.08), transparent 58%);
+  overflow: hidden;
 }
 
 .dcap-review-thumb {
+  display: block;
+  width: auto;
   max-width: 100%;
-  max-height: 200px;
-  border-radius: 6px;
+  max-height: 100%;
+  height: auto;
+  border-radius: 10px;
   object-fit: contain;
-  align-self: center;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.32);
+}
+
+.dcap-review-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding: 16px;
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  box-shadow: 0 18px 36px rgba(0,0,0,0.18);
+}
+
+.dcap-review-fields {
+  display: grid;
+  gap: 12px;
 }
 
 .dcap-review-stats {
-  font-size: 0.75rem;
-  color: rgba(255,255,255,0.55);
-  text-align: center;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.dcap-stat {
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.dcap-stat-label {
+  font-size: 0.68rem;
+  color: rgba(255,255,255,0.52);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.dcap-stat-value {
+  margin-top: 4px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #fff;
 }
 
 .dcap-review-field {
@@ -9622,9 +9732,9 @@ body.task-modal-open { overflow: hidden; }
 .dcap-review-input {
   background: rgba(255,255,255,0.1);
   border: 1px solid rgba(255,255,255,0.2);
-  border-radius: 6px;
+  border-radius: 14px;
   color: #fff;
-  padding: 8px 12px;
+  padding: 10px 12px;
   font-size: 0.88rem;
   font-family: inherit;
 }
@@ -9632,6 +9742,77 @@ body.task-modal-open { overflow: hidden; }
 .dcap-review-input:focus {
   outline: none;
   border-color: rgba(255,95,78,0.6);
+}
+
+.dcap-review-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding-top: 2px;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+}
+
+.dcap-review-actions .dcap-btn {
+  width: 100%;
+}
+
+@media (min-width: 900px) {
+  .dcap-review-scroll {
+    padding: 18px;
+  }
+
+  .dcap-review-layout {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .dcap-review-preview-pane {
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .dcap-review-panel {
+    flex: 0 0 clamp(320px, 30vw, 390px);
+  }
+
+  .dcap-review-actions {
+    margin-top: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .dcap-review-scroll {
+    padding: 12px;
+  }
+
+  .dcap-review-layout {
+    gap: 12px;
+  }
+
+  .dcap-review-preview-pane,
+  .dcap-review-panel {
+    border-radius: 20px;
+  }
+
+  .dcap-review-preview-pane {
+    min-height: clamp(280px, 46vh, 500px);
+    padding: 10px;
+  }
+
+  .dcap-review-preview-frame {
+    padding: 10px;
+    border-radius: 16px;
+  }
+
+  .dcap-review-panel {
+    padding: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dcap-review-actions {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ── Full-text viewer ───────────────────────────────────────── */

@@ -6,7 +6,12 @@
 
 <div class="page-shell">
   <%# ── Install CTA card ───────────────────────────────────────────────── %>
-  <section class="section-card" style="padding: 40px 36px 36px;" data-controller="install-prompt">
+  <section
+    class="section-card"
+    style="padding: 40px 36px 36px;"
+    data-controller="install-prompt"
+    data-install-prompt-force-show-button-value="true"
+  >
     <div class="install-prompt-header">
       <div class="section-header install-prompt-header-main">
         <div class="eyebrow">Get the app</div>
@@ -27,7 +32,6 @@
         style="min-width: 200px;"
         data-install-prompt-target="promptButton"
         data-action="install-prompt#prompt"
-        hidden
       >
         Install on this device
       </button>

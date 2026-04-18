@@ -9,6 +9,10 @@ const INSTALL_PROMPT_DISMISSED_STORAGE_KEY = "inkcreate.installPrompt.dismissed"
 const INSTALL_PROMPT_INSTALLED_STORAGE_KEY = "inkcreate.installPrompt.installed";
 
 export default class extends Controller {
+  static values = {
+    forceShowPromptButton: Boolean
+  };
+
   static targets = [
     "availabilityNote",
     "collapseButton",
@@ -163,7 +167,10 @@ export default class extends Controller {
 
   setPromptButtonHidden(hidden) {
     if (this.hasPromptButtonTarget) {
-      this.promptButtonTarget.hidden = hidden;
+      const shouldHide = this.forceShowPromptButtonValue && this.element.dataset.installPromptState !== "installed"
+        ? false
+        : hidden;
+      this.promptButtonTarget.hidden = shouldHide;
     }
   }
 
@@ -238,7 +245,7 @@ export default class extends Controller {
   }
 
   installAvailability(state = null) {
-    const installed = Boolean(state?.installed) || this.promptAccepted || this.readInstalledPreference();
+    const installed = this.installedPreferenceActive(state);
 
     if (installed) {
       return {
@@ -282,6 +289,35 @@ export default class extends Controller {
       promptLabel: this.defaultPromptLabel,
       showPrompt: false
     };
+  }
+
+  installedPreferenceActive(state = null) {
+    if (Boolean(state?.installed) || this.promptAccepted) {
+      return true;
+    }
+
+    if (!this.readInstalledPreference()) {
+      return false;
+    }
+
+    if (this.staleInstalledPreference(state)) {
+      this.writeInstalledPreference(false);
+      return false;
+    }
+
+    return true;
+  }
+
+  staleInstalledPreference(state = null) {
+    if (Boolean(state?.installed) || this.promptAccepted) {
+      return false;
+    }
+
+    if (this.deferredPrompt) {
+      return true;
+    }
+
+    return this.forceShowPromptButtonValue && this.manualInstallEligible();
   }
 
   readDismissedPreference() {

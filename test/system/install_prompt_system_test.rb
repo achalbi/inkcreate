@@ -28,6 +28,20 @@ class InstallPromptSystemTest < ApplicationSystemTestCase
     assert_text "Notifications are enabled for this device. Background sync updates can now appear after install."
   end
 
+  test "install route recovers from a stale installed flag once install becomes available again" do
+    visit install_path
+    reset_install_prompt_state
+
+    execute_script(<<~JS)
+      window.localStorage.setItem("inkcreate.installPrompt.installed", "true");
+    JS
+
+    inject_install_prompt
+    click_button "Install on this device"
+
+    assert_text "Enable background sync updates"
+  end
+
   private
 
   def reset_install_prompt_state
