@@ -1,68 +1,40 @@
 import { Controller } from "/scripts/vendor/stimulus.js";
 
-// Mobile PWA install popup.
-//
-// Behavior:
-//   * On load, if the current device is a mobile browser, the app is NOT
-//     running as an installed PWA, and the user hasn't already installed it,
-//     surface a popup nudging them to install.
-//   * If the user dismisses it, re-show it five minutes later in the same
-//     session (sessionStorage-backed so Turbo nav doesn't reset the clock,
-//     but a new tab starts fresh).
-//   * If the user installs via the native prompt, stop showing for good.
-//
-// The popup works in both the Bootstrap-loaded workspace layout and the
-// Tailwind-styled landing layout, so we avoid any framework-specific modal
-// plumbing and drive show/hide directly through data attributes + inline
-// styles supplied by the partial.
-
 const INSTALLED_STORAGE_KEY = "inkcreate.installPrompt.installed";
 const DISMISSED_AT_STORAGE_KEY = "inkcreate.installPopup.dismissedAt";
-const REPROMPT_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
-const INITIAL_SHOW_DELAY_MS = 2500;         // give the page a moment to paint
+const DEFAULT_REPROMPT_INTERVAL_MS = 5 * 60 * 1000;
+const DEFAULT_INITIAL_SHOW_DELAY_MS = 0;
 const MIN_MOBILE_VIEWPORT_PX = 820;
 
 export default class extends Controller {
   static targets = ["popup", "installButton", "iosSteps", "title", "body"];
 
   connect() {
+    this.element.installPopupController = this;
     this.deferredPrompt = window.__inkcreateDeferredInstallPrompt || null;
     this.installed = this.readInstalled();
-    this.rescheduleTimer = null;
-    this.initialTimer = null;
+    this.showTimer = null;
+    this.focusTimer = null;
+    this.pendingShowAt = null;
 
     this.handleInstallAvailable = () => {
       this.deferredPrompt = window.__inkcreateDeferredInstallPrompt || null;
 
       if (this.isPopupVisible()) {
-        // Already showing — just refresh labels so they match what the
-        // browser can now do.
         this.renderAvailability();
         return;
       }
 
-      // The deferred prompt may arrive after connect() ran, which means the
-      // initial eligibility check said "nothing to offer, skip the popup."
-      // Re-evaluate now that we have it.
       this.scheduleNextShow();
     };
 
     this.handleAppInstalled = () => {
-      this.installed = true;
-      this.writeInstalled(true);
-      this.clearDismissedAt();
-      this.hidePopup();
-      this.cancelTimers();
+      this.markInstalled();
     };
 
-    // Cross-tab: if another tab sets the installed flag (via its own
-    // successful prompt), react here too instead of surfacing a stale popup.
     this.handleStorage = (event) => {
-      if (event.key !== INSTALLED_STORAGE_KEY) {
-        return;
-      }
-      if (event.newValue === "true") {
-        this.handleAppInstalled();
+      if (event.key === INSTALLED_STORAGE_KEY && event.newValue === "true") {
+        this.markInstalled();
       }
     };
 
@@ -72,54 +44,59 @@ export default class extends Controller {
       }
     };
 
+    this.handleBeforeCache = () => {
+      this.cancelTimers();
+      this.hidePopup();
+    };
+
     window.addEventListener("inkcreate:install-available", this.handleInstallAvailable);
     window.addEventListener("inkcreate:app-installed", this.handleAppInstalled);
     window.addEventListener("storage", this.handleStorage);
     document.addEventListener("keydown", this.handleKeydown);
+    document.addEventListener("turbo:before-cache", this.handleBeforeCache);
 
     this.scheduleNextShow();
   }
 
   disconnect() {
+    delete this.element.installPopupController;
     window.removeEventListener("inkcreate:install-available", this.handleInstallAvailable);
     window.removeEventListener("inkcreate:app-installed", this.handleAppInstalled);
     window.removeEventListener("storage", this.handleStorage);
     document.removeEventListener("keydown", this.handleKeydown);
+    document.removeEventListener("turbo:before-cache", this.handleBeforeCache);
     this.cancelTimers();
+    this.hidePopup();
   }
 
   scheduleNextShow() {
+    this.deferredPrompt = window.__inkcreateDeferredInstallPrompt || this.deferredPrompt || null;
+
     if (!this.shouldShowOnThisDevice()) {
       this.cancelTimers();
+      this.hidePopup();
       return;
     }
 
-    // If a show is already queued, let it run — resetting on every
-    // beforeinstallprompt / install-available would push the popup out by
-    // INITIAL_SHOW_DELAY_MS each time the event fires.
-    if (this.initialTimer !== null || this.rescheduleTimer !== null) {
+    if (this.isPopupVisible()) {
+      this.renderAvailability();
       return;
     }
 
     const dismissedAt = this.readDismissedAt();
-    const now = Date.now();
-    const elapsed = dismissedAt ? now - dismissedAt : Infinity;
 
-    if (!Number.isFinite(elapsed)) {
-      // Never dismissed this session → show after a short paint-settle delay.
-      this.initialTimer = window.setTimeout(() => this.showPopup(), INITIAL_SHOW_DELAY_MS);
+    if (dismissedAt === null) {
+      this.queueShow(this.initialShowDelayMs());
       return;
     }
 
-    if (elapsed >= REPROMPT_INTERVAL_MS) {
-      // The 5-min quiet window has already passed → show right away.
-      this.showPopup();
+    const elapsed = Date.now() - dismissedAt;
+    if (elapsed >= this.repromptIntervalMs()) {
+      this.queueShow(0);
       return;
     }
 
-    // Still inside the quiet window → wait out the remainder.
-    const remaining = REPROMPT_INTERVAL_MS - elapsed;
-    this.rescheduleTimer = window.setTimeout(() => this.showPopup(), remaining);
+    this.queueShow(this.repromptIntervalMs() - elapsed);
   }
 
   async install() {
@@ -131,30 +108,20 @@ export default class extends Controller {
         window.__inkcreateDeferredInstallPrompt = null;
 
         if (choice?.outcome === "accepted") {
-          this.installed = true;
-          this.writeInstalled(true);
-          this.clearDismissedAt();
-          this.hidePopup();
-          this.cancelTimers();
+          this.markInstalled();
           return;
         }
 
-        // User rejected the native prompt — treat like a dismissal so we
-        // don't immediately re-prompt.
         this.dismiss();
         return;
       } catch (_error) {
-        // Fall through to the iOS/manual path on any prompt failure.
+        this.deferredPrompt = null;
+        window.__inkcreateDeferredInstallPrompt = null;
       }
     }
 
-    // No deferred prompt available — surface the iOS "Add to Home Screen"
-    // instructions if this looks like iOS Safari, otherwise just dismiss.
     if (this.isIosSafari() && this.hasIosStepsTarget) {
-      this.iosStepsTarget.hidden = false;
-      if (this.hasInstallButtonTarget) {
-        this.installButtonTarget.hidden = true;
-      }
+      this.renderAvailability({ revealIosSteps: true });
       return;
     }
 
@@ -164,59 +131,77 @@ export default class extends Controller {
   dismiss() {
     this.writeDismissedAt(Date.now());
     this.hidePopup();
+    this.queueShow(this.repromptIntervalMs());
+  }
 
-    // Queue the next re-show in five minutes.
-    this.cancelTimers();
-    this.rescheduleTimer = window.setTimeout(() => this.showPopup(), REPROMPT_INTERVAL_MS);
+  dismissOnBackdrop(event) {
+    if (event.target === this.popupTarget) {
+      this.dismiss();
+    }
+  }
+
+  initialShowDelayMs() {
+    return DEFAULT_INITIAL_SHOW_DELAY_MS;
+  }
+
+  repromptIntervalMs() {
+    return DEFAULT_REPROMPT_INTERVAL_MS;
   }
 
   showPopup() {
-    if (!this.shouldShowOnThisDevice()) {
-      this.hidePopup();
-      return;
-    }
+    this.pendingShowAt = null;
+    this.showTimer = null;
 
-    if (!this.hasPopupTarget) {
+    if (!this.shouldShowOnThisDevice() || !this.hasPopupTarget) {
+      this.hidePopup();
       return;
     }
 
     this.renderAvailability();
     this.popupTarget.hidden = false;
     this.popupTarget.dataset.visible = "true";
+    this.popupTarget.setAttribute("aria-hidden", "false");
     document.body?.classList.add("install-popup-open");
 
-    // Clear the pending-show timer bookkeeping so a later scheduleNextShow()
-    // (e.g. after inkcreate:install-available fires while visible) can queue
-    // again if the user dismisses.
-    this.initialTimer = null;
-    this.rescheduleTimer = null;
-
-    if (this.hasInstallButtonTarget) {
-      // Defer focus so animation doesn't fight the browser's scroll-into-view.
-      window.setTimeout(() => {
-        if (this.isPopupVisible() && this.hasInstallButtonTarget) {
-          try {
-            this.installButtonTarget.focus({ preventScroll: true });
-          } catch (_error) {
-            // Some older engines don't accept options; ignore focus failures.
-          }
-        }
-      }, 60);
+    if (!this.hasInstallButtonTarget) {
+      return;
     }
+
+    this.focusTimer = window.setTimeout(() => {
+      this.focusTimer = null;
+
+      if (!this.isPopupVisible() || this.installButtonTarget.hidden) {
+        return;
+      }
+
+      try {
+        this.installButtonTarget.focus({ preventScroll: true });
+      } catch (_error) {
+        this.installButtonTarget.focus();
+      }
+    }, 60);
   }
 
   hidePopup() {
+    if (this.focusTimer !== null) {
+      window.clearTimeout(this.focusTimer);
+      this.focusTimer = null;
+    }
+
     if (!this.hasPopupTarget) {
+      document.body?.classList.remove("install-popup-open");
       return;
     }
 
     this.popupTarget.hidden = true;
     this.popupTarget.dataset.visible = "false";
+    this.popupTarget.setAttribute("aria-hidden", "true");
     document.body?.classList.remove("install-popup-open");
 
     if (this.hasIosStepsTarget) {
       this.iosStepsTarget.hidden = true;
     }
+
     if (this.hasInstallButtonTarget) {
       this.installButtonTarget.hidden = false;
     }
@@ -226,35 +211,76 @@ export default class extends Controller {
     return this.hasPopupTarget && this.popupTarget.dataset.visible === "true";
   }
 
-  renderAvailability() {
-    const iosSafari = this.isIosSafari();
+  renderAvailability({ revealIosSteps = false } = {}) {
+    const hasDeferredPrompt = Boolean(this.deferredPrompt);
+    const iosSafari = this.isIosSafari() && !hasDeferredPrompt;
 
-    if (this.hasInstallButtonTarget) {
-      this.installButtonTarget.textContent = iosSafari && !this.deferredPrompt
-        ? "Show install steps"
-        : "Install app";
+    if (this.hasTitleTarget) {
+      this.titleTarget.textContent = iosSafari
+        ? "Add Inkcreate to your Home Screen"
+        : "Install Inkcreate on your device";
     }
 
     if (this.hasBodyTarget) {
-      this.bodyTarget.textContent = iosSafari && !this.deferredPrompt
-        ? "Add Inkcreate to your Home Screen from Safari's Share menu for faster capture and offline access."
-        : "Install Inkcreate on your phone for faster launch, app-like navigation, and offline shell access.";
+      this.bodyTarget.textContent = iosSafari
+        ? "Open Safari's Share menu and add Inkcreate to your Home Screen for faster launch and app-like navigation."
+        : "Install Inkcreate for faster launch, app-like navigation, and offline shell access.";
+    }
+
+    if (this.hasInstallButtonTarget) {
+      this.installButtonTarget.textContent = iosSafari ? "Show install steps" : "Install app";
+      this.installButtonTarget.hidden = false;
+    }
+
+    if (this.hasIosStepsTarget) {
+      this.iosStepsTarget.hidden = !(iosSafari && revealIosSteps);
     }
   }
 
   cancelTimers() {
-    if (this.initialTimer !== null) {
-      window.clearTimeout(this.initialTimer);
-      this.initialTimer = null;
+    if (this.showTimer !== null) {
+      window.clearTimeout(this.showTimer);
+      this.showTimer = null;
     }
 
-    if (this.rescheduleTimer !== null) {
-      window.clearTimeout(this.rescheduleTimer);
-      this.rescheduleTimer = null;
+    if (this.focusTimer !== null) {
+      window.clearTimeout(this.focusTimer);
+      this.focusTimer = null;
     }
+
+    this.pendingShowAt = null;
   }
 
-  // ---------- eligibility checks ----------
+  queueShow(delayMs) {
+    const delay = Math.max(0, Number(delayMs) || 0);
+    const showAt = Date.now() + delay;
+
+    if (this.pendingShowAt !== null && this.pendingShowAt <= showAt) {
+      return;
+    }
+
+    if (this.showTimer !== null) {
+      window.clearTimeout(this.showTimer);
+      this.showTimer = null;
+    }
+
+    this.pendingShowAt = showAt;
+
+    if (delay === 0) {
+      this.showPopup();
+      return;
+    }
+
+    this.showTimer = window.setTimeout(() => this.showPopup(), delay);
+  }
+
+  markInstalled() {
+    this.installed = true;
+    this.writeInstalled(true);
+    this.clearDismissedAt();
+    this.cancelTimers();
+    this.hidePopup();
+  }
 
   shouldShowOnThisDevice() {
     if (typeof window === "undefined") {
@@ -273,9 +299,6 @@ export default class extends Controller {
       return false;
     }
 
-    // Only offer the popup when the browser can actually do something useful:
-    // either a native prompt is available (Android Chrome / Edge) or this is
-    // iOS Safari where the manual "Add to Home Screen" path works.
     return Boolean(this.deferredPrompt) || this.isIosSafari();
   }
 
@@ -285,48 +308,42 @@ export default class extends Controller {
         return true;
       }
     } catch (_error) {
-      // matchMedia can throw in very old browsers; treat as non-standalone.
+      // Ignore matchMedia failures and treat the page as browser mode.
     }
 
-    if (window.navigator.standalone === true) {
-      return true;
-    }
-
-    return false;
+    return window.navigator.standalone === true;
   }
 
   isMobileBrowser() {
     const userAgent = window.navigator.userAgent || "";
-    const mobileUa = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(userAgent);
-
-    if (mobileUa) {
+    if (/Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(userAgent)) {
       return true;
     }
 
-    // Fallback: iPad on iPadOS 13+ reports a desktop UA but has touch points.
     const platform = window.navigator.platform || "";
     const maxTouchPoints = window.navigator.maxTouchPoints || 0;
     if (platform === "MacIntel" && maxTouchPoints > 1) {
       return true;
     }
 
-    // Final fallback: narrow-viewport + coarse-pointer devices look mobile.
-    const narrowViewport = typeof window.innerWidth === "number" && window.innerWidth <= MIN_MOBILE_VIEWPORT_PX;
-    const coarsePointer = Boolean(window.matchMedia?.("(pointer: coarse)")?.matches);
-    return narrowViewport && coarsePointer;
+    try {
+      const narrowViewport = typeof window.innerWidth === "number" && window.innerWidth <= MIN_MOBILE_VIEWPORT_PX;
+      const coarsePointer = window.matchMedia?.("(pointer: coarse)")?.matches === true;
+      return narrowViewport && coarsePointer;
+    } catch (_error) {
+      return false;
+    }
   }
 
   isIosSafari() {
     const userAgent = window.navigator.userAgent || "";
     const platform = window.navigator.platform || "";
     const maxTouchPoints = window.navigator.maxTouchPoints || 0;
-    const appleMobile = /iPad|iPhone|iPod/.test(userAgent) || (platform === "MacIntel" && maxTouchPoints > 1);
-    const isWebKit = /AppleWebKit/i.test(userAgent);
-    const nonSafariIos = /CriOS|FxiOS|EdgiOS|OPiOS|DuckDuckGo/i.test(userAgent);
-    return appleMobile && isWebKit && !nonSafariIos;
+    const appleMobileDevice = /iPad|iPhone|iPod/.test(userAgent) || (platform === "MacIntel" && maxTouchPoints > 1);
+    const safariWebKit = /AppleWebKit/i.test(userAgent);
+    const excludedBrowsers = /CriOS|FxiOS|EdgiOS|OPiOS|DuckDuckGo/i.test(userAgent);
+    return appleMobileDevice && safariWebKit && !excludedBrowsers;
   }
-
-  // ---------- storage helpers ----------
 
   readInstalled() {
     try {
@@ -350,12 +367,13 @@ export default class extends Controller {
 
   readDismissedAt() {
     try {
-      const raw = window.sessionStorage?.getItem(DISMISSED_AT_STORAGE_KEY);
-      if (!raw) {
+      const rawValue = window.sessionStorage?.getItem(DISMISSED_AT_STORAGE_KEY);
+      if (!rawValue) {
         return null;
       }
-      const parsed = Number.parseInt(raw, 10);
-      return Number.isFinite(parsed) ? parsed : null;
+
+      const timestamp = Number.parseInt(rawValue, 10);
+      return Number.isFinite(timestamp) ? timestamp : null;
     } catch (_error) {
       return null;
     }

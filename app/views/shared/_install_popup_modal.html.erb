@@ -1,8 +1,6 @@
-<%# Mobile PWA install nudge. Rendered hidden; the install-popup Stimulus
-    controller decides whether to show it (mobile browser + not already
-    installed) and re-shows it every 5 minutes after dismissal. Uses inline
-    styles so it works in both the Bootstrap-loaded workspace layout and the
-    Tailwind landing layout without additional CSS wiring. %>
+<%# Mobile PWA install nudge. Hidden by default and managed entirely by the
+    install-popup Stimulus controller so it behaves the same in the Bootstrap
+    workspace layout and the Tailwind landing layout. %>
 <div data-controller="install-popup">
   <style>
     body.install-popup-open { overflow: hidden; }
@@ -14,7 +12,7 @@
       display: flex;
       align-items: flex-end;
       justify-content: center;
-      padding: 16px;
+      padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
       background: rgba(20, 38, 31, 0.52);
       backdrop-filter: blur(6px);
       -webkit-backdrop-filter: blur(6px);
@@ -31,6 +29,8 @@
       padding: 22px 22px 20px;
       font-family: "Manrope", "Trebuchet MS", "Gill Sans", "Segoe UI", sans-serif;
       position: relative;
+      max-height: min(88vh, 640px);
+      overflow-y: auto;
       animation: install-popup-slide-up 260ms cubic-bezier(0.22, 1, 0.36, 1);
     }
 
@@ -105,6 +105,12 @@
       line-height: 1;
     }
 
+    .install-popup-button:focus-visible,
+    .install-popup-close:focus-visible {
+      outline: 2px solid #d07a2a;
+      outline-offset: 2px;
+    }
+
     .install-popup-ios {
       margin: 14px 0 0;
       padding: 14px 16px;
@@ -144,8 +150,10 @@
     role="dialog"
     aria-modal="true"
     aria-labelledby="install-popup-title"
+    aria-hidden="true"
     data-install-popup-target="popup"
     data-visible="false"
+    data-action="click->install-popup#dismissOnBackdrop"
     hidden
   >
     <div class="install-popup-card">
