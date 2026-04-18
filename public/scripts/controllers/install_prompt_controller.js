@@ -67,6 +67,27 @@ export default class extends Controller {
   async prompt() {
     const availability = this.installAvailability(this.installState);
 
+    // Force-show CTA + "installed" kind ⇒ the localStorage flag might be
+    // stale (user uninstalled, or this is a fresh browser on the same
+    // device). Clear the flag, re-sync, then re-run prompt() with a guard
+    // so the refreshed availability drives the real install path.
+    if (
+      availability.kind === "installed" &&
+      this.forceShowPromptButtonEnabled() &&
+      !this.isStandaloneDisplay() &&
+      !this._resetForReinstall
+    ) {
+      this._resetForReinstall = true;
+      this.writeInstalledPreference(false);
+      this.promptAccepted = false;
+      try {
+        await this.syncInstallState();
+        return await this.prompt();
+      } finally {
+        this._resetForReinstall = false;
+      }
+    }
+
     if (availability.kind === "manual") {
       this.manualInstructionsVisible = true;
       this.setCollapsed(false, { persist: true });
@@ -174,12 +195,31 @@ export default class extends Controller {
   }
 
   setPromptButtonHidden(hidden) {
-    if (this.hasPromptButtonTarget) {
-      const shouldHide = this.forceShowPromptButtonEnabled() && this.element.dataset.installPromptState !== "installed"
-        ? false
-        : hidden;
-      this.promptButtonTarget.hidden = shouldHide;
+    if (!this.hasPromptButtonTarget) {
+      return;
     }
+
+    // Pages that force-show the CTA (e.g. /install) keep the button visible
+    // at all times while the user is still browsing in a regular tab — even
+    // when the app is already installed, because the localStorage flag may be
+    // stale after an uninstall. Only hide when the page itself is running as
+    // the installed PWA (nothing left to do) or force-show is off.
+    const forceVisible = this.forceShowPromptButtonEnabled() && !this.isStandaloneDisplay();
+    this.promptButtonTarget.hidden = forceVisible ? false : hidden;
+  }
+
+  isStandaloneDisplay() {
+    if (typeof window === "undefined") {
+      return false;
+    }
+    try {
+      if (window.matchMedia?.("(display-mode: standalone)")?.matches) {
+        return true;
+      }
+    } catch (_error) {
+      // matchMedia throws in very old browsers — treat as non-standalone.
+    }
+    return window.navigator?.standalone === true;
   }
 
   setPromptButtonLabel(label) {
@@ -253,10 +293,25 @@ export default class extends Controller {
   }
 
   installAvailability(state = null) {
-    const installed = this.installedPreferenceActive(state);
     const forceShowPrompt = this.forceShowPromptButtonEnabled();
+    // When the page forces the CTA (e.g. /install), trust only authoritative
+    // signals — server-side install record + this-session acceptance. Ignore
+    // the localStorage flag so a stale bit from a previously installed but
+    // now-uninstalled PWA doesn't lock the button into the "installed" state.
+    const installed = forceShowPrompt
+      ? Boolean(state?.installed) || this.promptAccepted
+      : this.installedPreferenceActive(state);
 
     if (installed) {
+      if (forceShowPrompt && !this.isStandaloneDisplay()) {
+        return {
+          kind: "installed",
+          note: "Inkcreate is already installed on this device. Open it from your home screen, or tap Install to set it up in this browser again.",
+          promptLabel: "Install again",
+          showPrompt: true
+        };
+      }
+
       return {
         kind: "installed",
         note: "Inkcreate is already installed on this device. Open it from your home screen or app shelf when you want the app shell.",
