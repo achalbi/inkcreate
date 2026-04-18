@@ -5,6 +5,10 @@
   form_id = dom_id(page, :edit_form)
   quick_create_form_id = persisted_page ? dom_id(page, :quick_create_form) : nil
   details_section_id = dom_id(page, :details_section)
+  contact_section_id = dom_id(page, :contact_section)
+  contact_add_button_id = dom_id(page, :contact_add_button)
+  location_section_id = dom_id(page, :location_section)
+  location_input_id = dom_id(page, :location_search_input)
   notes_section_id = dom_id(page, :notes_section)
   photos_section_id = dom_id(page, :photos_section)
   photo_camera_input_id = dom_id(page, :photo_camera_input)
@@ -30,6 +34,8 @@
   section_shortcuts << { label: "Voice notes", short_label: "Voice", icon: "ti-microphone", target: voice_notes_section_id } if voice_notes_available
   section_shortcuts << { label: "To-do list", short_label: "To-do", icon: "ti-checkbox", target: todo_list_section_id } if todo_lists_available
   section_shortcuts << { label: "Scanned documents", short_label: "Scans", icon: "ti-scan", target: scanned_documents_section_id }
+  section_shortcuts << { label: "Contacts", short_label: "Contacts", icon: "ti-address-book", target: contact_section_id }
+  section_shortcuts << { label: "Location", short_label: "Location", icon: "ti-map-pin", target: location_section_id }
 %>
 
 <nav class="detail-section-shortcuts" aria-label="Jump to page edit sections" data-controller="section-shortcuts">
@@ -101,6 +107,18 @@
           <% if page.plain_notes.present? %>
             <span class="notepad-doc__meta-chip">
               <i class="ti ti-file-text" aria-hidden="true"></i> Notes
+            </span>
+          <% end %>
+          <% if page.location_present? %>
+            <span class="notepad-doc__meta-chip">
+              <i class="ti ti-map-pin" aria-hidden="true"></i>
+              <%= page.location_count_label %>
+            </span>
+          <% end %>
+          <% if page.contact_present? %>
+            <span class="notepad-doc__meta-chip">
+              <i class="ti ti-address-book" aria-hidden="true"></i>
+              <%= page.contact_count_label %>
             </span>
           <% end %>
           <% if photo_count.positive? %>
@@ -277,10 +295,6 @@
           </div>
         <% end %>
 
-        <div class="col-12">
-          <%= render "pages/scanned_documents_form_section", form:, page: page %>
-        </div>
-
         <% if todo_lists_available %>
           <div class="col-12">
             <%= render "pages/todo_list_form_section", notebook:, chapter:, page:, form: form %>
@@ -290,6 +304,25 @@
             <%= render "pages/todo_list_unavailable_section" %>
           </div>
         <% end %>
+
+        <div class="col-12">
+          <%= render "pages/scanned_documents_form_section", form:, page: page %>
+        </div>
+
+        <div class="col-12">
+          <%= render "pages/contact_form_section",
+            record: page,
+            form_id:,
+            section_id: contact_section_id,
+            add_button_id: contact_add_button_id %>
+        </div>
+
+        <div class="col-12">
+          <%= render "pages/location_form_section",
+            record: page,
+            form_id:,
+            section_id: location_section_id %>
+        </div>
       </div>
     <% end %>
   <% end %>
@@ -322,6 +355,21 @@
       <div class="col-12">
         <%= render "pages/scanned_documents_section", notebook:, chapter:, page: page %>
       </div>
+
+      <div class="col-12">
+        <%= render "pages/contact_form_section",
+          record: page,
+          form_id:,
+          section_id: contact_section_id,
+          add_button_id: contact_add_button_id %>
+      </div>
+
+      <div class="col-12">
+        <%= render "pages/location_form_section",
+          record: page,
+          form_id:,
+          section_id: location_section_id %>
+      </div>
     </div>
   <% end %>
 
@@ -333,5 +381,9 @@
     voice_notes_enabled: voice_notes_available,
     todo_list_section_id:,
     todo_lists_enabled: todo_lists_available,
-    scanned_documents_section_id: %>
+    scanned_documents_section_id:,
+    contact_section_id:,
+    contact_button_id: contact_add_button_id,
+    location_section_id:,
+    location_input_id: %>
 </div>

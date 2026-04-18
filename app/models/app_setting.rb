@@ -40,9 +40,11 @@ class AppSetting < ApplicationRecord
     ["11 hours", 39_600_000],
     ["23 hours", 82_800_000]
   ].freeze
+  WORKSPACE_LAUNCHER_CONTINUE_SCOPES = %w[today latest].freeze
   WORKSPACE_LAUNCHER_DEFAULTS = {
     "enabled" => true,
-    "idle_timeout_ms" => WORKSPACE_LAUNCHER_IDLE_TIMEOUT_OPTIONS.first.last
+    "idle_timeout_ms" => WORKSPACE_LAUNCHER_IDLE_TIMEOUT_OPTIONS.first.last,
+    "continue_scope" => "today"
   }.freeze
   PRIVACY_DEFAULTS = {
     "allow_ocr_processing" => true,
@@ -112,6 +114,16 @@ class AppSetting < ApplicationRecord
     self[:launcher_preferences] = raw_launcher_preferences.merge("idle_timeout_ms" => value)
   end
 
+  def workspace_launcher_continue_scope
+    merged_launcher_preferences.fetch("continue_scope")
+  end
+
+  def workspace_launcher_continue_scope=(value)
+    return unless launcher_preferences_supported?
+
+    self[:launcher_preferences] = raw_launcher_preferences.merge("continue_scope" => value)
+  end
+
   def launcher_preferences_supported?
     has_attribute?("launcher_preferences")
   end
@@ -173,9 +185,13 @@ class AppSetting < ApplicationRecord
     idle_timeout_ms = WORKSPACE_LAUNCHER_DEFAULTS.fetch("idle_timeout_ms") unless
       WORKSPACE_LAUNCHER_IDLE_TIMEOUT_OPTIONS.map(&:last).include?(idle_timeout_ms)
 
+    continue_scope = raw_options["continue_scope"].to_s.presence_in(WORKSPACE_LAUNCHER_CONTINUE_SCOPES) ||
+      WORKSPACE_LAUNCHER_DEFAULTS.fetch("continue_scope")
+
     self[:launcher_preferences] = {
       "enabled" => enabled,
-      "idle_timeout_ms" => idle_timeout_ms
+      "idle_timeout_ms" => idle_timeout_ms,
+      "continue_scope" => continue_scope
     }
   end
 

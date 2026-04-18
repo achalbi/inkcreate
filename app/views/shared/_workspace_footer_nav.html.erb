@@ -23,16 +23,19 @@
         data-footer-action-menu-target="menu"
         aria-hidden="true"
       >
-        <%= link_to capture_studio_path,
-          class: "mobile-footer-action-menu__item mobile-footer-action-menu__item--capture",
-          title: "Quick capture",
-          aria: { label: "Quick capture" },
-          data: { action: "click->footer-action-menu#close", footer_action_menu_target: "item" } do %>
+        <button
+          type="button"
+          class="mobile-footer-action-menu__item mobile-footer-action-menu__item--capture"
+          title="Quick capture"
+          aria-label="Quick capture"
+          data-action="click->footer-action-menu#close click->footer-action-menu#openLauncher"
+          data-footer-action-menu-target="item"
+        >
           <span class="mobile-footer-action-menu__item-icon" aria-hidden="true">
             <i class="ti ti-bolt"></i>
           </span>
           <span class="mobile-footer-action-menu__item-label">Quick capture</span>
-        <% end %>
+        </button>
 
         <%= link_to reminders_path,
           class: "mobile-footer-action-menu__item mobile-footer-action-menu__item--reminder",

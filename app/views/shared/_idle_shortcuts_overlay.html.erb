@@ -9,6 +9,9 @@
   todo_lists_available = TodoList.schema_ready? && TodoItem.schema_ready?
   scanned_documents_available = ScannedDocument.schema_ready?
   scan_entry = current_user.notepad_entries.new(entry_date: entry_date) if scanned_documents_available
+  launcher_prefs_supported = app_setting.launcher_preferences_supported?
+  continue_scope = launcher_prefs_supported ? app_setting.workspace_launcher_continue_scope : "today"
+  continue_scope_update_url = settings_workspace_launcher_path
 %>
 
 <div
@@ -18,7 +21,7 @@
   data-idle-shortcuts-idle-ms-value="<%= app_setting.workspace_launcher_idle_timeout_ms %>"
   data-idle-shortcuts-storage-key-value="<%= storage_key %>"
   data-idle-shortcuts-target="overlay"
-  data-action="click->idle-shortcuts#backdropClick"
+  data-action="click->idle-shortcuts#backdropClick inkcreate:launcher:open@window->idle-shortcuts#show"
   role="dialog"
   aria-modal="true"
   aria-labelledby="<%= title_id %>"
@@ -34,45 +37,41 @@
     <div class="idle-shortcuts-groups">
       <section class="idle-shortcuts-group">
         <div class="idle-shortcuts-group__header">
-          <div class="idle-shortcuts-group__eyebrow">Workspace</div>
-          <span class="idle-shortcuts-group__title">Core spaces</span>
-        </div>
-        <div class="idle-shortcuts-grid idle-shortcuts-grid--launcher idle-shortcuts-grid--workspace" role="list">
-          <%= link_to notebooks_path,
-            class: "idle-shortcuts-card idle-shortcuts-card--launcher",
-            data: { action: "click->idle-shortcuts#followLink" },
-            role: "listitem",
-            title: "Open notebooks" do %>
-            <span class="idle-shortcuts-card__icon-shell" aria-hidden="true">
-              <i class="ti ti-book-2"></i>
-            </span>
-            <span class="idle-shortcuts-card__title">Notebook</span>
-            <span class="idle-shortcuts-card__description">Browse notebooks, chapters, and pages.</span>
-          <% end %>
-
-          <%= link_to notepad_entries_path,
-            class: "idle-shortcuts-card idle-shortcuts-card--launcher",
-            data: { action: "click->idle-shortcuts#followLink" },
-            role: "listitem",
-            title: "Open notepad" do %>
-            <span class="idle-shortcuts-card__icon-shell" aria-hidden="true">
-              <i class="ti ti-notes"></i>
-            </span>
-            <span class="idle-shortcuts-card__title">Notepad</span>
-            <span class="idle-shortcuts-card__description">Open the daily notes timeline.</span>
-          <% end %>
-        </div>
-      </section>
-
-      <section class="idle-shortcuts-group">
-        <div class="idle-shortcuts-group__header">
           <div class="idle-shortcuts-group__eyebrow">Daily Notepad</div>
           <span class="idle-shortcuts-group__title">Create something new</span>
         </div>
+
+        <% if launcher_prefs_supported %>
+          <div
+            class="launcher-continue-scope"
+            data-controller="launcher-continue-scope"
+            data-launcher-continue-scope-url-value="<%= continue_scope_update_url %>"
+            data-launcher-continue-scope-csrf-value="<%= form_authenticity_token %>"
+            role="radiogroup"
+            aria-label="Continue capture in"
+          >
+            <span class="launcher-continue-scope__label">Continue in</span>
+            <div class="launcher-continue-scope__options">
+              <% [["today", "Today's page"], ["latest", "Latest page"]].each do |value, label| %>
+                <button
+                  type="button"
+                  class="launcher-continue-scope__option<%= continue_scope == value ? " is-active" : "" %>"
+                  role="radio"
+                  aria-checked="<%= continue_scope == value %>"
+                  data-launcher-continue-scope-target="option"
+                  data-scope-value="<%= value %>"
+                  data-action="click->launcher-continue-scope#select"
+                ><%= label %></button>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
         <div class="idle-shortcuts-grid idle-shortcuts-grid--launcher idle-shortcuts-grid--daily" role="list">
           <div class="idle-shortcuts-card-wrap" data-controller="quick-capture" role="listitem">
             <%= form_with url: notepad_entries_path, scope: :notepad_entry, html: { multipart: true }, data: { quick_capture_target: "form" } do |form| %>
               <%= hidden_field_tag :after_create, "edit" %>
+              <%= hidden_field_tag :continue, "1" %>
+              <%= hidden_field_tag :open, "camera" %>
               <%= form.hidden_field :entry_date, value: entry_date %>
               <%= form.file_field :photos,
                 multiple: true,
@@ -144,24 +143,81 @@
             <div class="idle-shortcuts-card-wrap" role="listitem">
               <%= form_with url: notepad_entries_path, scope: :notepad_entry do |form| %>
                 <%= hidden_field_tag :after_create, "edit" %>
+                <%= hidden_field_tag :continue, "1" %>
+                <%= hidden_field_tag :open, "todo" %>
                 <%= form.hidden_field :entry_date, value: entry_date %>
                 <%= form.hidden_field :todo_list_enabled, value: "true" %>
                 <button
                   type="submit"
                   class="idle-shortcuts-card idle-shortcuts-card--launcher idle-shortcuts-card--button"
                   data-action="click->idle-shortcuts#hideImmediately"
-                  title="Create a daily page with a to-do list"
-                  aria-label="Create a daily page with a to-do list"
+                  title="Add a to-do to your daily page"
+                  aria-label="Add a to-do to your daily page"
                 >
                   <span class="idle-shortcuts-card__icon-shell" aria-hidden="true">
                     <i class="ti ti-list-check"></i>
                   </span>
                   <span class="idle-shortcuts-card__title">New to-do</span>
-                  <span class="idle-shortcuts-card__description">Start a daily page with a checklist ready.</span>
+                  <span class="idle-shortcuts-card__description">Append a checklist to your daily page.</span>
                 </button>
               <% end %>
             </div>
           <% end %>
+
+          <div
+            class="idle-shortcuts-card-wrap"
+            data-controller="launcher-location-capture"
+            role="listitem"
+          >
+            <%= form_with url: notepad_entries_path,
+              scope: :notepad_entry,
+              data: { launcher_location_capture_target: "form" } do |form| %>
+              <%= hidden_field_tag :after_create, "view" %>
+              <%= hidden_field_tag :continue, "1" %>
+              <%= hidden_field_tag :stamp_location, "1" %>
+              <%= form.hidden_field :entry_date, value: entry_date %>
+              <%= form.hidden_field :location_source, value: "current" %>
+              <%= form.hidden_field :location_latitude, value: "", data: { launcher_location_capture_target: "latitude" } %>
+              <%= form.hidden_field :location_longitude, value: "", data: { launcher_location_capture_target: "longitude" } %>
+
+              <button
+                type="button"
+                class="idle-shortcuts-card idle-shortcuts-card--launcher idle-shortcuts-card--button"
+                data-action="click->idle-shortcuts#hideImmediately click->launcher-location-capture#stamp"
+                data-launcher-location-capture-target="button"
+                title="Stamp your current GPS on the latest daily page"
+                aria-label="Stamp your current GPS on the latest daily page"
+              >
+                <span class="idle-shortcuts-card__icon-shell" aria-hidden="true">
+                  <i class="ti ti-map-pin"></i>
+                </span>
+                <span class="idle-shortcuts-card__title">Current location</span>
+                <span class="idle-shortcuts-card__description" data-launcher-location-capture-target="status">Stamp your GPS onto the latest page.</span>
+              </button>
+            <% end %>
+          </div>
+
+          <div class="idle-shortcuts-card-wrap" role="listitem">
+            <%= form_with url: notepad_entries_path, scope: :notepad_entry do |form| %>
+              <%= hidden_field_tag :after_create, "edit" %>
+              <%= hidden_field_tag :continue, "1" %>
+              <%= hidden_field_tag :open, "contact" %>
+              <%= form.hidden_field :entry_date, value: entry_date %>
+              <button
+                type="submit"
+                class="idle-shortcuts-card idle-shortcuts-card--launcher idle-shortcuts-card--button"
+                data-action="click->idle-shortcuts#hideImmediately"
+                title="Add a contact to your daily page"
+                aria-label="Add a contact to your daily page"
+              >
+                <span class="idle-shortcuts-card__icon-shell" aria-hidden="true">
+                  <i class="ti ti-user-plus"></i>
+                </span>
+                <span class="idle-shortcuts-card__title">New contact</span>
+                <span class="idle-shortcuts-card__description">Save a contact card into your daily page.</span>
+              </button>
+            <% end %>
+          </div>
         </div>
       </section>
 
@@ -232,6 +288,8 @@
           <p class="workspace-launcher-modal__intro">Record a voice note and save it to create today’s daily page in edit mode.</p>
           <%= form_with url: notepad_entries_path, scope: :notepad_entry do |form| %>
             <%= hidden_field_tag :after_create, "edit" %>
+            <%= hidden_field_tag :continue, "1" %>
+            <%= hidden_field_tag :open, "voice" %>
             <%= form.hidden_field :entry_date, value: entry_date %>
             <%= render "pages/voice_note_recorder",
               form: form,
@@ -258,6 +316,8 @@
           <p class="workspace-launcher-modal__intro">Capture one or more scans, then create today’s daily page with the saved PDF and image files attached.</p>
           <%= form_with url: notepad_entries_path, scope: :notepad_entry do |form| %>
             <%= hidden_field_tag :after_create, "edit" %>
+            <%= hidden_field_tag :continue, "1" %>
+            <%= hidden_field_tag :open, "scan" %>
             <%= form.hidden_field :entry_date, value: entry_date %>
             <%= render "shared/scanned_documents_form_section", form: form, record: scan_entry, dom_prefix: "workspace_scan_entry" %>
             <div class="workspace-launcher-modal__actions">

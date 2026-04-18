@@ -10,7 +10,7 @@ export default class extends Controller {
     "camStatus", "autoDot", "autoLabel", "autoCapLabel", "autoBadge", "fileInput",
     "detectContainer", "detectCanvas", "quadSvg", "cornerHandle", "loupeCanvas", "detectHint",
     "enhanceCanvas", "filterStrip", "brightness", "contrast", "brightnessVal", "contrastVal",
-    "reviewCanvas", "reviewStats", "reviewTitle", "reviewTags", "saveBtn",
+    "reviewCanvas", "reviewTitle", "reviewTags", "saveBtn",
     "viewer", "viewerTitle", "viewerText",
     "count", "draftPayloadField", "draftList", "draftEmptyState"
   ];
@@ -450,13 +450,13 @@ export default class extends Controller {
       notfound: {
         icon: '<i class="ti ti-camera" aria-hidden="true"></i>',
         title: "No camera found",
-        sub: "Upload a photo or pick a sample document instead.",
+        sub: "Upload a photo instead.",
         showRetry: false
       },
       unavailable: {
         icon: '<i class="ti ti-camera" aria-hidden="true"></i>',
         title: "Camera not available",
-        sub: "Upload a photo or pick a sample document instead.",
+        sub: "Upload a photo instead.",
         showRetry: false
       }
     };
@@ -476,19 +476,11 @@ export default class extends Controller {
         <button class="dcap-retry-btn" data-action="click->document-capture#retryCamera">
           Retry camera
         </button>` : ""}
-        <div class="dcap-samples">
-          ${this._sampleLabels().map((l, i) => `
-            <button class="dcap-sample-btn" data-action="click->document-capture#useSample" data-idx="${i}">
-              ${l}
-            </button>`).join("")}
-        </div>
         ${this._supportsNativeCameraFlashFallback() ? `
         <button class="btn btn-white btn-sm" data-action="click->document-capture#openNativeCamera"><i class="ti ti-camera" aria-hidden="true"></i> Camera app</button>` : ""}
         <button class="btn btn-white btn-sm" data-action="click->document-capture#pickGallery"><i class="ti ti-photo-plus" aria-hidden="true"></i> Upload</button>
       </div>`);
   }
-
-  _sampleLabels() { return ["Meeting Notes", "Invoice", "Research Notes"]; }
 
   _startDetectionLoop() {
     this._detectionTimer = setInterval(() => this._detectFrame(), 400);
@@ -610,7 +602,16 @@ export default class extends Controller {
       this.flashOverlayTarget.classList.add("dcap-flash--active");
       setTimeout(() => this.flashOverlayTarget.classList.remove("dcap-flash--active"), 180);
     }
-    this.capturedImage = await this._captureCurrentFrame() || this._buildSampleCanvas(0);
+    const capturedImage = await this._captureCurrentFrame();
+    if (!capturedImage) {
+      if (this.hasCamStatusTarget) {
+        this.camStatusTarget.textContent = "Could not capture image. Try again or upload a photo.";
+        this.camStatusTarget.classList.remove("dcap-status--detected");
+      }
+      return;
+    }
+
+    this.capturedImage = capturedImage;
     this._stopCamera();
     setTimeout(() => { this._showScreen(2); this._renderDetectCanvas(); }, 180);
   }
@@ -686,14 +687,6 @@ export default class extends Controller {
     });
   }
 
-  useSample(e) {
-    const idx = parseInt(e.currentTarget.dataset.idx || 0);
-    this.capturedImage = this._buildSampleCanvas(idx);
-    this._stopCamera();
-    this._showScreen(2);
-    this._renderDetectCanvas();
-  }
-
   openNativeCamera(event) {
     event?.preventDefault();
 
@@ -730,24 +723,6 @@ export default class extends Controller {
       this._renderDetectCanvas();
     };
     img.src = url;
-  }
-
-  _buildSampleCanvas(idx) {
-    const samples = [
-      { title: "Meeting Notes", lines: ["Q1 Review — April 11", "Attendees: Alex, Sam", "Revenue up 23% YoY", "Key driver: subscriptions", "Next: board presentation Q2"] },
-      { title: "Invoice #4521", lines: ["Date: April 10, 2026", "From: Acme Corp", "To: InkCreate Ltd", "Amount: $3,200.00", "Due: April 30, 2026"] },
-      { title: "Research Notes", lines: ["Topic: Document scanning", "Edge detect accuracy: 94%", "12 user test participants", "Task completion: 89%", "Avg scan time: 14 seconds"] }
-    ];
-    const s = samples[idx] || samples[0];
-    const c = document.createElement("canvas"); c.width = 480; c.height = 640;
-    const ctx = c.getContext("2d");
-    ctx.fillStyle = "#fffdf8"; ctx.fillRect(0, 0, 480, 640);
-    ctx.fillStyle = "#ff5f4e"; ctx.fillRect(0, 0, 480, 4);
-    ctx.fillStyle = "#1b1b1d"; ctx.font = "bold 28px Inter,sans-serif";
-    ctx.fillText(s.title, 28, 52);
-    ctx.fillStyle = "#7a7670"; ctx.font = "18px Inter,sans-serif";
-    s.lines.forEach((l, i) => ctx.fillText(l, 28, 100 + i * 36));
-    return c;
   }
 
   async toggleFlash() {
@@ -819,30 +794,53 @@ export default class extends Controller {
   }
 
   _updateCornerHandles() {
-    const canvas = this.detectCanvasTarget;
-    const rect = canvas.getBoundingClientRect();
+    // Handles are absolutely positioned inside .dcap-detect-container, so positions
+    // must be relative to the container's padding box — same reference as the SVG polygon.
+    const canvasRect = this._dragCanvasRect || this.detectCanvasTarget.getBoundingClientRect();
+    const containerRect = this._dragContainerRect || this.detectContainerTarget.getBoundingClientRect();
+    const offsetLeft = canvasRect.left - containerRect.left;
+    const offsetTop = canvasRect.top - containerRect.top;
     this.cornerHandleTargets.forEach((el, i) => {
-      el.style.left = (rect.left - this.element.getBoundingClientRect().left + this.corners[i].x * rect.width) + "px";
-      el.style.top = (rect.top - this.element.getBoundingClientRect().top + this.corners[i].y * rect.height) + "px";
+      el.style.left = (offsetLeft + this.corners[i].x * canvasRect.width) + "px";
+      el.style.top = (offsetTop + this.corners[i].y * canvasRect.height) + "px";
     });
   }
 
   _drawQuadSVG() {
-    const canvas = this.detectCanvasTarget;
-    const rect = canvas.getBoundingClientRect();
-    const cRect = this.detectContainerTarget.getBoundingClientRect();
+    const canvasRect = this._dragCanvasRect || this.detectCanvasTarget.getBoundingClientRect();
     const svg = this.quadSvgTarget;
-    svg.style.left = (rect.left - cRect.left) + "px";
-    svg.style.top = (rect.top - cRect.top) + "px";
-    svg.style.width = rect.width + "px";
-    svg.style.height = rect.height + "px";
-    svg.setAttribute("viewBox", `0 0 ${rect.width} ${rect.height}`);
-    const pts = this.corners.map(c => `${c.x * rect.width},${c.y * rect.height}`).join(" ");
-    svg.innerHTML = `<polygon points="${pts}" fill="rgba(255,95,78,.1)" stroke="#ff5f4e" stroke-width="2.5" stroke-dasharray="6,3"/>`;
+    if (!this._dragCanvasRect) {
+      const cRect = this.detectContainerTarget.getBoundingClientRect();
+      svg.style.left = (canvasRect.left - cRect.left) + "px";
+      svg.style.top = (canvasRect.top - cRect.top) + "px";
+      svg.style.width = canvasRect.width + "px";
+      svg.style.height = canvasRect.height + "px";
+      svg.setAttribute("viewBox", `0 0 ${canvasRect.width} ${canvasRect.height}`);
+    }
+    let polygon = svg.querySelector("polygon");
+    if (!polygon) {
+      polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+      polygon.setAttribute("fill", "rgba(255,95,78,.1)");
+      polygon.setAttribute("stroke", "#ff5f4e");
+      polygon.setAttribute("stroke-width", "2.5");
+      polygon.setAttribute("stroke-dasharray", "6,3");
+      svg.appendChild(polygon);
+    }
+    polygon.setAttribute("points", this.corners.map(c => `${c.x * canvasRect.width},${c.y * canvasRect.height}`).join(" "));
   }
 
   _setupCornerDrag() {
-    // Delegated pointer events on the element
+    let pendingFrame = null;
+    let lastClientX = 0, lastClientY = 0;
+
+    const flush = () => {
+      pendingFrame = null;
+      if (this.draggingCornerIdx < 0) return;
+      this._updateCornerHandles();
+      this._drawQuadSVG();
+      this._showLoupe(this.draggingCornerIdx, lastClientX, lastClientY);
+    };
+
     this.element.addEventListener("pointerdown", e => {
       const handle = e.target.closest("[data-document-capture-target='cornerHandle']");
       if (!handle) return;
@@ -850,37 +848,43 @@ export default class extends Controller {
       this.draggingCornerIdx = parseInt(handle.dataset.idx);
       handle.classList.add("dcap-handle--dragging");
       handle.setPointerCapture(e.pointerId);
+      this._dragCanvasRect = this.detectCanvasTarget.getBoundingClientRect();
+      this._dragContainerRect = this.detectContainerTarget.getBoundingClientRect();
     });
     this.element.addEventListener("pointermove", e => {
       if (this.draggingCornerIdx < 0) return;
-      const canvas = this.detectCanvasTarget;
-      const rect = canvas.getBoundingClientRect();
+      const rect = this._dragCanvasRect;
       this.corners[this.draggingCornerIdx] = {
         x: Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
         y: Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height))
       };
-      this._updateCornerHandles();
-      this._drawQuadSVG();
-      this._showLoupe(this.draggingCornerIdx, e.clientX, e.clientY);
+      lastClientX = e.clientX;
+      lastClientY = e.clientY;
+      if (pendingFrame == null) pendingFrame = requestAnimationFrame(flush);
     });
-    this.element.addEventListener("pointerup", e => {
+    const endDrag = () => {
+      if (pendingFrame != null) { cancelAnimationFrame(pendingFrame); pendingFrame = null; }
       if (this.draggingCornerIdx >= 0) {
         const handle = this.cornerHandleTargets[this.draggingCornerIdx];
         handle?.classList.remove("dcap-handle--dragging");
       }
       this.draggingCornerIdx = -1;
+      this._dragCanvasRect = null;
+      this._dragContainerRect = null;
       if (this.hasLoupeCanvasTarget) this.loupeCanvasTarget.style.display = "none";
-    });
+    };
+    this.element.addEventListener("pointerup", endDrag);
+    this.element.addEventListener("pointercancel", endDrag);
   }
 
   _showLoupe(idx, cx, cy) {
     const loupe = this.loupeCanvasTarget;
     const src = this.detectCanvasTarget;
-    const rect = src.getBoundingClientRect();
-    const cRect = this.detectContainerTarget.getBoundingClientRect();
+    const cRect = this._dragContainerRect || this.detectContainerTarget.getBoundingClientRect();
     const px = this.corners[idx].x * src.width;
     const py = this.corners[idx].y * src.height;
-    const r = 40, ds = loupe.width = loupe.height = 80;
+    const r = 40, ds = 80;
+    if (loupe.width !== ds) { loupe.width = ds; loupe.height = ds; }
     const ctx = loupe.getContext("2d");
     ctx.clearRect(0, 0, ds, ds);
     ctx.save(); ctx.beginPath(); ctx.arc(40, 40, 38, 0, Math.PI * 2); ctx.clip();
@@ -917,7 +921,15 @@ export default class extends Controller {
         tmp.getContext("2d").drawImage(src, 0, 0);
         const mat = cv.imread(tmp);
         const W = tmp.width, H = tmp.height;
-        const outW = 480, outH = 640;
+        const c = this.corners;
+        const outW = Math.round(Math.max(
+          Math.hypot((c[1].x - c[0].x) * W, (c[1].y - c[0].y) * H),
+          Math.hypot((c[2].x - c[3].x) * W, (c[2].y - c[3].y) * H)
+        ));
+        const outH = Math.round(Math.max(
+          Math.hypot((c[3].x - c[0].x) * W, (c[3].y - c[0].y) * H),
+          Math.hypot((c[2].x - c[1].x) * W, (c[2].y - c[1].y) * H)
+        ));
         const srcPts = cv.matFromArray(4, 1, cv.CV_32FC2, [
           this.corners[0].x * W, this.corners[0].y * H,
           this.corners[1].x * W, this.corners[1].y * H,
@@ -1064,11 +1076,6 @@ export default class extends Controller {
     if (src && rc) { rc.width = src.width; rc.height = src.height; rc.getContext("2d").drawImage(src, 0, 0); }
     this.reviewTitleTarget.value = this._nextAutoScanTitle();
     this.reviewTagsTarget.value = "";
-    this.reviewStatsTarget.innerHTML = `
-      <div class="dcap-stat"><div class="dcap-stat-label">Format</div><div class="dcap-stat-value">PDF</div></div>
-      <div class="dcap-stat"><div class="dcap-stat-label">Filter</div><div class="dcap-stat-value">${this._filterDisplayName(this.currentFilter)}</div></div>
-      <div class="dcap-stat"><div class="dcap-stat-label">Width</div><div class="dcap-stat-value">${src?.width || "—"} px</div></div>
-      <div class="dcap-stat"><div class="dcap-stat-label">Height</div><div class="dcap-stat-value">${src?.height || "—"} px</div></div>`;
   }
 
   async save() {
@@ -1391,10 +1398,10 @@ export default class extends Controller {
 
   _buildNativeOcrPayload(result) {
     const analysis = result?.analysis || {};
-    const ocr = analysis.ocr || result?.ocr || result || {};
+    const ocr = analysis.ocr || result?.ocr || result?.data || result || {};
     const languageInfo = analysis.languageIdentification || {};
-    const text = ocr?.fullText || ocr?.text || result?.text || result?.extractedText || result?.fullText || "";
-    const confidence = ocr?.confidence ?? result?.confidence ?? result?.meanConfidence ?? result?.confidencePercent ?? null;
+    const text = this._extractNativeOcrText(result, ocr);
+    const confidence = this._extractNativeOcrConfidence(result, ocr);
     const language = languageInfo?.languageCode
       || languageInfo?.bestLanguageCode
       || ocr?.language
@@ -1406,6 +1413,150 @@ export default class extends Controller {
     const engine = ocr?.engine || result?.engine || "google-ml";
 
     return { text, confidence, language, engine };
+  }
+
+  _extractNativeOcrText(result, ocr) {
+    const directText = ocr?.fullText
+      || ocr?.text
+      || result?.text
+      || result?.extractedText
+      || result?.fullText
+      || result?.data?.text
+      || "";
+
+    if (String(directText || "").trim().length > 0) {
+      return directText;
+    }
+
+    const blockText = this._collectNativeOcrTextFragments(
+      ocr?.blocks,
+      result?.blocks,
+      result?.data?.blocks
+    );
+
+    return blockText.join("\n").trim();
+  }
+
+  _collectNativeOcrTextFragments(...collections) {
+    const fragments = [];
+
+    const visit = (node) => {
+      if (!node) return;
+
+      if (Array.isArray(node)) {
+        node.forEach(visit);
+        return;
+      }
+
+      if (typeof node !== "object") return;
+
+      const text = typeof node.text === "string" ? node.text.trim() : "";
+      if (text.length > 0) {
+        fragments.push(text);
+      }
+
+      visit(node.blocks);
+      visit(node.lines);
+      visit(node.words);
+      visit(node.elements);
+      visit(node.segments);
+    };
+
+    collections.forEach(visit);
+    return [...new Set(fragments)];
+  }
+
+  _extractNativeOcrConfidence(result, ocr) {
+    const directConfidence = this._normalizeNativeConfidenceValue(
+      ocr?.confidence
+      ?? ocr?.meanConfidence
+      ?? ocr?.confidencePercent
+      ?? ocr?.averageConfidence
+      ?? ocr?.confidenceScore
+      ?? result?.confidence
+      ?? result?.meanConfidence
+      ?? result?.confidencePercent
+      ?? result?.averageConfidence
+      ?? result?.confidenceScore
+      ?? result?.data?.confidence
+      ?? result?.data?.meanConfidence
+      ?? result?.data?.confidencePercent
+      ?? result?.data?.averageConfidence
+      ?? null
+    );
+
+    if (directConfidence !== null) {
+      return directConfidence;
+    }
+
+    return this._averageNativeConfidenceCandidates(
+      ocr?.blocks,
+      ocr?.lines,
+      ocr?.words,
+      result?.blocks,
+      result?.lines,
+      result?.words,
+      result?.data?.blocks,
+      result?.data?.lines,
+      result?.data?.words
+    );
+  }
+
+  _averageNativeConfidenceCandidates(...collections) {
+    const candidates = [];
+
+    const visit = (node) => {
+      if (!node) return;
+
+      if (Array.isArray(node)) {
+        node.forEach(visit);
+        return;
+      }
+
+      if (typeof node !== "object") return;
+
+      const normalized = this._normalizeNativeConfidenceValue(
+        node.confidence
+        ?? node.meanConfidence
+        ?? node.confidencePercent
+        ?? node.averageConfidence
+        ?? node.confidenceScore
+        ?? null
+      );
+
+      if (normalized !== null) {
+        candidates.push(normalized);
+      }
+
+      visit(node.blocks);
+      visit(node.lines);
+      visit(node.words);
+      visit(node.elements);
+      visit(node.segments);
+    };
+
+    collections.forEach(visit);
+
+    if (candidates.length === 0) {
+      return null;
+    }
+
+    const total = candidates.reduce((sum, value) => sum + value, 0);
+    return Math.round((total / candidates.length) * 10) / 10;
+  }
+
+  _normalizeNativeConfidenceValue(value) {
+    if (value === null || value === undefined || value === "") {
+      return null;
+    }
+
+    const numeric = Number.parseFloat(String(value).replace(/[^0-9.\-]/g, ""));
+    if (Number.isNaN(numeric)) {
+      return null;
+    }
+
+    const percent = numeric > 0 && numeric <= 1 ? numeric * 100 : numeric;
+    return Math.max(0, Math.min(percent, 100));
   }
 
   // ── Text viewer ──────────────────────────────────────────────────────────────

@@ -12,14 +12,19 @@ module Settings
         return redirect_to settings_path, alert: "Workspace launcher settings will appear after the latest app migration is loaded."
       end
 
-      app_setting.update!(launcher_preferences: launcher_params.to_h)
-      redirect_to settings_path, notice: "Workspace launcher settings updated."
+      merged = app_setting.merged_launcher_preferences.merge(launcher_params.to_h.stringify_keys)
+      app_setting.update!(launcher_preferences: merged)
+
+      respond_to do |fmt|
+        fmt.html { redirect_back fallback_location: settings_path, notice: "Workspace launcher settings updated." }
+        fmt.json { render json: { ok: true, continue_scope: app_setting.workspace_launcher_continue_scope } }
+      end
     end
 
     private
 
     def launcher_params
-      params.require(:app_setting).permit(:enabled, :idle_timeout_ms)
+      params.require(:app_setting).permit(:enabled, :idle_timeout_ms, :continue_scope)
     end
   end
 end

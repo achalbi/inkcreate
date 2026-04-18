@@ -1,6 +1,10 @@
 <%
   camera_input_id = local_assigns[:camera_input_id]
   camera_button_id = local_assigns[:camera_button_id]
+  location_section_id = local_assigns[:location_section_id]
+  location_input_id = local_assigns[:location_input_id]
+  contact_section_id = local_assigns[:contact_section_id]
+  contact_button_id = local_assigns[:contact_button_id]
 %>
 
 <div
@@ -21,6 +25,18 @@
   data-notepad-quick-actions-todo-section-id-value="<%= todo_list_section_id %>"
   <% end %>
   data-notepad-quick-actions-scan-section-id-value="<%= scanned_documents_section_id %>"
+  <% if location_section_id.present? %>
+  data-notepad-quick-actions-location-section-id-value="<%= location_section_id %>"
+  <% end %>
+  <% if location_input_id.present? %>
+  data-notepad-quick-actions-location-input-id-value="<%= location_input_id %>"
+  <% end %>
+  <% if contact_section_id.present? %>
+  data-notepad-quick-actions-contact-section-id-value="<%= contact_section_id %>"
+  <% end %>
+  <% if contact_button_id.present? %>
+  data-notepad-quick-actions-contact-button-id-value="<%= contact_button_id %>"
+  <% end %>
 >
   <div class="notepad-quick-actions__menu" data-notepad-quick-actions-target="menu" aria-hidden="true">
     <button
@@ -81,6 +97,32 @@
     >
       <i class="ti ti-scan" aria-hidden="true"></i>
     </button>
+
+    <% if location_section_id.present? %>
+      <button
+        type="button"
+        class="notepad-quick-actions__item"
+        data-notepad-quick-actions-target="item"
+        data-action="click->notepad-quick-actions#openLocation"
+        aria-label="Add location"
+        title="Add location"
+      >
+        <i class="ti ti-map-pin" aria-hidden="true"></i>
+      </button>
+    <% end %>
+
+    <% if contact_section_id.present? %>
+      <button
+        type="button"
+        class="notepad-quick-actions__item"
+        data-notepad-quick-actions-target="item"
+        data-action="click->notepad-quick-actions#openContact"
+        aria-label="Add contact"
+        title="Add contact"
+      >
+        <i class="ti ti-address-book" aria-hidden="true"></i>
+      </button>
+    <% end %>
   </div>
 
   <button

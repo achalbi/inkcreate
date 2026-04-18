@@ -1,0 +1,45 @@
+<div
+  class="modal fade sdoc-ocr-modal"
+  id="<%= modal_id %>"
+  tabindex="-1"
+  aria-hidden="true"
+  aria-label="OCR text"
+  data-workspace-modal-portal="false"
+  data-scanned-document-ocr-modal-target="modal"
+>
+  <template data-scanned-document-ocr-modal-target="template">
+    <div class="modal-content sdoc-ocr-modal__content">
+      <div class="modal-header">
+        <div>
+          <div class="sdoc-ocr-modal__eyebrow">OCR</div>
+          <h5 class="modal-title">Loading OCR text</h5>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body sdoc-ocr-modal__body">
+        <p class="sdoc-ocr-modal__helper m-b-none">Loading content…</p>
+      </div>
+    </div>
+  </template>
+
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <turbo-frame
+      id="<%= frame_id %>"
+      class="sdoc-ocr-modal__frame"
+      data-scanned-document-ocr-modal-target="frame"
+    >
+      <div class="modal-content sdoc-ocr-modal__content">
+        <div class="modal-header">
+          <div>
+            <div class="sdoc-ocr-modal__eyebrow">OCR</div>
+            <h5 class="modal-title">Loading OCR text</h5>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body sdoc-ocr-modal__body">
+          <p class="sdoc-ocr-modal__helper m-b-none">Loading content…</p>
+        </div>
+      </div>
+    </turbo-frame>
+  </div>
+</div>

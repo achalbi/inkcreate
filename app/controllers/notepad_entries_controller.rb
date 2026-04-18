@@ -42,7 +42,11 @@ class NotepadEntriesController < BrowserController
   end
 
   def create
-    @notepad_entry = current_user.notepad_entries.new(notepad_entry_attributes)
+    @notepad_entry = resolve_quick_capture_target_entry
+    appending = @notepad_entry.persisted?
+
+    append_location_from_stamp!(@notepad_entry) if appending && stamp_location_request?
+
     preserve_pending_photos(@notepad_entry, notepad_entry_params)
     assign_pending_content_from_params(@notepad_entry, notepad_entry_params, raw_notepad_entry_attributes)
 
@@ -54,7 +58,7 @@ class NotepadEntriesController < BrowserController
         persist_pending_scanned_documents(@notepad_entry, payloads: @notepad_entry.pending_scanned_document_payloads, user: current_user)
         @notepad_entry.pending_scanned_document_payloads = []
       end
-      redirect_to create_redirect_path(@notepad_entry), notice: create_notice_message
+      redirect_to create_redirect_path(@notepad_entry), notice: create_notice_message(appending: appending)
     else
       render :new, status: :unprocessable_entity
     end
@@ -151,6 +155,13 @@ class NotepadEntriesController < BrowserController
       :title,
       :notes,
       :entry_date,
+      :locations_json,
+      :contacts_json,
+      :location_name,
+      :location_address,
+      :location_source,
+      :location_latitude,
+      :location_longitude,
       :todo_list_enabled,
       :todo_list_hide_completed,
       :pending_scanned_documents_json,
@@ -341,6 +352,8 @@ class NotepadEntriesController < BrowserController
     page = chapter.pages.new(
       title: @notepad_entry.title,
       notes: @notepad_entry.notes,
+      locations_data: @notepad_entry.locations,
+      contacts_data: @notepad_entry.contacts,
       captured_on: @notepad_entry.entry_date
     )
     page.retained_photo_signed_ids = photo_signed_ids_for_move
@@ -494,6 +507,8 @@ class NotepadEntriesController < BrowserController
 
   def blank_notepad_entry_shell?
     @notepad_entry.notes.to_s.blank? &&
+      !@notepad_entry.location_present? &&
+      !@notepad_entry.contact_present? &&
       !@notepad_entry.photos.attached? &&
       !@notepad_entry.voice_notes.exists? &&
       !@notepad_entry.scanned_documents.exists? &&
@@ -501,12 +516,19 @@ class NotepadEntriesController < BrowserController
   end
 
   def create_redirect_path(entry)
-    return edit_notepad_entry_path(entry) if redirect_to_edit_after_create?
+    query = {}
+    query[:open] = quick_capture_open_panel if quick_capture_open_panel.present?
 
-    notepad_entry_path(entry)
+    if redirect_to_edit_after_create?
+      edit_notepad_entry_path(entry, query)
+    else
+      notepad_entry_path(entry, query)
+    end
   end
 
-  def create_notice_message
+  def create_notice_message(appending: false)
+    return "Location added to your daily page." if stamp_location_request?
+    return "Added to your daily page." if appending
     return "Daily page created. You can add notes, photos, or more voice notes now." if redirect_to_edit_after_create?
 
     "Notepad entry created."
@@ -514,6 +536,59 @@ class NotepadEntriesController < BrowserController
 
   def redirect_to_edit_after_create?
     params[:after_create].to_s == "edit"
+  end
+
+  def quick_capture_open_panel
+    panel = params[:open].to_s
+    %w[camera voice todo scan location contact].include?(panel) ? panel : nil
+  end
+
+  def quick_capture_continue_request?
+    params[:continue].to_s == "1"
+  end
+
+  def stamp_location_request?
+    params[:stamp_location].to_s == "1"
+  end
+
+  def resolve_quick_capture_target_entry
+    return build_new_notepad_entry unless quick_capture_continue_request?
+
+    scope = launcher_continue_scope
+    existing = case scope
+    when "latest"
+      current_user.notepad_entries.recent_first.first
+    else
+      current_user.notepad_entries.find_by(entry_date: Time.zone.today)
+    end
+
+    existing || build_new_notepad_entry
+  end
+
+  def build_new_notepad_entry
+    current_user.notepad_entries.new(notepad_entry_attributes)
+  end
+
+  def launcher_continue_scope
+    app_setting = current_user.ensure_app_setting!
+    return "today" unless app_setting.launcher_preferences_supported?
+
+    app_setting.workspace_launcher_continue_scope
+  end
+
+  def append_location_from_stamp!(entry)
+    latitude = notepad_entry_params[:location_latitude].presence
+    longitude = notepad_entry_params[:location_longitude].presence
+    return if latitude.blank? || longitude.blank?
+
+    combined = entry.locations + [{
+      "latitude" => latitude,
+      "longitude" => longitude,
+      "source" => notepad_entry_params[:location_source].presence || "current",
+      "name" => notepad_entry_params[:location_name].presence,
+      "address" => notepad_entry_params[:location_address].presence
+    }]
+    entry.locations_json = combined.to_json
   end
 
   def notepad_entry_detail_includes

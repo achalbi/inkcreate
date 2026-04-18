@@ -33,6 +33,18 @@
         <i class="ti ti-file-text" aria-hidden="true"></i> Notes
       </span>
     <% end %>
+    <% if notepad_entry.location_present? %>
+      <span class="notepad-doc__meta-chip">
+        <i class="ti ti-map-pin" aria-hidden="true"></i>
+        <%= notepad_entry.location_count_label %>
+      </span>
+    <% end %>
+    <% if notepad_entry.contact_present? %>
+      <span class="notepad-doc__meta-chip">
+        <i class="ti ti-address-book" aria-hidden="true"></i>
+        <%= notepad_entry.contact_count_label %>
+      </span>
+    <% end %>
     <% if photo_count > 0 %>
       <span class="notepad-doc__meta-chip">
         <i class="ti ti-photo" aria-hidden="true"></i>

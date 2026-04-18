@@ -226,13 +226,17 @@ module Drive
           "Type: Notebook page",
           "Notebook: #{record.notebook.title}",
           "Chapter: #{record.chapter.title}",
+          *contact_metadata_lines,
+          *location_metadata_lines,
           "Captured on: #{record.captured_on || "-"}",
           "Updated at: #{record.updated_at.iso8601}"
-        ]
+        ].compact
       when NotepadEntry
         [
           "Type: Daily page",
           "Entry date: #{record.entry_date}",
+          *contact_metadata_lines,
+          *location_metadata_lines,
           "Updated at: #{record.updated_at.iso8601}"
         ]
       else
@@ -295,7 +299,79 @@ module Drive
         )
       end
 
+      if record.respond_to?(:location_present?) && record.location_present?
+        payload["location_count"] = record.location_count
+        payload["location"] = locations_manifest_payload.first
+        payload["locations"] = locations_manifest_payload
+      end
+
+      if record.respond_to?(:contact_present?) && record.contact_present?
+        payload["contact_count"] = record.contact_count
+        payload["contact"] = contacts_manifest_payload.first
+        payload["contacts"] = contacts_manifest_payload
+      end
+
       payload
+    end
+
+    def contact_metadata_lines
+      return [] unless record.respond_to?(:contact_present?) && record.contact_present?
+
+      return contact_detail_lines("Contact", record.contact_entries.first) unless record.multiple_contacts?
+
+      ["Contacts: #{record.contact_count}"] + record.contact_entries.flat_map.with_index do |contact, index|
+        contact_detail_lines("Contact #{index + 1}", contact)
+      end
+    end
+
+    def location_metadata_lines
+      return [] unless record.respond_to?(:location_present?) && record.location_present?
+
+      return [
+        "Location: #{record.location_label}",
+        ("Location details: #{record.location_secondary_line}" if record.location_secondary_line.present?)
+      ].compact unless record.multiple_locations?
+
+      ["Locations: #{record.location_count}"] + record.location_entries.flat_map.with_index do |location, index|
+        [
+          "Location #{index + 1}: #{location[:label]}",
+          ("Location #{index + 1} details: #{location[:secondary_line]}" if location[:secondary_line].present?)
+        ].compact
+      end
+    end
+
+    def locations_manifest_payload
+      record.location_entries.map do |location|
+        {
+          "name" => location[:label],
+          "address" => location[:address].presence || location[:secondary_line].presence,
+          "latitude" => location[:latitude]&.to_f,
+          "longitude" => location[:longitude]&.to_f,
+          "source" => location[:source].presence
+        }.compact
+      end
+    end
+
+    def contact_detail_lines(prefix, contact)
+      [
+        "#{prefix}: #{contact[:name]}",
+        ("#{prefix} primary phone: #{contact[:primary_phone]}" if contact[:primary_phone].present?),
+        ("#{prefix} secondary phone: #{contact[:secondary_phone]}" if contact[:secondary_phone].present?),
+        ("#{prefix} email: #{contact[:email]}" if contact[:email].present?),
+        ("#{prefix} website: #{contact[:website_url].presence || contact[:website]}" if contact[:website].present?)
+      ].compact
+    end
+
+    def contacts_manifest_payload
+      record.contact_entries.map do |contact|
+        {
+          "name" => contact[:name],
+          "primary_phone" => contact[:primary_phone].presence,
+          "secondary_phone" => contact[:secondary_phone].presence,
+          "email" => contact[:email].presence,
+          "website" => contact[:website_url].presence || contact[:website].presence
+        }.compact
+      end
     end
 
     def sync_photos(folder_id)

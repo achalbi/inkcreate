@@ -1,0 +1,44 @@
+<%
+  frame_id = local_assigns.fetch(:frame_id, dom_id(doc, :text))
+  doc_title = doc.title.presence || "this scan"
+  view_url = local_assigns[:view_url]
+%>
+
+<turbo-frame id="<%= frame_id %>">
+  <div class="modal-content sdoc-ocr-modal__content sdoc-ocr-modal__content--confirm">
+    <div class="modal-header border-0 pb-0">
+      <div>
+        <div class="sdoc-ocr-modal__eyebrow">OCR</div>
+        <h5 class="modal-title">Delete OCR text?</h5>
+      </div>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body pt-2 sdoc-ocr-modal__body">
+      <p class="m-b-sm">Delete extracted OCR text for <strong><%= doc_title %></strong>?</p>
+      <p class="sdoc-ocr-modal__helper m-b-none">This removes the saved OCR text and confidence details. The scanned document stays available.</p>
+    </div>
+
+    <div class="modal-footer border-0 pt-0">
+      <% if view_url.present? %>
+        <%= link_to "View OCR",
+          view_url,
+          class: "btn btn-white btn-sm",
+          data: {
+            action: "click->scanned-document-ocr-modal#openLink",
+            turbo_frame: frame_id
+          } %>
+      <% else %>
+        <button type="button" class="btn btn-white btn-sm" data-bs-dismiss="modal">Cancel</button>
+      <% end %>
+      <%= button_to "Delete OCR",
+        delete_url,
+        method: :delete,
+        form: {
+          class: "m-0",
+          data: { turbo_frame: "_top" }
+        },
+        class: "btn btn-danger btn-sm" %>
+    </div>
+  </div>
+</turbo-frame>

@@ -108,6 +108,200 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
     upload&.tempfile&.close!
   end
 
+  test "user can create a notepad entry with only a location check-in" do
+    user = User.create!(
+      email: "notepad-location@example.com",
+      password: "Password123!",
+      password_confirmation: "Password123!",
+      time_zone: "UTC",
+      locale: "en",
+      role: :user
+    )
+
+    sign_in_browser_user(user)
+
+    assert_difference -> { user.notepad_entries.count }, +1 do
+      post notepad_entries_path, params: {
+        authenticity_token: authenticity_token_for(notepad_entries_path),
+        notepad_entry: {
+          title: "",
+          notes: "",
+          entry_date: Date.current,
+          locations_json: [
+            {
+              name: "Bengaluru office",
+              address: "Bengaluru office, MG Road, Bengaluru, Karnataka, India",
+              latitude: "12.975300",
+              longitude: "77.605000",
+              source: "search"
+            },
+            {
+              name: "Client campus",
+              address: "Client campus, Whitefield, Bengaluru, Karnataka, India",
+              latitude: "12.995000",
+              longitude: "77.740000",
+              source: "manual"
+            }
+          ].to_json
+        }
+      }
+    end
+
+    entry = user.notepad_entries.order(:created_at).last
+
+    assert_redirected_to notepad_entry_path(entry)
+    assert_equal 2, entry.location_count
+    assert_equal "Bengaluru office", entry.location_label
+    assert_equal "Bengaluru office - Page 1", entry.display_title
+
+    follow_redirect!
+
+    assert_response :success
+    assert_select ".location-picker__summary-count", text: "2 locations saved"
+    assert_select ".location-picker__summary-title", text: "Bengaluru office"
+    assert_select ".location-picker__summary-title", text: "Client campus"
+    assert_no_match "No content yet.", response.body
+  end
+
+  test "user can update locations from the notepad show form payload" do
+    user = User.create!(
+      email: "notepad-show-location-update@example.com",
+      password: "Password123!",
+      password_confirmation: "Password123!",
+      time_zone: "UTC",
+      locale: "en",
+      role: :user
+    )
+    entry = user.notepad_entries.create!(
+      title: "Show form target",
+      notes: "Keep these notes while adding a place.",
+      entry_date: Date.new(2026, 4, 18)
+    )
+
+    sign_in_browser_user(user)
+
+    get notepad_entry_path(entry)
+
+    patch notepad_entry_path(entry), params: {
+      authenticity_token: authenticity_token_for(notepad_entry_path(entry)),
+      notepad_entry: {
+        title: entry.title,
+        notes: entry.notes.to_s,
+        entry_date: entry.entry_date,
+        locations_json: [
+          {
+            name: "Client office",
+            address: "Client office, MG Road, Bengaluru, Karnataka, India",
+            latitude: "12.975300",
+            longitude: "77.605000",
+            source: "search"
+          }
+        ].to_json
+      }
+    }
+
+    assert_redirected_to notepad_entry_path(entry)
+    assert_equal 1, entry.reload.location_count
+    assert_equal "Client office", entry.location_label
+    assert_equal "Keep these notes while adding a place.", entry.plain_notes
+  end
+
+  test "user can create a notepad entry with only contacts" do
+    user = User.create!(
+      email: "notepad-contact@example.com",
+      password: "Password123!",
+      password_confirmation: "Password123!",
+      time_zone: "UTC",
+      locale: "en",
+      role: :user
+    )
+
+    sign_in_browser_user(user)
+
+    assert_difference -> { user.notepad_entries.count }, +1 do
+      post notepad_entries_path, params: {
+        authenticity_token: authenticity_token_for(notepad_entries_path),
+        notepad_entry: {
+          title: "",
+          notes: "",
+          entry_date: Date.current,
+          contacts_json: [
+            {
+              name: "Ada Lovelace",
+              primary_phone: "+1 555 010 2000",
+              secondary_phone: "+1 555 010 3000",
+              email: "ada@example.com",
+              website: "example.com"
+            },
+            {
+              name: "Grace Hopper",
+              primary_phone: "+1 555 010 4000",
+              email: "grace@example.com",
+              website: "gracehopper.dev"
+            }
+          ].to_json
+        }
+      }
+    end
+
+    entry = user.notepad_entries.order(:created_at).last
+
+    assert_redirected_to notepad_entry_path(entry)
+    assert_equal 2, entry.contact_count
+    assert_equal "Ada Lovelace", entry.contact_label
+    assert_equal "Ada Lovelace - Page 1", entry.display_title
+
+    follow_redirect!
+
+    assert_response :success
+    assert_select ".contact-section__summary-count", text: "2 contacts saved"
+    assert_select ".contact-section__summary-title", text: "Ada Lovelace"
+    assert_select ".contact-section__summary-title", text: "Grace Hopper"
+    assert_no_match "No content yet.", response.body
+  end
+
+  test "user can update contacts from the notepad show form payload" do
+    user = User.create!(
+      email: "notepad-show-contact-update@example.com",
+      password: "Password123!",
+      password_confirmation: "Password123!",
+      time_zone: "UTC",
+      locale: "en",
+      role: :user
+    )
+    entry = user.notepad_entries.create!(
+      title: "Show form target",
+      notes: "Keep these notes while adding a contact.",
+      entry_date: Date.new(2026, 4, 18)
+    )
+
+    sign_in_browser_user(user)
+
+    get notepad_entry_path(entry)
+
+    patch notepad_entry_path(entry), params: {
+      authenticity_token: authenticity_token_for(notepad_entry_path(entry)),
+      notepad_entry: {
+        title: entry.title,
+        notes: entry.notes.to_s,
+        entry_date: entry.entry_date,
+        contacts_json: [
+          {
+            name: "Grace Hopper",
+            primary_phone: "+1 555 010 4000",
+            email: "grace@example.com",
+            website: "gracehopper.dev"
+          }
+        ].to_json
+      }
+    }
+
+    assert_redirected_to notepad_entry_path(entry)
+    assert_equal 1, entry.reload.contact_count
+    assert_equal "Grace Hopper", entry.contact_label
+    assert_equal "Keep these notes while adding a contact.", entry.plain_notes
+  end
+
   test "saving the same notepad voice note twice only creates one record" do
     user = User.create!(
       email: "notepad-voice-dedupe@example.com",
@@ -435,7 +629,48 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select ".sdoc-title", text: "Receipt"
+    modal_id = ActionView::RecordIdentifier.dom_id(entry, :scanned_document_ocr_modal)
+    modal_frame_id = ActionView::RecordIdentifier.dom_id(entry, :scanned_document_ocr_modal_frame)
+    assert_select "form[action='#{extract_text_notepad_entry_scanned_document_path(entry, scanned_document)}'] button.sdoc-action-btn", text: /Re-run OCR/
+    assert_select "##{modal_id}.sdoc-ocr-modal", count: 1
+    assert_select "a.sdoc-action-btn[data-turbo-frame='#{modal_frame_id}'][href='#{show_text_notepad_entry_scanned_document_path(entry, scanned_document, frame_id: modal_frame_id)}']", text: /View OCR/
+    assert_select "a.sdoc-action-btn[data-turbo-frame='#{modal_frame_id}'][href='#{edit_text_notepad_entry_scanned_document_path(entry, scanned_document, frame_id: modal_frame_id)}']", count: 0
+    assert_select "a.sdoc-action-btn[data-turbo-frame='#{modal_frame_id}'][href='#{confirm_delete_text_notepad_entry_scanned_document_path(entry, scanned_document, frame_id: modal_frame_id)}']", count: 0
+    assert_select ".sdoc-conf-badge.sdoc-conf-badge--high", text: /Confidence 88%/
+    assert_select "a.sdoc-action-btn--icon[href='#{rails_blob_path(scanned_document.document_pdf, only_path: true, disposition: "attachment")}']", count: 1
+    assert_select "form[action='#{notepad_entry_scanned_document_path(entry, scanned_document)}'] button.sdoc-action-btn--icon", count: 1
     assert_select ".sdoc-excerpt", count: 0
+
+    get show_text_notepad_entry_scanned_document_path(entry, scanned_document), params: { frame_id: modal_frame_id }
+
+    assert_response :success
+    assert_match "View OCR text", response.body
+    assert_match "Total: 42.00", response.body
+    assert_select "a[href='#{edit_text_notepad_entry_scanned_document_path(entry, scanned_document, frame_id: modal_frame_id)}']", text: /Edit OCR/
+    assert_select "a[href='#{confirm_delete_text_notepad_entry_scanned_document_path(entry, scanned_document, frame_id: modal_frame_id)}']", text: /Delete OCR/
+
+    get edit_text_notepad_entry_scanned_document_path(entry, scanned_document), params: { frame_id: modal_frame_id }
+
+    assert_response :success
+    assert_select "textarea.sdoc-text-area", count: 1
+    assert_select "a[href='#{show_text_notepad_entry_scanned_document_path(entry, scanned_document, frame_id: modal_frame_id)}']", text: /View OCR/
+    assert_select "a[href='#{confirm_delete_text_notepad_entry_scanned_document_path(entry, scanned_document, frame_id: modal_frame_id)}']", text: /Delete OCR/
+    assert_select "button[type='submit']", text: /Save changes/
+
+    get confirm_delete_text_notepad_entry_scanned_document_path(entry, scanned_document), params: { frame_id: modal_frame_id }
+
+    assert_response :success
+    assert_match "Delete OCR text?", response.body
+    assert_select "a[href='#{show_text_notepad_entry_scanned_document_path(entry, scanned_document, frame_id: modal_frame_id)}']", text: /View OCR/
+    assert_select "form[action='#{delete_text_notepad_entry_scanned_document_path(entry, scanned_document)}'] button", text: /Delete OCR/
+    delete_text_token = authenticity_token_for(delete_text_notepad_entry_scanned_document_path(entry, scanned_document))
+
+    delete delete_text_notepad_entry_scanned_document_path(entry, scanned_document), params: {
+      authenticity_token: delete_text_token
+    }
+
+    assert_redirected_to notepad_entry_path(entry)
+    assert_nil scanned_document.reload.extracted_text
 
     assert_difference -> { entry.scanned_documents.count }, -1 do
       delete notepad_entry_scanned_document_path(entry, scanned_document), params: {
@@ -625,7 +860,36 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
     entry = user.notepad_entries.create!(
       title: "Daily wrap-up",
       notes: "Move this into the project notebook.",
-      entry_date: Date.new(2026, 4, 10)
+      entry_date: Date.new(2026, 4, 10),
+      contacts_json: [
+        {
+          name: "Ada Lovelace",
+          primary_phone: "+1 555 010 2000",
+          email: "ada@example.com",
+          website: "example.com"
+        },
+        {
+          name: "Grace Hopper",
+          secondary_phone: "+1 555 010 4000",
+          email: "grace@example.com"
+        }
+      ].to_json,
+      locations_json: [
+        {
+          name: "Project room",
+          address: "Project room, Austin, TX",
+          latitude: 30.2672,
+          longitude: -97.7431,
+          source: "current"
+        },
+        {
+          name: "Workshop annex",
+          address: "Workshop annex, Austin, TX",
+          latitude: 30.271,
+          longitude: -97.75,
+          source: "manual"
+        }
+      ].to_json
     )
     entry.photos.attach(
       io: StringIO.new("fake image bytes"),
@@ -666,6 +930,14 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
     assert_equal "Moved from notepad - Page 1", page.title
     assert_equal "Move this into the project notebook with its photo.", page.notes
     assert_equal Date.new(2026, 4, 11), page.captured_on
+    assert_equal 2, page.contact_count
+    assert_equal "Ada Lovelace", page.contact_label
+    assert_equal ["Ada Lovelace", "Grace Hopper"], page.contact_entries.map { |contact| contact[:name] }
+    assert_equal 2, page.location_count
+    assert_equal "Project room", page.location_name
+    assert_equal "Project room, Austin, TX", page.location_address
+    assert_equal "current", page.location_source
+    assert_equal ["Project room", "Workshop annex"], page.location_entries.map { |location| location[:label] }
     assert_equal 1, page.photos.count
   end
 
@@ -816,7 +1088,36 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
     page = chapter.pages.create!(
       title: "Strategy notes",
       notes: "Move this into notepad.",
-      captured_on: Date.new(2026, 4, 12)
+      captured_on: Date.new(2026, 4, 12),
+      contacts_json: [
+        {
+          name: "Ada Lovelace",
+          primary_phone: "+1 555 010 2000",
+          email: "ada@example.com",
+          website: "example.com"
+        },
+        {
+          name: "Grace Hopper",
+          secondary_phone: "+1 555 010 4000",
+          email: "grace@example.com"
+        }
+      ].to_json,
+      locations_json: [
+        {
+          name: "Strategy room",
+          address: "Strategy room, MG Road, Bengaluru, Karnataka, India",
+          latitude: 12.9753,
+          longitude: 77.6050,
+          source: "current"
+        },
+        {
+          name: "Field site",
+          address: "Field site, Koramangala, Bengaluru, Karnataka, India",
+          latitude: 12.9352,
+          longitude: 77.6245,
+          source: "search"
+        }
+      ].to_json
     )
     remaining_page = chapter.pages.create!(
       title: "Follow-up notes",
@@ -889,7 +1190,15 @@ class NotebookNotepadFlowTest < ActionDispatch::IntegrationTest
     scanned_document.reload
 
     assert_equal "Strategy notes", entry.title
-    assert_equal "Move this into notepad.", entry.plain_notes
+    assert_equal 2, entry.contact_count
+    assert_equal "Ada Lovelace", entry.contact_label
+    assert_equal ["Ada Lovelace", "Grace Hopper"], entry.contact_entries.map { |contact| contact[:name] }
+    assert_equal 2, entry.location_count
+    assert_equal "Strategy room", entry.location_name
+    assert_equal "Strategy room, MG Road, Bengaluru, Karnataka, India", entry.location_address
+    assert_equal "current", entry.location_source
+    assert_equal ["Strategy room", "Field site"], entry.location_entries.map { |location| location[:label] }
+    assert_includes entry.plain_notes, "Move this into notepad."
     assert_equal Date.new(2026, 4, 12), entry.entry_date
     assert_equal 1, entry.photos.count
     assert_equal entry, voice_note.reload.notepad_entry

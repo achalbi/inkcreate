@@ -48,9 +48,14 @@ Rails.application.routes.draw do
             post :submit_transcript, on: :member
           end
           resources :scanned_documents, only: %i[create destroy] do
-            post :extract_text, on: :member
-            post :submit_ocr_result, on: :member
-            get :ocr_source, on: :member
+            post  :extract_text,     on: :member
+            post  :submit_ocr_result, on: :member
+            get   :ocr_source,       on: :member
+            get   :show_text,        on: :member
+            get   :edit_text,        on: :member
+            get   :confirm_delete_text, on: :member
+            patch :update_text,      on: :member
+            delete :delete_text,     on: :member
           end
         end
       end
@@ -80,9 +85,14 @@ Rails.application.routes.draw do
         post :submit_transcript, on: :member
       end
       resources :scanned_documents, only: %i[create destroy] do
-        post :extract_text, on: :member
-        post :submit_ocr_result, on: :member
-        get :ocr_source, on: :member
+        post  :extract_text,      on: :member
+        post  :submit_ocr_result, on: :member
+        get   :ocr_source,        on: :member
+        get   :show_text,         on: :member
+        get   :edit_text,         on: :member
+        get   :confirm_delete_text, on: :member
+        patch :update_text,       on: :member
+        delete :delete_text,      on: :member
       end
     end
   end

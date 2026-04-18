@@ -1,0 +1,111 @@
+<%
+  record = local_assigns[:record] || local_assigns[:page]
+  param_key = record.model_name.param_key
+  auto_submit = local_assigns.fetch(:auto_submit, false)
+  locations = record.location_entries
+%>
+
+<div
+  id="<%= section_id %>"
+  class="notepad-doc__block notepad-doc__block--location notepad-doc-edit__section detail-section-anchor"
+  data-controller="location-picker"
+  data-location-picker-form-id-value="<%= form_id %>"
+  data-location-picker-auto-submit-value="<%= auto_submit %>"
+>
+  <div class="notepad-doc__block-header">
+    <div class="notepad-doc__block-label">
+      <i class="ti ti-map-pin" aria-hidden="true"></i>
+      <%= record.multiple_locations? ? "Locations" : "Location" %>
+    </div>
+    <div class="notepad-doc__block-actions">
+      <button
+        type="button"
+        class="btn btn-white btn-sm"
+        data-action="location-picker#useCurrentLocation"
+        data-location-picker-target="currentButton"
+      >
+        <i class="ti ti-current-location" aria-hidden="true"></i><span> Current</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="location-picker">
+    <%= hidden_field_tag "#{param_key}[locations_json]",
+      record.locations_json,
+      form: form_id,
+      data: { location_picker_target: "locationsInput" } %>
+
+    <label class="location-picker__label" for="<%= dom_id(record, :location_search_input) %>">Search or add a place</label>
+    <div class="location-picker__search-row">
+      <div class="location-picker__search-stack">
+        <input
+          id="<%= dom_id(record, :location_search_input) %>"
+          type="search"
+          class="form-control location-picker__search"
+          placeholder="Cafe, office, venue, neighborhood, or address"
+          autocomplete="off"
+          data-location-picker-target="searchInput"
+          data-action="input->location-picker#search keydown.enter->location-picker#addTypedLocationFromKeyboard"
+        >
+        <div class="location-picker__results" data-location-picker-target="results"></div>
+      </div>
+      <button
+        type="button"
+        class="btn btn-white btn-sm location-picker__search-action"
+        data-action="location-picker#addTypedLocation"
+        data-location-picker-target="addButton"
+      >
+        <i class="ti ti-plus" aria-hidden="true"></i><span> Add</span>
+      </button>
+    </div>
+
+    <p class="location-picker__hint m-b-none">
+      Add multiple places from search, typed text, or your current location.
+    </p>
+
+    <div class="location-picker__status" data-location-picker-target="status" aria-live="polite"></div>
+    <div class="location-picker__summary" data-location-picker-target="summary">
+      <% if locations.any? %>
+        <div class="location-picker__summary-count"><%= pluralize(locations.size, "location") %> saved</div>
+        <div class="location-picker__summary-list">
+          <% locations.each_with_index do |location, index| %>
+            <div class="location-picker__summary-card">
+              <div class="location-picker__summary-card-main">
+                <div class="location-picker__summary-title"><%= location[:label] %></div>
+                <% if location[:secondary_line].present? %>
+                  <div class="location-picker__summary-detail"><%= location[:secondary_line] %></div>
+                <% end %>
+                <% if location[:source].present? %>
+                  <div class="location-picker__summary-meta">
+                    Saved from <%= location[:source] == "current" ? "current location" : location[:source].humanize.downcase %>
+                  </div>
+                <% end %>
+              </div>
+              <div class="location-picker__summary-actions">
+                <% if location[:maps_url].present? %>
+                  <%= link_to location[:maps_url],
+                    class: "location-picker__summary-action",
+                    target: "_blank",
+                    rel: "noopener",
+                    title: "Open in maps" do %>
+                    <i class="ti ti-external-link" aria-hidden="true"></i><span>Maps</span>
+                  <% end %>
+                <% end %>
+                <button
+                  type="button"
+                  class="location-picker__summary-action"
+                  data-action="click->location-picker#removeLocation"
+                  data-location-index="<%= index %>"
+                >
+                  <i class="ti ti-trash" aria-hidden="true"></i><span>Remove</span>
+                </button>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="location-picker__summary-empty">No location added yet.</div>
+      <% end %>
+    </div>
+  </div>
+</div>

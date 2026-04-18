@@ -4,6 +4,10 @@
   persisted_entry = @notepad_entry.persisted?
   notepad_entry_form_id = dom_id(@notepad_entry, :edit_form)
   details_section_id = dom_id(@notepad_entry, :details_section)
+  contact_section_id = dom_id(@notepad_entry, :contact_section)
+  contact_add_button_id = dom_id(@notepad_entry, :contact_add_button)
+  location_section_id = dom_id(@notepad_entry, :location_section)
+  location_input_id = dom_id(@notepad_entry, :location_search_input)
   notes_section_id = dom_id(@notepad_entry, :notes_section)
   photos_section_id = dom_id(@notepad_entry, :photos_section)
   photo_camera_input_id = dom_id(@notepad_entry, :photo_camera_input)
@@ -13,6 +17,7 @@
   scanned_documents_section_id = dom_id(@notepad_entry, :scanned_documents_section)
   merge_section_id = dom_id(@notepad_entry, :merge_section)
   move_to_notebook_section_id = dom_id(@notepad_entry, :move_to_notebook_section)
+  delete_confirm_modal_id = dom_id(@notepad_entry, :delete_confirm_modal)
   photo_count = @notepad_entry.photos.count
   voice_note_count = persisted_entry && voice_notes_available ? @notepad_entry.voice_notes.count : 0
   todo_items = if persisted_entry && todo_lists_available
@@ -33,8 +38,8 @@
   section_shortcuts << { label: "Voice notes", short_label: "Voice", icon: "ti-microphone", target: voice_notes_section_id } if voice_notes_available
   section_shortcuts << { label: "To-do list", short_label: "To-do", icon: "ti-checkbox", target: todo_list_section_id } if todo_lists_available
   section_shortcuts << { label: "Scanned documents", short_label: "Scans", icon: "ti-scan", target: scanned_documents_section_id }
-  section_shortcuts << { label: "Merge pages", short_label: "Merge", icon: "ti-link", target: merge_section_id } if persisted_entry
-  section_shortcuts << { label: "Move to notebook", short_label: "Move", icon: "ti-arrows-transfer-up-down", target: move_to_notebook_section_id } if persisted_entry
+  section_shortcuts << { label: "Contacts", short_label: "Contacts", icon: "ti-address-book", target: contact_section_id }
+  section_shortcuts << { label: "Location", short_label: "Location", icon: "ti-map-pin", target: location_section_id }
 %>
 
 <div class="wrapper wrapper-content animated fadeInRight">
@@ -108,6 +113,17 @@
           <% end %>
 
           <%= render "notepad_entries/scanned_documents_document_section", notepad_entry: @notepad_entry %>
+
+          <%= render "pages/contact_form_section",
+            record: @notepad_entry,
+            form_id: notepad_entry_form_id,
+            section_id: contact_section_id,
+            add_button_id: contact_add_button_id %>
+
+          <%= render "pages/location_form_section",
+            record: @notepad_entry,
+            form_id: notepad_entry_form_id,
+            section_id: location_section_id %>
         </div>
 
         <div class="notepad-doc-edit__footer">
@@ -117,10 +133,11 @@
             <i class="ti ti-arrow-left" aria-hidden="true"></i> View
           <% end %>
           <div class="ms-auto d-flex gap-2 align-items-center">
-            <%= link_to notepad_entry_path(@notepad_entry),
+            <%= button_tag type: "button",
               class: "btn btn-white btn-sm btn-icon notebook-overview-delete-button",
               title: "Delete page",
-              data: { turbo_method: :delete, turbo_confirm: "Delete this page?" } do %>
+              aria: { label: "Delete page" },
+              data: { bs_toggle: "modal", bs_target: "##{delete_confirm_modal_id}" } do %>
               <i class="ti ti-trash" aria-hidden="true"></i>
             <% end %>
             <%= button_tag "Save changes",
@@ -169,6 +186,17 @@
             <%= render "notepad_entries/scanned_documents_form_document_section",
               notepad_entry: @notepad_entry,
               form: form %>
+
+            <%= render "pages/contact_form_section",
+              record: @notepad_entry,
+              form_id: notepad_entry_form_id,
+              section_id: contact_section_id,
+              add_button_id: contact_add_button_id %>
+
+            <%= render "pages/location_form_section",
+              record: @notepad_entry,
+              form_id: notepad_entry_form_id,
+              section_id: location_section_id %>
           </div>
 
           <div class="notepad-doc-edit__footer">
@@ -183,6 +211,13 @@
 
     <%# ── Move to notebook ─────────────────────────── %>
     <% if persisted_entry %>
+      <%= render "shared/record_delete_confirm_modal",
+        modal_id: delete_confirm_modal_id,
+        title: "Delete page?",
+        message: "Delete this notepad page and its saved content? This cannot be undone.",
+        delete_path: notepad_entry_path(@notepad_entry),
+        confirm_label: "Delete page" %>
+
       <%= render "notepad_entries/merge_section",
         notepad_entry: @notepad_entry,
         merge_candidates: @merge_candidates,
@@ -211,6 +246,10 @@
     data-notepad-quick-actions-voice-section-id-value="<%= voice_notes_section_id %>"
     data-notepad-quick-actions-todo-section-id-value="<%= todo_list_section_id %>"
     data-notepad-quick-actions-scan-section-id-value="<%= scanned_documents_section_id %>"
+    data-notepad-quick-actions-location-section-id-value="<%= location_section_id %>"
+    data-notepad-quick-actions-location-input-id-value="<%= location_input_id %>"
+    data-notepad-quick-actions-contact-section-id-value="<%= contact_section_id %>"
+    data-notepad-quick-actions-contact-button-id-value="<%= contact_add_button_id %>"
   >
     <div class="notepad-quick-actions__menu" data-notepad-quick-actions-target="menu" aria-hidden="true">
       <button
@@ -270,6 +309,28 @@
         title="Scan document"
       >
         <i class="ti ti-scan" aria-hidden="true"></i>
+      </button>
+
+      <button
+        type="button"
+        class="notepad-quick-actions__item"
+        data-notepad-quick-actions-target="item"
+        data-action="click->notepad-quick-actions#openLocation"
+        aria-label="Add location"
+        title="Add location"
+      >
+        <i class="ti ti-map-pin" aria-hidden="true"></i>
+      </button>
+
+      <button
+        type="button"
+        class="notepad-quick-actions__item"
+        data-notepad-quick-actions-target="item"
+        data-action="click->notepad-quick-actions#openContact"
+        aria-label="Add contact"
+        title="Add contact"
+      >
+        <i class="ti ti-address-book" aria-hidden="true"></i>
       </button>
     </div>
 

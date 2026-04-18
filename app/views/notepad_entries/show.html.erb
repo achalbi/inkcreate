@@ -16,8 +16,14 @@
   voice_notes_section_id = dom_id(@notepad_entry, :voice_notes_section)
   todo_list_section_id = dom_id(@notepad_entry, :todo_list_section)
   scanned_documents_section_id = dom_id(@notepad_entry, :scanned_documents_section)
+  contact_section_id = dom_id(@notepad_entry, :contact_section)
+  contact_add_button_id = dom_id(@notepad_entry, :contact_add_button)
+  location_section_id = dom_id(@notepad_entry, :location_section)
+  location_input_id = dom_id(@notepad_entry, :location_search_input)
   merge_section_id = dom_id(@notepad_entry, :merge_section)
   move_form_id = dom_id(@notepad_entry, :move_form)
+  contact_form_id = dom_id(@notepad_entry, :contact_form)
+  location_form_id = dom_id(@notepad_entry, :location_form)
   move_to_notebook_section_id = dom_id(@notepad_entry, :move_to_notebook_section)
   section_shortcuts = [
     { label: "Overview", short_label: "Overview", icon: "ti-file-text", target: overview_section_id },
@@ -26,9 +32,9 @@
   section_shortcuts << { label: "Voice notes", short_label: "Voice", icon: "ti-microphone", target: voice_notes_section_id } if voice_notes_available
   section_shortcuts << { label: "To-do list", short_label: "To-do", icon: "ti-checkbox", target: todo_list_section_id } if todo_lists_available
   section_shortcuts << { label: "Scanned documents", short_label: "Scans", icon: "ti-scan", target: scanned_documents_section_id }
-  section_shortcuts << { label: "Merge pages", short_label: "Merge", icon: "ti-link", target: merge_section_id }
-  section_shortcuts << { label: "Move to notebook", short_label: "Move", icon: "ti-arrows-transfer-up-down", target: move_to_notebook_section_id }
-  has_content = @notepad_entry.plain_notes.present? || @notepad_entry.photos.attached? ||
+  section_shortcuts << { label: "Contacts", short_label: "Contacts", icon: "ti-address-book", target: contact_section_id }
+  section_shortcuts << { label: "Location", short_label: "Location", icon: "ti-map-pin", target: location_section_id }
+  has_content = @notepad_entry.location_present? || @notepad_entry.contact_present? || @notepad_entry.plain_notes.present? || @notepad_entry.photos.attached? ||
                 voice_note_count > 0 || todo_items.any? || docs.any?
 %>
 
@@ -70,6 +76,18 @@
           <% if @notepad_entry.plain_notes.present? %>
             <span class="notepad-doc__meta-chip">
               <i class="ti ti-file-text" aria-hidden="true"></i> Notes
+            </span>
+          <% end %>
+          <% if @notepad_entry.location_present? %>
+            <span class="notepad-doc__meta-chip">
+              <i class="ti ti-map-pin" aria-hidden="true"></i>
+              <%= @notepad_entry.location_count_label %>
+            </span>
+          <% end %>
+          <% if @notepad_entry.contact_present? %>
+            <span class="notepad-doc__meta-chip">
+              <i class="ti ti-address-book" aria-hidden="true"></i>
+              <%= @notepad_entry.contact_count_label %>
             </span>
           <% end %>
           <% if photo_count > 0 %>
@@ -205,10 +223,37 @@
         <%# ── Scanned documents block ──────────────────── %>
         <%= render "notepad_entries/scanned_documents_document_section", notepad_entry: @notepad_entry %>
 
+        <%= form_with model: @notepad_entry,
+          method: :patch,
+          html: { id: contact_form_id, class: "d-contents" } do %>
+          <%= hidden_field_tag "notepad_entry[title]", @notepad_entry.title %>
+          <%= hidden_field_tag "notepad_entry[notes]", @notepad_entry.notes.to_s %>
+          <%= hidden_field_tag "notepad_entry[entry_date]", @notepad_entry.entry_date %>
+          <%= render "pages/contact_form_section",
+            record: @notepad_entry,
+            form_id: contact_form_id,
+            section_id: contact_section_id,
+            add_button_id: contact_add_button_id,
+            auto_submit: true %>
+        <% end %>
+
+        <%= form_with model: @notepad_entry,
+          method: :patch,
+          html: { id: location_form_id, class: "d-contents" } do %>
+          <%= hidden_field_tag "notepad_entry[title]", @notepad_entry.title %>
+          <%= hidden_field_tag "notepad_entry[notes]", @notepad_entry.notes.to_s %>
+          <%= hidden_field_tag "notepad_entry[entry_date]", @notepad_entry.entry_date %>
+          <%= render "pages/location_form_section",
+            record: @notepad_entry,
+            form_id: location_form_id,
+            section_id: location_section_id,
+            auto_submit: true %>
+        <% end %>
+
         <%# ── Empty state ──────────────────────────────── %>
         <% unless has_content %>
           <div class="notepad-doc__block notepad-doc__block--empty">
-            <p class="text-muted m-b-none">No content yet. Use the <strong>+</strong> button below to add photos, voice notes, to-dos, or scanned documents.</p>
+            <p class="text-muted m-b-none">No content yet. Use the <strong>+</strong> button below to add a contact, location, photos, voice notes, to-dos, or scanned documents.</p>
           </div>
         <% end %>
 
@@ -225,6 +270,8 @@
         <%= form.hidden_field :title, value: @notepad_entry.title %>
         <%= form.hidden_field :notes, value: @notepad_entry.notes.to_s %>
         <%= form.hidden_field :entry_date, value: @notepad_entry.entry_date %>
+        <%= hidden_field_tag "notepad_entry[contacts_json]", @notepad_entry.contacts_json, form: move_form_id %>
+        <%= hidden_field_tag "notepad_entry[locations_json]", @notepad_entry.locations_json, form: move_form_id %>
       <% end %>
       <%= render "notepad_entries/move_to_notebook_section",
         notepad_entry: @notepad_entry,
@@ -245,6 +292,10 @@
     data-notepad-quick-actions-voice-section-id-value="<%= voice_notes_section_id %>"
     data-notepad-quick-actions-todo-section-id-value="<%= todo_list_section_id %>"
     data-notepad-quick-actions-scan-section-id-value="<%= scanned_documents_section_id %>"
+    data-notepad-quick-actions-location-section-id-value="<%= location_section_id %>"
+    data-notepad-quick-actions-location-input-id-value="<%= location_input_id %>"
+    data-notepad-quick-actions-contact-section-id-value="<%= contact_section_id %>"
+    data-notepad-quick-actions-contact-button-id-value="<%= contact_add_button_id %>"
   >
     <div class="notepad-quick-actions__menu" data-notepad-quick-actions-target="menu" aria-hidden="true">
       <button
@@ -304,6 +355,28 @@
         title="Scan document"
       >
         <i class="ti ti-scan" aria-hidden="true"></i>
+      </button>
+
+      <button
+        type="button"
+        class="notepad-quick-actions__item"
+        data-notepad-quick-actions-target="item"
+        data-action="click->notepad-quick-actions#openLocation"
+        aria-label="Add location"
+        title="Add location"
+      >
+        <i class="ti ti-map-pin" aria-hidden="true"></i>
+      </button>
+
+      <button
+        type="button"
+        class="notepad-quick-actions__item"
+        data-notepad-quick-actions-target="item"
+        data-action="click->notepad-quick-actions#openContact"
+        aria-label="Add contact"
+        title="Add contact"
+      >
+        <i class="ti ti-address-book" aria-hidden="true"></i>
       </button>
     </div>
 

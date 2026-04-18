@@ -1,0 +1,61 @@
+<%
+  record = local_assigns[:record] || local_assigns[:page]
+  section_id = local_assigns.fetch(:section_id)
+  contacts = record.contact_entries
+%>
+
+<div id="<%= section_id %>" class="notepad-doc__block notepad-doc__block--contacts detail-section-anchor">
+  <div class="notepad-doc__block-header">
+    <div class="notepad-doc__block-label">
+      <i class="ti ti-address-book" aria-hidden="true"></i>
+      <%= record.multiple_contacts? ? "Contacts" : "Contact" %>
+    </div>
+  </div>
+
+  <div class="contact-section contact-section--readonly">
+    <% if contacts.any? %>
+      <div class="contact-section__summary-count"><%= pluralize(contacts.size, "contact") %> saved</div>
+      <div class="contact-section__summary-list">
+        <% contacts.each do |contact| %>
+          <div class="contact-section__summary-card">
+            <div class="contact-section__summary-card-main">
+              <div class="contact-section__summary-title"><%= contact[:name] %></div>
+              <div class="contact-section__summary-details">
+                <% if contact[:primary_phone].present? %>
+                  <div class="contact-section__summary-detail-row">
+                    <i class="ti ti-phone" aria-hidden="true"></i>
+                    <span class="contact-section__detail-label">Primary</span>
+                    <span class="contact-section__detail-value"><%= contact[:primary_phone] %></span>
+                  </div>
+                <% end %>
+                <% if contact[:secondary_phone].present? %>
+                  <div class="contact-section__summary-detail-row">
+                    <i class="ti ti-phone-call" aria-hidden="true"></i>
+                    <span class="contact-section__detail-label">Secondary</span>
+                    <span class="contact-section__detail-value"><%= contact[:secondary_phone] %></span>
+                  </div>
+                <% end %>
+                <% if contact[:email].present? %>
+                  <div class="contact-section__summary-detail-row">
+                    <i class="ti ti-mail" aria-hidden="true"></i>
+                    <span class="contact-section__detail-label">Email</span>
+                    <span class="contact-section__detail-value"><%= contact[:email] %></span>
+                  </div>
+                <% end %>
+                <% if contact[:website].present? %>
+                  <div class="contact-section__summary-detail-row">
+                    <i class="ti ti-world" aria-hidden="true"></i>
+                    <span class="contact-section__detail-label">Website</span>
+                    <span class="contact-section__detail-value"><%= contact[:website] %></span>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="contact-section__summary-empty">No contact added yet.</div>
+    <% end %>
+  </div>
+</div>

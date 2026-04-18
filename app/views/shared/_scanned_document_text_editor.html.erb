@@ -1,0 +1,52 @@
+<%
+  frame_id = local_assigns.fetch(:frame_id, dom_id(doc, :text))
+  view_url = local_assigns[:view_url]
+  delete_confirm_url = local_assigns[:delete_confirm_url]
+  form_id = dom_id(doc, :ocr_text_form)
+%>
+
+<turbo-frame id="<%= frame_id %>">
+  <div class="modal-content sdoc-ocr-modal__content">
+    <div class="modal-header">
+      <div>
+        <div class="sdoc-ocr-modal__eyebrow">OCR</div>
+        <h5 class="modal-title">Edit OCR text</h5>
+      </div>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body sdoc-ocr-modal__body">
+      <%= form_with url: update_url, method: :patch, id: form_id, class: "sdoc-text-editor", data: { action: "submit->scanned-document-ocr-modal#submitForm" } do |f| %>
+        <%= f.text_area :extracted_text,
+              value: doc.extracted_text.to_s,
+              class: "sdoc-text-area",
+              placeholder: "No text extracted yet…",
+              rows: 10 %>
+      <% end %>
+    </div>
+
+    <div class="modal-footer">
+      <% if view_url.present? %>
+        <%= link_to "View OCR",
+          view_url,
+          class: "btn btn-white btn-sm",
+          data: {
+            action: "click->scanned-document-ocr-modal#openLink",
+            turbo_frame: frame_id
+          } %>
+      <% else %>
+        <button type="button" class="btn btn-white btn-sm" data-bs-dismiss="modal">Cancel</button>
+      <% end %>
+      <% if delete_confirm_url.present? %>
+        <%= link_to "Delete OCR",
+          delete_confirm_url,
+          class: "btn btn-white btn-sm",
+          data: {
+            action: "click->scanned-document-ocr-modal#openLink",
+            turbo_frame: frame_id
+          } %>
+      <% end %>
+      <button type="submit" form="<%= form_id %>" class="btn btn-primary btn-sm">Save changes</button>
+    </div>
+  </div>
+</turbo-frame>

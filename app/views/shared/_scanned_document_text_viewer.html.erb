@@ -1,0 +1,60 @@
+<%
+  frame_id = local_assigns.fetch(:frame_id, dom_id(doc, :text))
+  edit_url = local_assigns[:edit_url]
+  delete_confirm_url = local_assigns[:delete_confirm_url]
+  saved_notice = local_assigns[:saved_notice]
+  status_parts = [doc.ocr_engine.presence]
+  status_parts << doc.confidence_label if doc.ocr_confidence.present?
+%>
+
+<turbo-frame id="<%= frame_id %>">
+  <div class="modal-content sdoc-ocr-modal__content">
+    <div class="modal-header">
+      <div>
+        <div class="sdoc-ocr-modal__eyebrow">OCR</div>
+        <h5 class="modal-title">View OCR text</h5>
+      </div>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body sdoc-ocr-modal__body">
+      <% if saved_notice.present? %>
+        <div class="alert alert-success m-b-none"><%= saved_notice %></div>
+      <% end %>
+
+      <div class="sdoc-text-viewer">
+        <div class="sdoc-text-viewer__meta">
+          <span class="sdoc-text-viewer__label">OCR text</span>
+          <% if status_parts.any? %>
+            <span class="sdoc-text-viewer__status">
+              <%= status_parts.join(" · ") %>
+            </span>
+          <% end %>
+        </div>
+        <div class="sdoc-text-viewer__body"><%= simple_format(h(doc.extracted_text.to_s)) %></div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-white btn-sm" data-bs-dismiss="modal">Close</button>
+      <% if delete_confirm_url.present? %>
+        <%= link_to "Delete OCR",
+          delete_confirm_url,
+          class: "btn btn-white btn-sm",
+          data: {
+            action: "click->scanned-document-ocr-modal#openLink",
+            turbo_frame: frame_id
+          } %>
+      <% end %>
+      <% if edit_url.present? %>
+        <%= link_to "Edit OCR",
+          edit_url,
+          class: "btn btn-primary btn-sm",
+          data: {
+            action: "click->scanned-document-ocr-modal#openLink",
+            turbo_frame: frame_id
+          } %>
+      <% end %>
+    </div>
+  </div>
+</turbo-frame>

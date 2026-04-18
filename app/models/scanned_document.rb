@@ -27,16 +27,20 @@ class ScannedDocument < ApplicationRecord
   end
 
   def confidence_label
-    return "—" unless ocr_confidence
-    "#{ocr_confidence.round}%"
+    value = confidence_value
+    return "—" unless value
+
+    "#{value.round}%"
   end
 
   def confidence_class
-    return "conf-mid" unless ocr_confidence
-    pct = ocr_confidence.round
-    if pct >= 80 then "conf-high"
-    elsif pct >= 50 then "conf-mid"
-    else "conf-low"
+    value = confidence_value
+    return "none" unless value
+
+    pct = value.round
+    if pct >= 80 then "high"
+    elsif pct >= 50 then "medium"
+    else "low"
     end
   end
 
@@ -55,6 +59,13 @@ class ScannedDocument < ApplicationRecord
   end
 
   private
+
+  def confidence_value
+    return ocr_confidence.to_f if ocr_confidence.present?
+    return nil if extracted_text.blank?
+
+    ScannedDocuments::ConfidenceEstimator.new(text: extracted_text).call
+  end
 
   def drive_record_export_owner
     page || notepad_entry

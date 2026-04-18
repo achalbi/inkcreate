@@ -1,13 +1,15 @@
 <%
   docs = page.scanned_documents.with_attached_enhanced_image.with_attached_document_pdf.recent_first
   scan_capture_tips_id = dom_id(page, :scan_capture_tips)
+  ocr_modal_id = dom_id(page, :scanned_document_ocr_modal)
+  ocr_modal_frame_id = dom_id(page, :scanned_document_ocr_modal_frame)
   ocr_enabled = current_user.ensure_app_setting!.allow_ocr_processing?
 %>
 
 <section
   id="<%= dom_id(page, :scanned_documents_section) %>"
   class="notepad-doc__block notepad-doc__block--scans detail-section-anchor"
-  data-controller="document-capture"
+  data-controller="document-capture scanned-document-ocr-modal"
   data-document-capture-post-url-value="<%= notebook_chapter_page_scanned_documents_path(notebook, chapter, page) %>"
   data-document-capture-csrf-value="<%= form_authenticity_token %>"
 >
@@ -51,6 +53,7 @@
         <% extract_text_url = extract_text_notebook_chapter_page_scanned_document_path(notebook, chapter, page, doc) %>
         <% submit_ocr_result_url = submit_ocr_result_notebook_chapter_page_scanned_document_path(notebook, chapter, page, doc) %>
         <% ocr_source_url = ocr_source_notebook_chapter_page_scanned_document_path(notebook, chapter, page, doc) %>
+        <% view_text_url = show_text_notebook_chapter_page_scanned_document_path(notebook, chapter, page, doc, frame_id: ocr_modal_frame_id) %>
         <div class="sdoc-card" id="<%= dom_id(doc) %>">
           <div class="sdoc-accent-bar"></div>
           <div class="sdoc-inner">
@@ -68,78 +71,105 @@
               <% end %>
               <div class="sdoc-meta">
                 <span class="sdoc-engine-label">PDF ready · <%= doc.created_at.strftime("%-d %b") %></span>
+                <% if doc.ocr_completed? %>
+                  <span
+                    class="sdoc-conf-badge sdoc-conf-badge--<%= doc.confidence_class %>"
+                    aria-label="OCR confidence <%= doc.confidence_label %>"
+                    title="OCR confidence <%= doc.confidence_label %>"
+                  >
+                    Confidence <%= doc.confidence_label %>
+                  </span>
+                <% end %>
               </div>
             </div>
 
             <div class="sdoc-body">
-              <% if pdf_view_url.present? %>
-                <button
-                  type="button"
-                  class="sdoc-preview-button"
-                  data-action="click->document-capture#openPdf"
-                  data-pdf-url="<%= pdf_view_url %>"
-                  title="View PDF"
-                >
-                  <% if doc.enhanced_image.attached? %>
-                    <%= image_tag doc.enhanced_image, class: "sdoc-thumb", alt: doc.title %>
-                  <% else %>
-                    <div class="sdoc-thumb sdoc-thumb--placeholder">
-                      <i class="ti ti-file-text" aria-hidden="true"></i>
-                    </div>
-                  <% end %>
-                </button>
-              <% else %>
-                <div class="sdoc-preview-static">
-                  <% if doc.enhanced_image.attached? %>
-                    <%= image_tag doc.enhanced_image, class: "sdoc-thumb", alt: doc.title %>
-                  <% else %>
-                    <div class="sdoc-thumb sdoc-thumb--placeholder">
-                      <i class="ti ti-file-text" aria-hidden="true"></i>
-                    </div>
-                  <% end %>
-                </div>
-              <% end %>
-              <div class="sdoc-actions">
-                <%= button_to(
-                  extract_text_url,
-                  method: :post,
-                  form: { class: "sdoc-action-form sdoc-action-form--primary" },
-                  class: "btn btn-white btn-sm sdoc-action-btn sdoc-action-btn--primary",
-                  data: {
-                    action: "click->document-capture#runOcr",
-                    image_url: ocr_source_url,
-                    native_ocr_url: submit_ocr_result_url,
-                    document_id: doc.id,
-                    document_title: doc.title
-                  },
-                  disabled: !ocr_enabled,
-                  title: ocr_enabled ? doc.ocr_action_label : "Enable OCR in Privacy settings"
-                ) do %>
-                  <i class="ti ti-scan" aria-hidden="true"></i>
-                  <span><%= doc.ocr_action_label %></span>
+              <div class="sdoc-main">
+                <% if pdf_view_url.present? %>
+                  <button
+                    type="button"
+                    class="sdoc-preview-button"
+                    data-action="click->document-capture#openPdf"
+                    data-pdf-url="<%= pdf_view_url %>"
+                    title="View PDF"
+                  >
+                    <% if doc.enhanced_image.attached? %>
+                      <%= image_tag doc.enhanced_image, class: "sdoc-thumb", alt: doc.title %>
+                    <% else %>
+                      <div class="sdoc-thumb sdoc-thumb--placeholder">
+                        <i class="ti ti-file-text" aria-hidden="true"></i>
+                      </div>
+                    <% end %>
+                  </button>
+                <% else %>
+                  <div class="sdoc-preview-static">
+                    <% if doc.enhanced_image.attached? %>
+                      <%= image_tag doc.enhanced_image, class: "sdoc-thumb", alt: doc.title %>
+                    <% else %>
+                      <div class="sdoc-thumb sdoc-thumb--placeholder">
+                        <i class="ti ti-file-text" aria-hidden="true"></i>
+                      </div>
+                    <% end %>
+                  </div>
                 <% end %>
-
-                <% if pdf_download_url.present? %>
-                  <%= link_to(
-                    pdf_download_url,
-                    class: "btn btn-white btn-sm sdoc-action-btn sdoc-action-btn--icon",
-                    aria: { label: "Download" },
-                    data: { turbo: false },
-                    download: doc.document_pdf.filename.to_s
+                <div class="sdoc-actions">
+                  <%= button_to(
+                    extract_text_url,
+                    method: :post,
+                    form: { class: "sdoc-action-form" },
+                    class: "btn btn-white btn-sm sdoc-action-btn",
+                    data: {
+                      action: "click->document-capture#runOcr",
+                      image_url: ocr_source_url,
+                      native_ocr_url: submit_ocr_result_url,
+                      document_id: doc.id,
+                      document_title: doc.title
+                    },
+                    disabled: !ocr_enabled,
+                    title: ocr_enabled ? doc.ocr_action_label : "Enable OCR in Privacy settings"
                   ) do %>
-                    <i class="ti ti-download" aria-hidden="true"></i>
+                    <i class="ti ti-scan" aria-hidden="true"></i>
+                    <span><%= doc.ocr_action_label %></span>
                   <% end %>
-                <% end %>
 
-                <%= button_to(
-                  notebook_chapter_page_scanned_document_path(notebook, chapter, page, doc),
-                  method: :delete,
-                  form: { class: "sdoc-action-form sdoc-delete-form", data: { turbo_confirm: "Delete this scan?" } },
-                  class: "btn btn-white btn-sm sdoc-action-btn sdoc-action-btn--icon sdoc-delete-btn",
-                  aria: { label: "Delete" }
-                ) do %>
-                  <i class="ti ti-trash" aria-hidden="true"></i>
-                <% end %>
+                  <% if doc.ocr_completed? %>
+                    <%= link_to(
+                      view_text_url,
+                      class: "btn btn-white btn-sm sdoc-action-btn",
+                      aria: { label: "View OCR" },
+                      title: "View OCR",
+                      data: {
+                        action: "click->scanned-document-ocr-modal#openLink",
+                        turbo_frame: ocr_modal_frame_id
+                      }
+                    ) do %>
+                      <i class="ti ti-align-left" aria-hidden="true"></i>
+                      <span>View OCR</span>
+                    <% end %>
+                  <% end %>
+
+                  <% if pdf_download_url.present? %>
+                    <%= link_to(
+                      pdf_download_url,
+                      class: "btn btn-white btn-sm sdoc-action-btn sdoc-action-btn--icon",
+                      aria: { label: "Download" },
+                      data: { turbo: false },
+                      download: doc.document_pdf.filename.to_s
+                    ) do %>
+                      <i class="ti ti-download" aria-hidden="true"></i>
+                    <% end %>
+                  <% end %>
+
+                  <%= button_to(
+                    notebook_chapter_page_scanned_document_path(notebook, chapter, page, doc),
+                    method: :delete,
+                    form: { class: "sdoc-action-form sdoc-delete-form", data: { turbo_confirm: "Delete this scan?" } },
+                    class: "btn btn-white btn-sm sdoc-action-btn sdoc-action-btn--icon sdoc-delete-btn",
+                    aria: { label: "Delete" }
+                    ) do %>
+                      <i class="ti ti-trash" aria-hidden="true"></i>
+                    <% end %>
+                </div>
               </div>
             </div>
           </div>
@@ -158,6 +188,10 @@
       ><i class="ti ti-scan" aria-hidden="true"></i> Scan your first document</button>
     </div>
   <% end %>
+
+  <%= render "shared/scanned_document_text_modal",
+    modal_id: ocr_modal_id,
+    frame_id: ocr_modal_frame_id %>
 
   <%= render "shared/scanned_document_capture_overlay" %>
 </section>

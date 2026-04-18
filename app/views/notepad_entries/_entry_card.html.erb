@@ -15,7 +15,7 @@
         <div class="notebook-list-card__header">
           <div class="notebook-list-card__header-copy">
             <h6 class="notebook-list-card__title"><%= entry.display_title %></h6>
-            <p class="notebook-list-card__description"><%= entry.plain_notes.truncate(140).presence || "No notes yet." %></p>
+            <p class="notebook-list-card__description"><%= entry.plain_notes.truncate(140).presence || entry.contact_preview_text.to_s.truncate(140).presence || entry.location_preview_text.to_s.truncate(140).presence || "No notes yet." %></p>
           </div>
         </div>
 
@@ -24,6 +24,22 @@
             <i class="ti ti-calendar-event" aria-hidden="true"></i>
             <strong><%= entry.entry_date.strftime("%b %-d, %Y") %></strong>
           </span>
+
+          <% if entry.location_present? %>
+            <span class="notebook-list-card__meta-dot" aria-hidden="true">&middot;</span>
+            <span class="notebook-list-card__meta-item">
+              <i class="ti ti-map-pin" aria-hidden="true"></i>
+              <%= entry.location_count_label %>
+            </span>
+          <% end %>
+
+          <% if entry.contact_present? %>
+            <span class="notebook-list-card__meta-dot" aria-hidden="true">&middot;</span>
+            <span class="notebook-list-card__meta-item">
+              <i class="ti ti-address-book" aria-hidden="true"></i>
+              <%= entry.contact_count_label %>
+            </span>
+          <% end %>
 
           <% if TodoList.schema_ready? && TodoItem.schema_ready? && entry.todo_list&.enabled? %>
             <span class="notebook-list-card__meta-dot" aria-hidden="true">&middot;</span>

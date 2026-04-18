@@ -607,6 +607,208 @@ class DriveExportRecordTest < ActiveSupport::TestCase
     assert drive_service.file_names.any? { |name| name.end_with?("-ocr.txt") }
   end
 
+  test "exports page location metadata into Drive notes and manifest" do
+    user = build_user(email: "drive-export-record-page-location@example.com")
+    notebook = user.notebooks.create!(title: "Field notes", status: :active)
+    chapter = notebook.chapters.create!(title: "Visits", description: "Site checks")
+    page = chapter.pages.create!(
+      title: "",
+      notes: "Observed entrance flow and queue timing.",
+      captured_on: Date.new(2026, 4, 18),
+      locations_json: [
+        {
+          name: "Field office",
+          address: "Field office, 12 Main St, Austin, TX",
+          latitude: 30.2672,
+          longitude: -97.7431,
+          source: "search"
+        },
+        {
+          name: "Client campus",
+          address: "Client campus, 200 Market St, Austin, TX",
+          latitude: 30.2704,
+          longitude: -97.7421,
+          source: "manual"
+        }
+      ].to_json
+    )
+    export = GoogleDriveExport.create!(
+      user: user,
+      exportable: page,
+      status: :pending,
+      remote_photo_file_ids: {}
+    )
+    drive_service = FakeDriveService.new
+
+    with_drive_stubs(drive_service) do
+      Drive::ExportRecord.new(google_drive_export: export).call
+    end
+
+    manifest = JSON.parse(drive_service.file_content_by_name("manifest.json"))
+    notes_markdown = drive_service.file_content_by_name("notes.md")
+
+    assert_equal "Field office", manifest["location"]["name"]
+    assert_equal "Field office, 12 Main St, Austin, TX", manifest["location"]["address"]
+    assert_in_delta 30.2672, manifest["location"]["latitude"], 0.000001
+    assert_in_delta(-97.7431, manifest["location"]["longitude"], 0.000001)
+    assert_equal "search", manifest["location"]["source"]
+    assert_equal 2, manifest["location_count"]
+    assert_equal ["Field office", "Client campus"], manifest["locations"].map { |location| location["name"] }
+    assert_includes notes_markdown, "- Locations: 2"
+    assert_includes notes_markdown, "- Location 1: Field office"
+    assert_includes notes_markdown, "- Location 2: Client campus"
+  end
+
+  test "exports notepad entry location metadata into Drive notes and manifest" do
+    user = build_user(email: "drive-export-record-notepad-location@example.com")
+    entry = user.notepad_entries.create!(
+      entry_date: Date.new(2026, 4, 18),
+      title: "",
+      notes: "Site observations.",
+      locations_json: [
+        {
+          name: "Client campus",
+          address: "Client campus, 200 Market St, San Francisco, CA",
+          latitude: 37.7936,
+          longitude: -122.3965,
+          source: "current"
+        },
+        {
+          name: "Warehouse",
+          address: "Warehouse, 10 Howard St, San Francisco, CA",
+          latitude: 37.7892,
+          longitude: -122.3911,
+          source: "search"
+        }
+      ].to_json
+    )
+    export = GoogleDriveExport.create!(
+      user: user,
+      exportable: entry,
+      status: :pending,
+      remote_photo_file_ids: {}
+    )
+    drive_service = FakeDriveService.new
+
+    with_drive_stubs(drive_service) do
+      Drive::ExportRecord.new(google_drive_export: export).call
+    end
+
+    manifest = JSON.parse(drive_service.file_content_by_name("manifest.json"))
+    notes_markdown = drive_service.file_content_by_name("notes.md")
+
+    assert_equal "Client campus", manifest["location"]["name"]
+    assert_equal "Client campus, 200 Market St, San Francisco, CA", manifest["location"]["address"]
+    assert_in_delta 37.7936, manifest["location"]["latitude"], 0.000001
+    assert_in_delta(-122.3965, manifest["location"]["longitude"], 0.000001)
+    assert_equal "current", manifest["location"]["source"]
+    assert_equal 2, manifest["location_count"]
+    assert_equal ["Client campus", "Warehouse"], manifest["locations"].map { |location| location["name"] }
+    assert_includes notes_markdown, "- Locations: 2"
+    assert_includes notes_markdown, "- Location 1: Client campus"
+    assert_includes notes_markdown, "- Location 2: Warehouse"
+  end
+
+  test "exports page contact metadata into Drive notes and manifest" do
+    user = build_user(email: "drive-export-record-page-contact@example.com")
+    notebook = user.notebooks.create!(title: "Field notes", status: :active)
+    chapter = notebook.chapters.create!(title: "Visits", description: "Site checks")
+    page = chapter.pages.create!(
+      title: "",
+      notes: "Observed entrance flow and queue timing.",
+      captured_on: Date.new(2026, 4, 18),
+      contacts_json: [
+        {
+          name: "Ada Lovelace",
+          primary_phone: "+1 555 010 2000",
+          secondary_phone: "+1 555 010 3000",
+          email: "ada@example.com",
+          website: "example.com"
+        },
+        {
+          name: "Grace Hopper",
+          primary_phone: "+1 555 010 4000",
+          email: "grace@example.com",
+          website: "gracehopper.dev"
+        }
+      ].to_json
+    )
+    export = GoogleDriveExport.create!(
+      user: user,
+      exportable: page,
+      status: :pending,
+      remote_photo_file_ids: {}
+    )
+    drive_service = FakeDriveService.new
+
+    with_drive_stubs(drive_service) do
+      Drive::ExportRecord.new(google_drive_export: export).call
+    end
+
+    manifest = JSON.parse(drive_service.file_content_by_name("manifest.json"))
+    notes_markdown = drive_service.file_content_by_name("notes.md")
+
+    assert_equal "Ada Lovelace", manifest["contact"]["name"]
+    assert_equal "+1 555 010 2000", manifest["contact"]["primary_phone"]
+    assert_equal "+1 555 010 3000", manifest["contact"]["secondary_phone"]
+    assert_equal "ada@example.com", manifest["contact"]["email"]
+    assert_equal "https://example.com", manifest["contact"]["website"]
+    assert_equal 2, manifest["contact_count"]
+    assert_equal ["Ada Lovelace", "Grace Hopper"], manifest["contacts"].map { |contact| contact["name"] }
+    assert_includes notes_markdown, "- Contacts: 2"
+    assert_includes notes_markdown, "- Contact 1: Ada Lovelace"
+    assert_includes notes_markdown, "- Contact 2: Grace Hopper"
+  end
+
+  test "exports notepad entry contact metadata into Drive notes and manifest" do
+    user = build_user(email: "drive-export-record-notepad-contact@example.com")
+    entry = user.notepad_entries.create!(
+      entry_date: Date.new(2026, 4, 18),
+      title: "",
+      notes: "Site observations.",
+      contacts_json: [
+        {
+          name: "Ada Lovelace",
+          primary_phone: "+1 555 010 2000",
+          secondary_phone: "+1 555 010 3000",
+          email: "ada@example.com",
+          website: "example.com"
+        },
+        {
+          name: "Grace Hopper",
+          primary_phone: "+1 555 010 4000",
+          email: "grace@example.com",
+          website: "gracehopper.dev"
+        }
+      ].to_json
+    )
+    export = GoogleDriveExport.create!(
+      user: user,
+      exportable: entry,
+      status: :pending,
+      remote_photo_file_ids: {}
+    )
+    drive_service = FakeDriveService.new
+
+    with_drive_stubs(drive_service) do
+      Drive::ExportRecord.new(google_drive_export: export).call
+    end
+
+    manifest = JSON.parse(drive_service.file_content_by_name("manifest.json"))
+    notes_markdown = drive_service.file_content_by_name("notes.md")
+
+    assert_equal "Ada Lovelace", manifest["contact"]["name"]
+    assert_equal "+1 555 010 2000", manifest["contact"]["primary_phone"]
+    assert_equal "+1 555 010 3000", manifest["contact"]["secondary_phone"]
+    assert_equal "ada@example.com", manifest["contact"]["email"]
+    assert_equal "https://example.com", manifest["contact"]["website"]
+    assert_equal 2, manifest["contact_count"]
+    assert_equal ["Ada Lovelace", "Grace Hopper"], manifest["contacts"].map { |contact| contact["name"] }
+    assert_includes notes_markdown, "- Contacts: 2"
+    assert_includes notes_markdown, "- Contact 1: Ada Lovelace"
+    assert_includes notes_markdown, "- Contact 2: Grace Hopper"
+  end
+
   private
 
   def with_drive_stubs(drive_service)

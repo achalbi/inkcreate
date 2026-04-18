@@ -9,6 +9,8 @@ import SearchFiltersController from "/scripts/controllers/search_filters_control
 import LiveSearchController from "/scripts/controllers/live_search_controller.js";
 import ListModalController from "/scripts/controllers/list_modal_controller.js";
 import MoveDestinationController from "/scripts/controllers/move_destination_controller.js";
+import LocationPickerController from "/scripts/controllers/location_picker_controller.js";
+import ContactCardsController from "/scripts/controllers/contact_cards_controller.js";
 import NotificationPreferencesController from "/scripts/controllers/notification_preferences_controller.js";
 import DriveOauthController from "/scripts/controllers/drive_oauth_controller.js";
 import RichTextController from "/scripts/controllers/rich_text_controller.js";
@@ -26,10 +28,13 @@ import ReminderSnoozeController from "/scripts/controllers/reminder_snooze_contr
 import TaskManagerController from "/scripts/controllers/task_manager_controller.js";
 import TaskDockController from "/scripts/controllers/task_dock_controller.js";
 import DocumentCaptureController from "/scripts/controllers/document_capture_controller.js";
+import ScannedDocumentOcrModalController from "/scripts/controllers/scanned_document_ocr_modal_controller.js";
 import SectionShortcutsController from "/scripts/controllers/section_shortcuts_controller.js";
 import StickyDockController from "/scripts/controllers/sticky_dock_controller.js";
 import OnboardingWizardController from "/scripts/controllers/onboarding_wizard_controller.js";
 import IdleShortcutsController from "/scripts/controllers/idle_shortcuts_controller.js";
+import LauncherContinueScopeController from "/scripts/controllers/launcher_continue_scope_controller.js";
+import LauncherLocationCaptureController from "/scripts/controllers/launcher_location_capture_controller.js";
 import { enableNotificationsForInstall } from "/scripts/notification_preferences.js";
 
 const AUTO_DISMISS_DELAY_MS = 5000;
@@ -86,6 +91,8 @@ application.register("search-filters", SearchFiltersController);
 application.register("live-search", LiveSearchController);
 application.register("list-modal", ListModalController);
 application.register("move-destination", MoveDestinationController);
+application.register("location-picker", LocationPickerController);
+application.register("contact-cards", ContactCardsController);
 application.register("notification-preferences", NotificationPreferencesController);
 application.register("drive-oauth", DriveOauthController);
 application.register("rich-text", RichTextController);
@@ -103,10 +110,13 @@ application.register("reminder-snooze", ReminderSnoozeController);
 application.register("task-manager", TaskManagerController);
 application.register("task-dock", TaskDockController);
 application.register("document-capture", DocumentCaptureController);
+application.register("scanned-document-ocr-modal", ScannedDocumentOcrModalController);
 application.register("section-shortcuts", SectionShortcutsController);
 application.register("sticky-dock", StickyDockController);
 application.register("onboarding-wizard", OnboardingWizardController);
 application.register("idle-shortcuts", IdleShortcutsController);
+application.register("launcher-continue-scope", LauncherContinueScopeController);
+application.register("launcher-location-capture", LauncherLocationCaptureController);
 document.addEventListener("DOMContentLoaded", () => scheduleTimedMessages());
 document.addEventListener("turbo:load", () => scheduleTimedMessages());
 window.addEventListener("beforeinstallprompt", (event) => {

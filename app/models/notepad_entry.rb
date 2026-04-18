@@ -1,4 +1,6 @@
 class NotepadEntry < ApplicationRecord
+  include LocatableRecord
+  include ContactableRecord
   include RetainsPendingPhotos
   include RichNotes
 
@@ -78,7 +80,7 @@ class NotepadEntry < ApplicationRecord
   def generate_title_if_blank
     return if title.present?
 
-    self.title = generated_title if notes.present? || entry_date.present?
+    self.title = generated_title if notes.present? || location_present? || contact_present? || entry_date.present?
   end
 
   def generated_title
@@ -86,7 +88,7 @@ class NotepadEntry < ApplicationRecord
   end
 
   def title_prefix
-    notes_excerpt.presence || dated_title
+    notes_excerpt.presence || location_label.presence || contact_label.presence || dated_title
   end
 
   def notes_excerpt
@@ -110,12 +112,14 @@ class NotepadEntry < ApplicationRecord
   def content_present
     return if allow_blank_content?
     return if plain_notes.present?
+    return if location_present?
+    return if contact_present?
     return if photos.attached? || pending_photo_blobs.any?
     return if voice_notes_available? && (voice_notes.exists? || pending_voice_note_uploads.any?)
     return if scanned_documents.exists? || pending_scanned_document_payloads.any?
     return if todo_items_present?
 
-    errors.add(:base, "Add notes, a photo, a scanned document, a voice note, or a to-do item.")
+    errors.add(:base, "Add notes, a location, a contact, a photo, a scanned document, a voice note, or a to-do item.")
   end
 
   def voice_notes_available?

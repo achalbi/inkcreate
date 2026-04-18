@@ -1,0 +1,45 @@
+<% record = local_assigns[:record] || local_assigns[:page] %>
+<% locations = record.location_entries %>
+
+<div
+  id="<%= section_id %>"
+  class="notepad-doc__block notepad-doc__block--location detail-section-anchor"
+>
+  <div class="notepad-doc__block-header">
+    <div class="notepad-doc__block-label">
+      <i class="ti ti-map-pin" aria-hidden="true"></i>
+      <%= record.multiple_locations? ? "Locations" : "Location" %>
+    </div>
+  </div>
+
+  <div class="page-location-cards">
+    <% locations.each do |location| %>
+      <div class="page-location-card">
+        <div class="page-location-card__header">
+          <div class="page-location-card__label"><%= location[:label] %></div>
+          <% if location[:maps_url].present? %>
+            <div class="page-location-card__actions">
+              <%= link_to location[:maps_url],
+                class: "page-location-card__action",
+                target: "_blank",
+                rel: "noopener",
+                title: "Open in maps" do %>
+                <i class="ti ti-external-link" aria-hidden="true"></i><span> Maps</span>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+
+        <% if location[:secondary_line].present? %>
+          <div class="page-location-card__detail"><%= location[:secondary_line] %></div>
+        <% end %>
+
+        <% if location[:source].present? %>
+          <div class="page-location-card__meta">
+            Saved from <%= location[:source] == "current" ? "current location" : location[:source].humanize.downcase %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>

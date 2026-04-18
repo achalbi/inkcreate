@@ -82,6 +82,43 @@ module NotepadEntries
       render json: { ok: false, error: error.message }, status: :unprocessable_entity
     end
 
+    def show_text
+      doc = @notepad_entry.scanned_documents.find(params[:id])
+      render partial: "shared/scanned_document_text_viewer",
+             locals: viewer_locals(doc)
+    end
+
+    def edit_text
+      doc = @notepad_entry.scanned_documents.find(params[:id])
+      render partial: "shared/scanned_document_text_editor",
+             locals: editor_locals(doc)
+    end
+
+    def confirm_delete_text
+      doc = @notepad_entry.scanned_documents.find(params[:id])
+      render partial: "shared/scanned_document_text_delete_confirm",
+             locals: delete_confirm_locals(doc)
+    end
+
+    def update_text
+      doc = @notepad_entry.scanned_documents.find(params[:id])
+      doc.update!(extracted_text: params[:extracted_text].to_s.strip)
+      render partial: "shared/scanned_document_text_viewer",
+             locals: viewer_locals(doc, saved_notice: "OCR text saved.")
+    end
+
+    def delete_text
+      doc = @notepad_entry.scanned_documents.find(params[:id])
+      doc.update!(
+        extracted_text: nil,
+        ocr_engine: nil,
+        ocr_language: nil,
+        ocr_confidence: nil
+      )
+
+      redirect_to notepad_entry_path(@notepad_entry), notice: "OCR text deleted."
+    end
+
     def destroy
       doc = @notepad_entry.scanned_documents.find(params[:id])
       doc.destroy!
@@ -113,6 +150,45 @@ module NotepadEntries
         :language,
         :engine
       )
+    end
+
+    def requested_frame_id_for(doc)
+      params[:frame_id].presence || ActionView::RecordIdentifier.dom_id(doc, :text)
+    end
+
+    def viewer_locals(doc, saved_notice: nil)
+      frame_id = requested_frame_id_for(doc)
+
+      {
+        doc: doc,
+        frame_id: frame_id,
+        edit_url: edit_text_notepad_entry_scanned_document_path(@notepad_entry, doc, frame_id: frame_id),
+        delete_confirm_url: confirm_delete_text_notepad_entry_scanned_document_path(@notepad_entry, doc, frame_id: frame_id),
+        saved_notice: saved_notice
+      }
+    end
+
+    def editor_locals(doc)
+      frame_id = requested_frame_id_for(doc)
+
+      {
+        doc: doc,
+        frame_id: frame_id,
+        update_url: update_text_notepad_entry_scanned_document_path(@notepad_entry, doc, frame_id: frame_id),
+        view_url: show_text_notepad_entry_scanned_document_path(@notepad_entry, doc, frame_id: frame_id),
+        delete_confirm_url: confirm_delete_text_notepad_entry_scanned_document_path(@notepad_entry, doc, frame_id: frame_id)
+      }
+    end
+
+    def delete_confirm_locals(doc)
+      frame_id = requested_frame_id_for(doc)
+
+      {
+        doc: doc,
+        frame_id: frame_id,
+        delete_url: delete_text_notepad_entry_scanned_document_path(@notepad_entry, doc),
+        view_url: show_text_notepad_entry_scanned_document_path(@notepad_entry, doc, frame_id: frame_id)
+      }
     end
   end
 end

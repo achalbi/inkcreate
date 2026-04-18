@@ -114,6 +114,13 @@ class PagesController < BrowserController
       :title,
       :notes,
       :captured_on,
+      :locations_json,
+      :contacts_json,
+      :location_name,
+      :location_address,
+      :location_source,
+      :location_latitude,
+      :location_longitude,
       :todo_list_enabled,
       :todo_list_hide_completed,
       :pending_scanned_documents_json,
@@ -332,6 +339,8 @@ class PagesController < BrowserController
     entry = current_user.notepad_entries.new(
       title: notepad_move_title,
       notes: @page.notes,
+      locations_data: @page.locations,
+      contacts_data: @page.contacts,
       entry_date: @page.captured_on || Time.zone.today
     )
     entry.allow_blank_content = true
@@ -445,6 +454,8 @@ class PagesController < BrowserController
 
   def blank_page_shell?
     @page.notes.to_s.blank? &&
+      !@page.location_present? &&
+      !@page.contact_present? &&
       !@page.photos.attached? &&
       !@page.voice_notes.exists? &&
       !@page.scanned_documents.exists? &&

@@ -17,7 +17,7 @@
           <span class="label label-default notebook-list-card__status">Pg. <%= page.position %></span>
         </div>
 
-        <p class="notebook-list-card__description"><%= page.plain_notes.truncate(140).presence || "No notes yet." %></p>
+        <p class="notebook-list-card__description"><%= page.plain_notes.truncate(140).presence || page.contact_preview_text.to_s.truncate(140).presence || page.location_preview_text.to_s.truncate(140).presence || "No notes yet." %></p>
 
         <div class="notebook-list-card__meta notebook-list-card__meta--chapter">
           <span class="notebook-list-card__meta-item notebook-list-card__meta-item--chapter">
@@ -47,6 +47,20 @@
               No capture date
             <% end %>
           </span>
+
+          <% if page.location_present? %>
+            <span class="notebook-list-card__meta-item notebook-list-card__meta-item--chapter">
+              <i class="ti ti-map-pin" aria-hidden="true"></i>
+              <%= page.location_count_label %>
+            </span>
+          <% end %>
+
+          <% if page.contact_present? %>
+            <span class="notebook-list-card__meta-item notebook-list-card__meta-item--chapter">
+              <i class="ti ti-address-book" aria-hidden="true"></i>
+              <%= page.contact_count_label %>
+            </span>
+          <% end %>
 
           <span class="notebook-list-card__meta-item notebook-list-card__meta-item--chapter">
             <i class="ti ti-clock-hour-4" aria-hidden="true"></i>

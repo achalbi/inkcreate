@@ -18,7 +18,7 @@ module ScannedDocuments
         extracted_text: cleaned_text,
         ocr_engine: normalize_engine,
         ocr_language: normalize_language,
-        ocr_confidence: normalize_confidence
+        ocr_confidence: normalize_confidence(cleaned_text)
       )
 
       scanned_document
@@ -45,8 +45,8 @@ module ScannedDocuments
       language.to_s.presence || ENV.fetch("OCR_LANGUAGE", "eng")
     end
 
-    def normalize_confidence
-      return nil if confidence.blank?
+    def normalize_confidence(cleaned_text)
+      return ScannedDocuments::ConfidenceEstimator.new(text: cleaned_text).call if confidence.blank?
 
       value = confidence.to_f
       value *= 100 if value.positive? && value <= 1

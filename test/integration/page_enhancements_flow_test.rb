@@ -136,6 +136,180 @@ class PageEnhancementsFlowTest < ActionDispatch::IntegrationTest
     upload&.tempfile&.close!
   end
 
+  test "user can create a page with only a location check-in" do
+    user = build_user(email: "location-page@example.com")
+    notebook = user.notebooks.create!(title: "Field notes", status: :active)
+    chapter = notebook.chapters.create!(title: "Visits", description: "Site walk")
+
+    sign_in_browser_user(user)
+
+    assert_difference -> { chapter.pages.count }, +1 do
+      post notebook_chapter_pages_path(notebook, chapter), params: {
+        authenticity_token: authenticity_token_for(notebook_chapter_pages_path(notebook, chapter)),
+        page: {
+          title: "",
+          notes: "",
+          captured_on: Date.current,
+          locations_json: [
+            {
+              name: "Bengaluru office",
+              address: "Bengaluru office, MG Road, Bengaluru, Karnataka, India",
+              latitude: "12.975300",
+              longitude: "77.605000",
+              source: "search"
+            },
+            {
+              name: "Client site",
+              address: "Client site, Indiranagar, Bengaluru, Karnataka, India",
+              latitude: "12.978400",
+              longitude: "77.640800",
+              source: "manual"
+            }
+          ].to_json
+        }
+      }
+    end
+
+    entry_page = chapter.pages.order(:created_at).last
+
+    assert_redirected_to notebook_chapter_page_path(notebook, chapter, entry_page)
+    assert_equal 2, entry_page.location_count
+    assert_equal "Bengaluru office", entry_page.location_label
+    assert_equal "Bengaluru office - Page 1", entry_page.display_title
+
+    follow_redirect!
+
+    assert_response :success
+    assert_select ".location-picker__summary-count", text: "2 locations saved"
+    assert_select ".location-picker__summary-title", text: "Bengaluru office"
+    assert_select ".location-picker__summary-title", text: "Client site"
+    assert_no_match "No content yet.", response.body
+  end
+
+  test "user can update locations from the page show form payload" do
+    user = build_user(email: "page-show-location-update@example.com")
+    notebook = user.notebooks.create!(title: "Field notes", status: :active)
+    chapter = notebook.chapters.create!(title: "Visits", description: "Site walk")
+    page = chapter.pages.create!(
+      title: "Show form target",
+      notes: "Keep these notes while adding a place.",
+      captured_on: Date.new(2026, 4, 18)
+    )
+
+    sign_in_browser_user(user)
+
+    get notebook_chapter_page_path(notebook, chapter, page)
+
+    patch notebook_chapter_page_path(notebook, chapter, page), params: {
+      authenticity_token: authenticity_token_for(notebook_chapter_page_path(notebook, chapter, page)),
+      page: {
+        title: page.title,
+        notes: page.notes.to_s,
+        captured_on: page.captured_on,
+        locations_json: [
+          {
+            name: "Client office",
+            address: "Client office, MG Road, Bengaluru, Karnataka, India",
+            latitude: "12.975300",
+            longitude: "77.605000",
+            source: "search"
+          }
+        ].to_json
+      }
+    }
+
+    assert_redirected_to notebook_chapter_page_path(notebook, chapter, page)
+    assert_equal 1, page.reload.location_count
+    assert_equal "Client office", page.location_label
+    assert_equal "Keep these notes while adding a place.", page.plain_notes
+  end
+
+  test "user can create a page with only contacts" do
+    user = build_user(email: "contact-page@example.com")
+    notebook = user.notebooks.create!(title: "Field notes", status: :active)
+    chapter = notebook.chapters.create!(title: "Visits", description: "Site walk")
+
+    sign_in_browser_user(user)
+
+    assert_difference -> { chapter.pages.count }, +1 do
+      post notebook_chapter_pages_path(notebook, chapter), params: {
+        authenticity_token: authenticity_token_for(notebook_chapter_pages_path(notebook, chapter)),
+        page: {
+          title: "",
+          notes: "",
+          captured_on: Date.current,
+          contacts_json: [
+            {
+              name: "Ada Lovelace",
+              primary_phone: "+1 555 010 2000",
+              secondary_phone: "+1 555 010 3000",
+              email: "ada@example.com",
+              website: "example.com"
+            },
+            {
+              name: "Grace Hopper",
+              primary_phone: "+1 555 010 4000",
+              email: "grace@example.com",
+              website: "gracehopper.dev"
+            }
+          ].to_json
+        }
+      }
+    end
+
+    entry_page = chapter.pages.order(:created_at).last
+
+    assert_redirected_to notebook_chapter_page_path(notebook, chapter, entry_page)
+    assert_equal 2, entry_page.contact_count
+    assert_equal "Ada Lovelace", entry_page.contact_label
+    assert_equal "Ada Lovelace - Page 1", entry_page.display_title
+
+    follow_redirect!
+
+    assert_response :success
+    assert_select ".contact-section__summary-count", text: "2 contacts saved"
+    assert_select ".contact-section__summary-title", text: "Ada Lovelace"
+    assert_select ".contact-section__summary-title", text: "Grace Hopper"
+    assert_no_match "No content yet.", response.body
+  end
+
+  test "user can update contacts from the page show form payload" do
+    user = build_user(email: "page-show-contact-update@example.com")
+    notebook = user.notebooks.create!(title: "Field notes", status: :active)
+    chapter = notebook.chapters.create!(title: "Visits", description: "Site walk")
+    page = chapter.pages.create!(
+      title: "Show form target",
+      notes: "Keep these notes while adding a contact.",
+      captured_on: Date.new(2026, 4, 18)
+    )
+
+    sign_in_browser_user(user)
+
+    get notebook_chapter_page_path(notebook, chapter, page)
+
+    patch notebook_chapter_page_path(notebook, chapter, page), params: {
+      authenticity_token: authenticity_token_for(notebook_chapter_page_path(notebook, chapter, page)),
+      page: {
+        title: page.title,
+        notes: page.notes.to_s,
+        captured_on: page.captured_on,
+        contacts_json: [
+          {
+            name: "Grace Hopper",
+            primary_phone: "+1 555 010 4000",
+            email: "grace@example.com",
+            website: "gracehopper.dev"
+          }
+        ].to_json
+      }
+    }
+
+    assert_redirected_to notebook_chapter_page_path(notebook, chapter, page)
+    assert_equal 1, page.reload.contact_count
+    assert_equal "Grace Hopper", page.contact_label
+    assert_equal "Keep these notes while adding a contact.", page.plain_notes
+  end
+
   test "saving the same page voice note twice only creates one record" do
     user = build_user(email: "page-voice-dedupe@example.com")
     notebook = user.notebooks.create!(title: "Field notes", status: :active)
@@ -291,7 +465,48 @@ class PageEnhancementsFlowTest < ActionDispatch::IntegrationTest
     follow_redirect!
 
     assert_response :success
+    modal_id = ActionView::RecordIdentifier.dom_id(page, :scanned_document_ocr_modal)
+    modal_frame_id = ActionView::RecordIdentifier.dom_id(page, :scanned_document_ocr_modal_frame)
+    assert_select "form[action='#{extract_text_notebook_chapter_page_scanned_document_path(notebook, chapter, page, scanned_document)}'] button.sdoc-action-btn", text: /Re-run OCR/
+    assert_select "##{modal_id}.sdoc-ocr-modal", count: 1
+    assert_select "a.sdoc-action-btn[data-turbo-frame='#{modal_frame_id}'][href='#{show_text_notebook_chapter_page_scanned_document_path(notebook, chapter, page, scanned_document, frame_id: modal_frame_id)}']", text: /View OCR/
+    assert_select "a.sdoc-action-btn[data-turbo-frame='#{modal_frame_id}'][href='#{edit_text_notebook_chapter_page_scanned_document_path(notebook, chapter, page, scanned_document, frame_id: modal_frame_id)}']", count: 0
+    assert_select "a.sdoc-action-btn[data-turbo-frame='#{modal_frame_id}'][href='#{confirm_delete_text_notebook_chapter_page_scanned_document_path(notebook, chapter, page, scanned_document, frame_id: modal_frame_id)}']", count: 0
+    assert_select ".sdoc-conf-badge.sdoc-conf-badge--high", text: /Confidence 88%/
+    assert_select "a.sdoc-action-btn--icon[href='#{rails_blob_path(scanned_document.document_pdf, only_path: true, disposition: "attachment")}']", count: 1
+    assert_select "form[action='#{notebook_chapter_page_scanned_document_path(notebook, chapter, page, scanned_document)}'] button.sdoc-action-btn--icon", count: 1
     assert_select ".sdoc-excerpt", count: 0
+
+    get show_text_notebook_chapter_page_scanned_document_path(notebook, chapter, page, scanned_document), params: { frame_id: modal_frame_id }
+
+    assert_response :success
+    assert_match "View OCR text", response.body
+    assert_match "Total: 42.00", response.body
+    assert_select "a[href='#{edit_text_notebook_chapter_page_scanned_document_path(notebook, chapter, page, scanned_document, frame_id: modal_frame_id)}']", text: /Edit OCR/
+    assert_select "a[href='#{confirm_delete_text_notebook_chapter_page_scanned_document_path(notebook, chapter, page, scanned_document, frame_id: modal_frame_id)}']", text: /Delete OCR/
+
+    get edit_text_notebook_chapter_page_scanned_document_path(notebook, chapter, page, scanned_document), params: { frame_id: modal_frame_id }
+
+    assert_response :success
+    assert_select "textarea.sdoc-text-area", count: 1
+    assert_select "a[href='#{show_text_notebook_chapter_page_scanned_document_path(notebook, chapter, page, scanned_document, frame_id: modal_frame_id)}']", text: /View OCR/
+    assert_select "a[href='#{confirm_delete_text_notebook_chapter_page_scanned_document_path(notebook, chapter, page, scanned_document, frame_id: modal_frame_id)}']", text: /Delete OCR/
+    assert_select "button[type='submit']", text: /Save changes/
+
+    get confirm_delete_text_notebook_chapter_page_scanned_document_path(notebook, chapter, page, scanned_document), params: { frame_id: modal_frame_id }
+
+    assert_response :success
+    assert_match "Delete OCR text?", response.body
+    assert_select "a[href='#{show_text_notebook_chapter_page_scanned_document_path(notebook, chapter, page, scanned_document, frame_id: modal_frame_id)}']", text: /View OCR/
+    assert_select "form[action='#{delete_text_notebook_chapter_page_scanned_document_path(notebook, chapter, page, scanned_document)}'] button", text: /Delete OCR/
+    delete_text_token = authenticity_token_for(delete_text_notebook_chapter_page_scanned_document_path(notebook, chapter, page, scanned_document))
+
+    delete delete_text_notebook_chapter_page_scanned_document_path(notebook, chapter, page, scanned_document), params: {
+      authenticity_token: delete_text_token
+    }
+
+    assert_redirected_to notebook_chapter_page_path(notebook, chapter, page)
+    assert_nil scanned_document.reload.extracted_text
   end
 
   test "user can store a native OCR result on a saved page scan" do

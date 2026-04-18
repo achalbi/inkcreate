@@ -312,7 +312,7 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert launcher.present?, "Expected the notepad quick actions launcher"
     assert toggle.present?, "Expected the quick actions + toggle button"
     assert_equal "false", toggle["aria-expanded"]
-    assert_equal %w[ti-camera ti-photo-plus ti-microphone ti-list-check ti-scan], items
+    assert_equal %w[ti-camera ti-photo-plus ti-microphone ti-list-check ti-scan ti-map-pin ti-address-book], items
   end
 
   test "page edit page renders floating quick actions launcher" do
@@ -330,7 +330,10 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert launcher.present?, "Expected the notebook page edit screen to render the quick actions launcher"
     assert toggle.present?, "Expected the quick actions + toggle button"
     assert_equal "false", toggle["aria-expanded"]
-    assert_equal %w[ti-camera ti-photo-plus ti-microphone ti-list-check ti-scan], items
+    assert_equal %w[ti-camera ti-photo-plus ti-microphone ti-list-check ti-scan ti-map-pin ti-address-book], items
+    assert_select ".notepad-quick-actions[data-notepad-quick-actions-location-section-id-value='#{ActionView::RecordIdentifier.dom_id(@page, :location_section)}'][data-notepad-quick-actions-location-input-id-value='#{ActionView::RecordIdentifier.dom_id(@page, :location_search_input)}']", count: 1
+    assert_select ".notepad-quick-actions button[data-action='click->notepad-quick-actions#openLocation'][aria-label='Add location']", count: 1
+    assert_select ".notepad-quick-actions button[data-action='click->notepad-quick-actions#openContact'][aria-label='Add contact']", count: 1
   end
 
   test "notepad edit page renders floating section dock" do
@@ -356,6 +359,7 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_includes links, "##{ActionView::RecordIdentifier.dom_id(entry, :voice_notes_section)}"
     assert_includes links, "##{ActionView::RecordIdentifier.dom_id(entry, :todo_list_section)}"
     assert_includes links, "##{ActionView::RecordIdentifier.dom_id(entry, :scanned_documents_section)}"
+    assert_includes links, "##{ActionView::RecordIdentifier.dom_id(entry, :location_section)}"
     assert_includes links, "##{ActionView::RecordIdentifier.dom_id(entry, :move_to_notebook_section)}"
   end
 
@@ -434,7 +438,10 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_equal "click->document-capture#runOcr", ocr_form.at_xpath(".//button")&.[]("data-action")
     assert_nil card.at_xpath(".//*[@data-action='click->document-capture#copyText']"), "Copy extracted text action should not render"
     assert_nil card.at_xpath(".//*[@data-action='click->document-capture#viewFull']"), "View extracted text action should not render"
-    assert_nil card.at_css(".sdoc-conf-badge"), "OCR confidence badge should not render"
+    confidence_badge = card.at_css(".sdoc-conf-badge")
+    assert confidence_badge.present?, "OCR confidence badge should render"
+    assert_equal "Confidence 88%", confidence_badge.text.strip
+    assert_includes confidence_badge["class"], "sdoc-conf-badge--high"
     refute_includes response.body, "Total due 42.00"
   end
 
@@ -557,7 +564,10 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_equal "click->document-capture#runOcr", ocr_form.at_xpath(".//button")&.[]("data-action")
     assert_nil card.at_xpath(".//*[@data-action='click->document-capture#copyText']"), "Copy extracted text action should not render"
     assert_nil card.at_xpath(".//*[@data-action='click->document-capture#viewFull']"), "View extracted text action should not render"
-    assert_nil card.at_css(".sdoc-conf-badge"), "OCR confidence badge should not render"
+    confidence_badge = card.at_css(".sdoc-conf-badge")
+    assert confidence_badge.present?, "OCR confidence badge should render"
+    assert_equal "Confidence 91%", confidence_badge.text.strip
+    assert_includes confidence_badge["class"], "sdoc-conf-badge--high"
     refute_includes response.body, "Action items and owners."
   end
 
@@ -576,6 +586,7 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     edit_form = document.at_css("form##{edit_form_id}")
     todo_section = document.at_css("##{ActionView::RecordIdentifier.dom_id(@page, :todo_list_section)}")
     save_button = document.at_css(".notepad-doc-edit__footer .page-details-save-button[form='#{edit_form_id}']")
+    anchor_ids = document.css(".detail-section-anchor[id]").map { |node| node["id"] }
 
     assert_select "form[action='#{notebook_chapter_page_todo_items_path(@notebook, @chapter, @page)}'] textarea[name='todo_item[content]']", count: 1
     assert_select "form[action='#{notebook_chapter_page_todo_items_path(@notebook, @chapter, @page)}'] .todo-list-composer__badge .ti-checkbox", count: 1
@@ -595,8 +606,11 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_no_match "Saved items on this page", response.body
     assert_select "nav.detail-section-shortcuts[data-controller='section-shortcuts']", count: 1
     assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(@page, :details_section)}']", count: 1
+    assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(@page, :location_section)}']", count: 1
     assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(@page, :notes_section)}']", count: 1
     assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(@page, :photos_section)}']", count: 1
+    assert_operator anchor_ids.index(ActionView::RecordIdentifier.dom_id(@page, :scanned_documents_section)), :<,
+      anchor_ids.index(ActionView::RecordIdentifier.dom_id(@page, :location_section))
     assert_select ".notepad-doc__meta a.notepad-doc__meta-action[href='#{notebook_chapter_page_path(@notebook, @chapter, @page)}']", text: /View/
     assert_select ".notepad-doc__meta form.button_to[action='#{quick_create_notebook_chapter_pages_path(@notebook, @chapter)}'] button.notepad-doc__meta-action", text: /New page/
   end
@@ -610,6 +624,7 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     document = Nokogiri::HTML.parse(response.body)
     launcher = document.at_css(".notepad-quick-actions[data-controller='notepad-quick-actions']")
     items = launcher&.css(".notepad-quick-actions__item i")&.map { |node| node["class"].to_s[/ti-[^ ]+/] }
+    anchor_ids = document.css(".detail-section-anchor[id]").map { |node| node["id"] }
 
     assert_select ".notepad-doc-edit__canvas", count: 1
     assert_select ".notepad-doc__block--voice", count: 1
@@ -625,12 +640,46 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_no_match "Saved with this form", response.body
     assert_match "Add checklist items before saving.", response.body
     assert launcher.present?, "Expected the notebook new page screen to render the quick actions launcher"
-    assert_equal %w[ti-camera ti-photo-plus ti-microphone ti-list-check ti-scan], items
+    assert_equal %w[ti-camera ti-photo-plus ti-microphone ti-list-check ti-scan ti-map-pin ti-address-book], items
+    assert_select ".notepad-quick-actions[data-notepad-quick-actions-location-section-id-value='#{ActionView::RecordIdentifier.dom_id(Page.new, :location_section)}'][data-notepad-quick-actions-location-input-id-value='#{ActionView::RecordIdentifier.dom_id(Page.new, :location_search_input)}']", count: 1
+    assert_select ".notepad-quick-actions button[data-action='click->notepad-quick-actions#openLocation'][aria-label='Add location']", count: 1
+    assert_select ".notepad-quick-actions button[data-action='click->notepad-quick-actions#openContact'][aria-label='Add contact']", count: 1
     assert_select "nav.detail-section-shortcuts[data-controller='section-shortcuts']", count: 1
     assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(Page.new, :details_section)}']", count: 1
+    assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(Page.new, :location_section)}']", count: 1
     assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(Page.new, :notes_section)}']", count: 1
     assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(Page.new, :photos_section)}']", count: 1
+    assert_operator anchor_ids.index(ActionView::RecordIdentifier.dom_id(Page.new, :scanned_documents_section)), :<,
+      anchor_ids.index(ActionView::RecordIdentifier.dom_id(Page.new, :location_section))
     assert_select ".notepad-doc__meta a.notepad-doc__meta-action[href='#{notebook_chapter_path(@notebook, @chapter)}']", text: /Chapter/
+  end
+
+  test "page show page renders the location block when a location is saved" do
+    sign_in!
+
+    @page.update!(
+      location_name: "Inkcreate office",
+      location_address: "Inkcreate office, MG Road, Bengaluru, Karnataka, India",
+      location_latitude: 12.9753,
+      location_longitude: 77.6050,
+      location_source: "current"
+    )
+
+    get notebook_chapter_page_path(@notebook, @chapter, @page)
+
+    assert_response :success
+    document = Nokogiri::HTML.parse(response.body)
+    anchor_ids = document.css(".detail-section-anchor[id]").map { |node| node["id"] }
+    location_section_id = ActionView::RecordIdentifier.dom_id(@page, :location_section)
+    assert_select "nav.detail-section-shortcuts a[href='##{ActionView::RecordIdentifier.dom_id(@page, :location_section)}']", count: 1
+    assert_select "##{location_section_id}[data-location-picker-auto-submit-value='true']", count: 1
+    assert_select "##{location_section_id} .location-picker__summary-title", text: "Inkcreate office"
+    assert_select "##{location_section_id} .location-picker__search-stack > .location-picker__results", count: 1
+    assert_select "##{location_section_id} button[data-action='location-picker#clear']", count: 0
+    assert_no_match "Save locations", response.body
+    assert_select "a[href='#{@page.location_maps_url}']", text: /Maps/
+    assert_operator anchor_ids.index(ActionView::RecordIdentifier.dom_id(@page, :scanned_documents_section)), :<,
+      anchor_ids.index(ActionView::RecordIdentifier.dom_id(@page, :location_section))
   end
 
   test "chapter show page exposes the new page action without inline page edit controls" do
@@ -664,6 +713,7 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     edit_form = document.at_css("form##{edit_form_id}")
     todo_section = document.at_css("##{ActionView::RecordIdentifier.dom_id(entry, :todo_list_section)}")
     save_button = document.at_css(".notepad-doc-edit__footer .page-details-save-button[form='#{edit_form_id}']")
+    anchor_ids = document.css(".detail-section-anchor[id]").map { |node| node["id"] }
 
     assert_select "form[action='#{notepad_entry_todo_items_path(entry)}'] textarea[name='todo_item[content]']", count: 1
     assert_select "form[action='#{notepad_entry_todo_items_path(entry)}'] .todo-list-composer__badge .ti-checkbox", count: 1
@@ -678,6 +728,9 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert save_button.present?, "Expected the save button to target the page update form explicitly"
     assert_no_match "Enable the checklist and queue items before saving this page.", response.body
     assert_no_match "Saved items on this page", response.body
+    assert_includes anchor_ids, ActionView::RecordIdentifier.dom_id(entry, :location_section)
+    assert_operator anchor_ids.index(ActionView::RecordIdentifier.dom_id(entry, :scanned_documents_section)), :<,
+      anchor_ids.index(ActionView::RecordIdentifier.dom_id(entry, :location_section))
     assert_operator response.body.index("To-do list"), :<, response.body.index("Move to notebook")
   end
 
@@ -703,6 +756,10 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     get new_notepad_entry_path
 
     assert_response :success
+    document = Nokogiri::HTML.parse(response.body)
+    anchor_ids = document.css(".detail-section-anchor[id]").map { |node| node["id"] }
+    location_section_id = ActionView::RecordIdentifier.dom_id(NotepadEntry.new, :location_section)
+    location_input_id = ActionView::RecordIdentifier.dom_id(NotepadEntry.new, :location_search_input)
     assert_select ".notepad-doc-edit__canvas", count: 1
     assert_select ".notepad-doc__block--voice", count: 1
     assert_select ".notepad-doc__block--scans", count: 1
@@ -717,6 +774,45 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_no_match "Enable the checklist and queue items before saving this page.", response.body
     assert_no_match "Saved with this form", response.body
     assert_match "Add checklist items before saving.", response.body
+    assert_select "nav.detail-section-shortcuts a[href='##{location_section_id}']", count: 1
+    assert_select ".notepad-quick-actions[data-notepad-quick-actions-location-section-id-value='#{location_section_id}'][data-notepad-quick-actions-location-input-id-value='#{location_input_id}']", count: 1
+    assert_select ".notepad-quick-actions button[data-action='click->notepad-quick-actions#openLocation'][aria-label='Add location']", count: 1
+    assert_operator anchor_ids.index(ActionView::RecordIdentifier.dom_id(NotepadEntry.new, :scanned_documents_section)), :<,
+      anchor_ids.index(location_section_id)
+  end
+
+  test "notepad show page renders the location block when a location is saved" do
+    sign_in!
+
+    entry = @user.notepad_entries.create!(
+      title: "Location page",
+      notes: "",
+      entry_date: Date.current,
+      location_name: "Inkcreate office",
+      location_address: "Inkcreate office, MG Road, Bengaluru, Karnataka, India",
+      location_latitude: 12.9753,
+      location_longitude: 77.6050,
+      location_source: "current"
+    )
+
+    get notepad_entry_path(entry)
+
+    assert_response :success
+    document = Nokogiri::HTML.parse(response.body)
+    anchor_ids = document.css(".detail-section-anchor[id]").map { |node| node["id"] }
+    location_section_id = ActionView::RecordIdentifier.dom_id(entry, :location_section)
+    location_input_id = ActionView::RecordIdentifier.dom_id(entry, :location_search_input)
+    assert_select "nav.detail-section-shortcuts a[href='##{location_section_id}']", count: 1
+    assert_select "##{location_section_id}[data-location-picker-auto-submit-value='true']", count: 1
+    assert_select ".notepad-quick-actions[data-notepad-quick-actions-location-section-id-value='#{location_section_id}'][data-notepad-quick-actions-location-input-id-value='#{location_input_id}']", count: 1
+    assert_select ".notepad-quick-actions button[data-action='click->notepad-quick-actions#openLocation'][aria-label='Add location']", count: 1
+    assert_select "##{location_section_id} .location-picker__summary-title", text: "Inkcreate office"
+    assert_select "##{location_section_id} .location-picker__search-stack > .location-picker__results", count: 1
+    assert_select "##{location_section_id} button[data-action='location-picker#clear']", count: 0
+    assert_no_match "Save locations", response.body
+    assert_select "a[href='#{entry.location_maps_url}']", text: /Maps/
+    assert_operator anchor_ids.index(ActionView::RecordIdentifier.dom_id(entry, :scanned_documents_section)), :<,
+      anchor_ids.index(location_section_id)
   end
 
   test "page overview shows voice note and to-do progress labels" do
@@ -898,7 +994,10 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert launcher.present?, "Expected the notebook page show screen to render the quick actions launcher"
     assert toggle.present?, "Expected the quick actions + toggle button"
     assert_equal "false", toggle["aria-expanded"]
-    assert_equal %w[ti-camera ti-photo-plus ti-microphone ti-list-check ti-scan], items
+    assert_equal %w[ti-camera ti-photo-plus ti-microphone ti-list-check ti-scan ti-map-pin ti-address-book], items
+    assert_select ".notepad-quick-actions[data-notepad-quick-actions-location-section-id-value='#{ActionView::RecordIdentifier.dom_id(@page, :location_section)}'][data-notepad-quick-actions-location-input-id-value='#{ActionView::RecordIdentifier.dom_id(@page, :location_search_input)}']", count: 1
+    assert_select ".notepad-quick-actions button[data-action='click->notepad-quick-actions#openLocation'][aria-label='Add location']", count: 1
+    assert_select ".notepad-quick-actions button[data-action='click->notepad-quick-actions#openContact'][aria-label='Add contact']", count: 1
   end
 
   test "notepad show page renders a quick edit modal for title and notes" do
@@ -1028,7 +1127,7 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
     assert_select ".notepad-entry-quick-edit-modal.show", count: 1
     assert_match "Please fix the following:", response.body
-    assert_match "Add notes, a photo, a scanned document, a voice note, or a to-do item.", response.body
+    assert_match "Add notes, a location, a contact, a photo, a scanned document, a voice note, or a to-do item.", response.body
   end
 
   test "notepad edit page keeps delete control in the page details action bar" do
@@ -1043,8 +1142,11 @@ class WorkspaceRoutesTest < ActionDispatch::IntegrationTest
     get edit_notepad_entry_path(entry)
 
     assert_response :success
+    modal_id = ActionView::RecordIdentifier.dom_id(entry, :delete_confirm_modal)
     assert_select ".notepad-doc-edit__footer .page-details-save-button", count: 1
-    assert_select ".notepad-doc-edit__footer a.notebook-overview-delete-button[href='#{notepad_entry_path(entry)}'][data-turbo-method='delete']", count: 1
+    assert_select ".notepad-doc-edit__footer button.notebook-overview-delete-button[data-bs-toggle='modal'][data-bs-target='##{modal_id}']", count: 1
+    assert_select "##{modal_id} form[action='#{notepad_entry_path(entry)}'] input[name='_method'][value='delete']", count: 1
+    assert_select "##{modal_id} button[type='submit']", text: /Delete page/
     assert_select ".workspace-form-actions .notebook-overview-delete-button", count: 0
   end
 

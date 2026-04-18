@@ -10,7 +10,9 @@
   photo_count = @notepad_entry.photos.count
   scanned_document_count = docs.size
   autoprint = ActiveModel::Type::Boolean.new.cast(params[:autoprint])
-  has_content = @notepad_entry.plain_notes.present? || @notepad_entry.photos.attached? ||
+  contact_section_id = dom_id(@notepad_entry, :contact_section)
+  location_section_id = dom_id(@notepad_entry, :location_section)
+  has_content = @notepad_entry.location_present? || @notepad_entry.contact_present? || @notepad_entry.plain_notes.present? || @notepad_entry.photos.attached? ||
                 voice_note_count > 0 || todo_items.any? || docs.any?
 %>
 <!DOCTYPE html>
@@ -59,6 +61,18 @@
                   <% if @notepad_entry.plain_notes.present? %>
                     <span class="notepad-doc__meta-chip">
                       <i class="ti ti-file-text" aria-hidden="true"></i> Notes
+                    </span>
+                  <% end %>
+                  <% if @notepad_entry.location_present? %>
+                    <span class="notepad-doc__meta-chip">
+                      <i class="ti ti-map-pin" aria-hidden="true"></i>
+                      <%= @notepad_entry.location_count_label %>
+                    </span>
+                  <% end %>
+                  <% if @notepad_entry.contact_present? %>
+                    <span class="notepad-doc__meta-chip">
+                      <i class="ti ti-address-book" aria-hidden="true"></i>
+                      <%= @notepad_entry.contact_count_label %>
                     </span>
                   <% end %>
                   <% if photo_count > 0 %>
@@ -127,6 +141,14 @@
                 <%= render "notepad_entries/scanned_documents_document_section",
                   notepad_entry: @notepad_entry,
                   pdf_export_mode: true %>
+
+                <% if @notepad_entry.contact_present? %>
+                  <%= render "pages/contact_section", record: @notepad_entry, section_id: contact_section_id %>
+                <% end %>
+
+                <% if @notepad_entry.location_present? %>
+                  <%= render "pages/location_section", record: @notepad_entry, section_id: location_section_id %>
+                <% end %>
 
                 <% unless has_content %>
                   <div class="notepad-doc__block notepad-doc__block--empty">

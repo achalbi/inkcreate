@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_17_164000) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_19_110000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -289,8 +289,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_17_164000) do
   end
 
   create_table "notepad_entries", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.jsonb "contacts_data", default: [], null: false
     t.datetime "created_at", null: false
     t.date "entry_date", null: false
+    t.text "location_address"
+    t.decimal "location_latitude", precision: 10, scale: 6
+    t.decimal "location_longitude", precision: 10, scale: 6
+    t.string "location_name"
+    t.string "location_source"
+    t.jsonb "locations_data", default: [], null: false
     t.text "notes"
     t.string "title"
     t.datetime "updated_at", null: false
@@ -348,7 +355,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_17_164000) do
   create_table "pages", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.date "captured_on"
     t.uuid "chapter_id", null: false
+    t.jsonb "contacts_data", default: [], null: false
     t.datetime "created_at", null: false
+    t.text "location_address"
+    t.decimal "location_latitude", precision: 10, scale: 6
+    t.decimal "location_longitude", precision: 10, scale: 6
+    t.string "location_name"
+    t.string "location_source"
+    t.jsonb "locations_data", default: [], null: false
     t.text "notes"
     t.integer "position", null: false
     t.string "title", null: false

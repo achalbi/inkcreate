@@ -1,0 +1,249 @@
+<%
+  record = local_assigns[:record] || local_assigns[:page]
+  form_id = local_assigns.fetch(:form_id)
+  section_id = local_assigns.fetch(:section_id)
+  add_button_id = local_assigns.fetch(:add_button_id, dom_id(record, :contact_add_button))
+  auto_submit = local_assigns.fetch(:auto_submit, false)
+  contacts = record.contact_entries
+  param_key = record.model_name.param_key
+  modal_id = dom_id(record, :contact_modal)
+  modal_label_id = "#{modal_id}_label"
+  name_input_id = dom_id(record, :contact_name_input)
+%>
+
+<div
+  id="<%= section_id %>"
+  class="notepad-doc__block notepad-doc__block--contacts notepad-doc-edit__section detail-section-anchor"
+  data-controller="contact-cards"
+  data-contact-cards-form-id-value="<%= form_id %>"
+  data-contact-cards-auto-submit-value="<%= auto_submit %>"
+  data-contact-cards-record-label-value="<%= record.display_title %>"
+>
+  <div class="notepad-doc__block-header">
+    <div class="notepad-doc__block-label">
+      <i class="ti ti-address-book" aria-hidden="true"></i>
+      <%= record.multiple_contacts? ? "Contacts" : "Contact" %>
+    </div>
+    <div class="notepad-doc__block-actions">
+      <button
+        id="<%= add_button_id %>"
+        type="button"
+        class="btn btn-white btn-sm"
+        data-contact-cards-action="open-new"
+      >
+        <i class="ti ti-user-plus" aria-hidden="true"></i><span> Add contact</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="contact-section">
+    <%= hidden_field_tag "#{param_key}[contacts_json]",
+      record.contacts_json,
+      form: form_id,
+      data: { contact_cards_target: "contactsInput" } %>
+
+    <p class="contact-section__hint m-b-none">
+      Save one or more contacts, then export or share each one as a vCard.
+    </p>
+
+    <div class="contact-section__status" data-contact-cards-target="status" aria-live="polite"></div>
+    <div class="contact-section__summary" data-contact-cards-target="summary">
+      <% if contacts.any? %>
+        <div class="contact-section__summary-count"><%= pluralize(contacts.size, "contact") %> saved</div>
+        <div class="contact-section__summary-list">
+          <% contacts.each_with_index do |contact, index| %>
+            <div class="contact-section__summary-card">
+              <div class="contact-section__summary-card-main">
+                <div class="contact-section__summary-title"><%= contact[:name] %></div>
+                <div class="contact-section__summary-details">
+                  <% if contact[:primary_phone].present? %>
+                    <%= link_to contact[:primary_phone_href],
+                      class: "contact-section__summary-detail-row contact-section__summary-detail-row--link",
+                      target: "_blank",
+                      rel: "noopener" do %>
+                      <i class="ti ti-phone" aria-hidden="true"></i>
+                      <span class="contact-section__detail-label">Primary</span>
+                      <span class="contact-section__detail-value"><%= contact[:primary_phone] %></span>
+                    <% end %>
+                  <% end %>
+                  <% if contact[:secondary_phone].present? %>
+                    <%= link_to contact[:secondary_phone_href],
+                      class: "contact-section__summary-detail-row contact-section__summary-detail-row--link",
+                      target: "_blank",
+                      rel: "noopener" do %>
+                      <i class="ti ti-phone-call" aria-hidden="true"></i>
+                      <span class="contact-section__detail-label">Secondary</span>
+                      <span class="contact-section__detail-value"><%= contact[:secondary_phone] %></span>
+                    <% end %>
+                  <% end %>
+                  <% if contact[:email].present? %>
+                    <%= link_to contact[:email_href],
+                      class: "contact-section__summary-detail-row contact-section__summary-detail-row--link" do %>
+                      <i class="ti ti-mail" aria-hidden="true"></i>
+                      <span class="contact-section__detail-label">Email</span>
+                      <span class="contact-section__detail-value"><%= contact[:email] %></span>
+                    <% end %>
+                  <% end %>
+                  <% if contact[:website].present? %>
+                    <%= link_to contact[:website_url].presence || "#",
+                      class: "contact-section__summary-detail-row contact-section__summary-detail-row--link",
+                      target: "_blank",
+                      rel: "noopener" do %>
+                      <i class="ti ti-world" aria-hidden="true"></i>
+                      <span class="contact-section__detail-label">Website</span>
+                      <span class="contact-section__detail-value"><%= contact[:website] %></span>
+                    <% end %>
+                  <% end %>
+                </div>
+              </div>
+              <div class="contact-section__summary-actions">
+                <button
+                  type="button"
+                  class="contact-section__summary-action"
+                  data-contact-cards-action="save-to-contacts"
+                  data-contact-index="<%= index %>"
+                >
+                  <i class="ti ti-user-plus" aria-hidden="true"></i><span>Save contact</span>
+                </button>
+                <button
+                  type="button"
+                  class="contact-section__summary-action"
+                  data-contact-cards-action="share-contact"
+                  data-contact-index="<%= index %>"
+                >
+                  <i class="ti ti-share" aria-hidden="true"></i><span>Share</span>
+                </button>
+                <button
+                  type="button"
+                  class="contact-section__summary-action"
+                  data-contact-cards-action="edit-contact"
+                  data-contact-index="<%= index %>"
+                >
+                  <i class="ti ti-pencil" aria-hidden="true"></i><span>Edit</span>
+                </button>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="contact-section__summary-empty">No contact added yet.</div>
+      <% end %>
+    </div>
+  </div>
+
+  <div
+    class="modal fade record-contact-modal"
+    id="<%= modal_id %>"
+    tabindex="-1"
+    aria-labelledby="<%= modal_label_id %>"
+    aria-hidden="true"
+    data-contact-cards-target="modal"
+  >
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <div class="record-contact-modal__eyebrow">Contact</div>
+            <h5 class="modal-title" id="<%= modal_label_id %>" data-contact-cards-target="modalTitle">Add contact</h5>
+          </div>
+          <button
+            type="button"
+            class="btn-close"
+            data-contact-cards-target="closeButton"
+            aria-label="Close"
+          ></button>
+        </div>
+        <div class="modal-body record-contact-modal__body">
+          <div class="contact-section__modal-status" data-contact-cards-target="modalStatus" hidden></div>
+
+          <div class="record-contact-modal__grid">
+            <div class="form-group m-b-none">
+              <label class="control-label" for="<%= name_input_id %>">Name</label>
+              <input
+                id="<%= name_input_id %>"
+                type="text"
+                class="form-control"
+                placeholder="Ada Lovelace"
+                autocomplete="name"
+                data-contact-cards-target="nameInput"
+              >
+            </div>
+
+            <div class="form-group m-b-none">
+              <label class="control-label" for="<%= dom_id(record, :contact_primary_phone_input) %>">Primary phone</label>
+              <input
+                id="<%= dom_id(record, :contact_primary_phone_input) %>"
+                type="tel"
+                class="form-control"
+                placeholder="+1 555 010 2000"
+                autocomplete="tel"
+                data-contact-cards-target="primaryPhoneInput"
+              >
+            </div>
+
+            <div class="form-group m-b-none">
+              <label class="control-label" for="<%= dom_id(record, :contact_secondary_phone_input) %>">Secondary phone</label>
+              <input
+                id="<%= dom_id(record, :contact_secondary_phone_input) %>"
+                type="tel"
+                class="form-control"
+                placeholder="+1 555 010 3000"
+                autocomplete="tel-national"
+                data-contact-cards-target="secondaryPhoneInput"
+              >
+            </div>
+
+            <div class="form-group m-b-none">
+              <label class="control-label" for="<%= dom_id(record, :contact_email_input) %>">Email</label>
+              <input
+                id="<%= dom_id(record, :contact_email_input) %>"
+                type="email"
+                class="form-control"
+                placeholder="ada@example.com"
+                autocomplete="email"
+                data-contact-cards-target="emailInput"
+              >
+            </div>
+
+            <div class="form-group m-b-none record-contact-modal__grid-span-full">
+              <label class="control-label" for="<%= dom_id(record, :contact_website_input) %>">Website</label>
+              <input
+                id="<%= dom_id(record, :contact_website_input) %>"
+                type="url"
+                class="form-control"
+                placeholder="example.com"
+                autocomplete="url"
+                data-contact-cards-target="websiteInput"
+              >
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer record-contact-modal__footer">
+          <button
+            type="button"
+            class="btn btn-white btn-sm me-auto"
+            hidden
+            data-contact-cards-target="deleteButton"
+            data-contact-cards-action="delete-current"
+          >
+            Delete
+          </button>
+          <button
+            type="button"
+            class="btn btn-white btn-sm"
+            data-contact-cards-target="closeButton"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary btn-sm"
+            data-contact-cards-target="saveButton"
+          >
+            Save contact
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

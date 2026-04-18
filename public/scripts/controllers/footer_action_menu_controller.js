@@ -30,6 +30,11 @@ export default class extends Controller {
     this.sync();
   }
 
+  openLauncher(event) {
+    event?.preventDefault();
+    window.dispatchEvent(new CustomEvent("inkcreate:launcher:open"));
+  }
+
   closeOnWindow(event) {
     if (!this.isOpen || this.element.contains(event.target)) {
       return;

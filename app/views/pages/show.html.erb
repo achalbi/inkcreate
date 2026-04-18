@@ -6,7 +6,13 @@
   scanned_document_count = @page.scanned_documents.count
   todo_items = todo_lists_available ? @page.todo_list&.display_todo_items&.to_a || [] : []
   move_form_id = dom_id(@page, :move_form)
+  location_form_id = dom_id(@page, :location_form)
+  contact_form_id = dom_id(@page, :contact_form)
   overview_section_id = dom_id(@page, :overview_section)
+  contact_section_id = dom_id(@page, :contact_section)
+  contact_add_button_id = dom_id(@page, :contact_add_button)
+  location_section_id = dom_id(@page, :location_section)
+  location_input_id = dom_id(@page, :location_search_input)
   photos_section_id = dom_id(@page, :photos_section)
   voice_notes_section_id = dom_id(@page, :voice_notes_section)
   todo_list_section_id = dom_id(@page, :todo_list_section)
@@ -19,11 +25,12 @@
   section_shortcuts << { label: "Voice notes", short_label: "Voice", icon: "ti-microphone", target: voice_notes_section_id } if voice_notes_available
   section_shortcuts << { label: "To-do list", short_label: "To-do", icon: "ti-checkbox", target: todo_list_section_id } if todo_lists_available
   section_shortcuts << { label: "Scanned documents", short_label: "Scans", icon: "ti-scan", target: scanned_documents_section_id }
-  section_shortcuts << { label: "Move to notebook", short_label: "Move", icon: "ti-arrows-transfer-up-down", target: move_to_notebook_section_id }
+  section_shortcuts << { label: "Contacts", short_label: "Contacts", icon: "ti-address-book", target: contact_section_id }
+  section_shortcuts << { label: "Location", short_label: "Location", icon: "ti-map-pin", target: location_section_id }
   todo_progress_label = if todo_lists_available && @page.todo_list&.enabled?
     "#{@page.todo_list.completed_count}/#{@page.todo_list.total_count} to-dos"
   end
-  has_content = @page.plain_notes.present? || @page.photos.attached? ||
+  has_content = @page.location_present? || @page.contact_present? || @page.plain_notes.present? || @page.photos.attached? ||
                 voice_note_count.positive? || todo_items.any? || scanned_document_count.positive?
 %>
 
@@ -67,6 +74,18 @@
           <% if @page.plain_notes.present? %>
             <span class="notepad-doc__meta-chip">
               <i class="ti ti-file-text" aria-hidden="true"></i> Notes
+            </span>
+          <% end %>
+          <% if @page.location_present? %>
+            <span class="notepad-doc__meta-chip">
+              <i class="ti ti-map-pin" aria-hidden="true"></i>
+              <%= @page.location_count_label %>
+            </span>
+          <% end %>
+          <% if @page.contact_present? %>
+            <span class="notepad-doc__meta-chip">
+              <i class="ti ti-address-book" aria-hidden="true"></i>
+              <%= @page.contact_count_label %>
             </span>
           <% end %>
           <% if photo_count.positive? %>
@@ -210,9 +229,36 @@
           chapter: @chapter,
           page: @page %>
 
+        <%= form_with model: [@notebook, @chapter, @page],
+          method: :patch,
+          html: { id: contact_form_id, class: "d-contents" } do %>
+          <%= hidden_field_tag "page[title]", @page.title %>
+          <%= hidden_field_tag "page[notes]", @page.notes.to_s %>
+          <%= hidden_field_tag "page[captured_on]", @page.captured_on %>
+          <%= render "pages/contact_form_section",
+            record: @page,
+            form_id: contact_form_id,
+            section_id: contact_section_id,
+            add_button_id: contact_add_button_id,
+            auto_submit: true %>
+        <% end %>
+
+        <%= form_with model: [@notebook, @chapter, @page],
+          method: :patch,
+          html: { id: location_form_id, class: "d-contents" } do %>
+          <%= hidden_field_tag "page[title]", @page.title %>
+          <%= hidden_field_tag "page[notes]", @page.notes.to_s %>
+          <%= hidden_field_tag "page[captured_on]", @page.captured_on %>
+          <%= render "pages/location_form_section",
+            record: @page,
+            form_id: location_form_id,
+            section_id: location_section_id,
+            auto_submit: true %>
+        <% end %>
+
         <% unless has_content %>
           <div class="notepad-doc__block notepad-doc__block--empty">
-            <p class="text-muted m-b-none">No content yet. Use the <strong>+</strong> button below to add photos, voice notes, to-dos, or scanned documents.</p>
+            <p class="text-muted m-b-none">No content yet. Use the <strong>+</strong> button below to add a contact, location, photos, voice notes, to-dos, or scanned documents.</p>
           </div>
         <% end %>
       </div>
@@ -242,5 +288,9 @@
     voice_notes_enabled: voice_notes_available,
     todo_list_section_id:,
     todo_lists_enabled: todo_lists_available,
-    scanned_documents_section_id: %>
+    scanned_documents_section_id:,
+    contact_section_id:,
+    contact_button_id: contact_add_button_id,
+    location_section_id:,
+    location_input_id: %>
 </div>
